@@ -53,10 +53,15 @@ function $(id) { return document.getElementById(id); }
 function esc(s) {
   return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
-function panggil(periode) {
-  var badan = JSON.stringify({ aksi: "atasan", kunci: KUNCI, periode: periode || "" });
+/* Satu kali kirim. Google kadang membalas 404 HTML dari
+   script.googleusercontent.com, atau sambungannya putus, walau skripnya
+   sendiri selesai normal (terlihat di Executions: Completed 4-10 detik).
+   Membaca laporan tidak mengubah apa pun, jadi aman diulang. */
+var COBA_MAKS = 5;
+var BATAS_SATU = 35000;
+function sekali(badan) {
   var ctl = typeof AbortController === "function" ? new AbortController() : null;
-  var batas = ctl ? setTimeout(function () { ctl.abort(); }, 90000) : null;
+  var batas = ctl ? setTimeout(function () { ctl.abort(); }, BATAS_SATU) : null;
   return fetch(API, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -66,10 +71,31 @@ function panggil(periode) {
     cache: "no-store",
     signal: ctl ? ctl.signal : undefined
   }).then(function (r) {
+    return r.text().then(function (t) {
+      if (batas) clearTimeout(batas);
+      var h = null;
+      try { h = JSON.parse(t); } catch (e) { h = null; }
+      if (!r.ok || !h || typeof h !== "object") throw new Error("HTTP " + r.status);
+      return h;
+    });
+  }, function (err) {
     if (batas) clearTimeout(batas);
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
+    throw err;
   });
+}
+function panggil(periode, kabar) {
+  var badan = JSON.stringify({ aksi: "atasan", kunci: KUNCI, periode: periode || "" });
+  var ke = 0;
+  function jalan() {
+    ke++;
+    if (kabar && ke > 1) kabar(ke);
+    return sekali(badan).catch(function (err) {
+      if (ke >= COBA_MAKS) throw err;
+      var jeda = 800 * ke;
+      return new Promise(function (ok) { setTimeout(ok, jeda); }).then(jalan);
+    });
+  }
+  return jalan();
 }
 
 function layarKode(pesan) {
@@ -106,7 +132,16 @@ function layarKode(pesan) {
 function muat(periode) {
   var m = $("lapMuat");
   if (m) m.textContent = "Loading the report…";
-  panggil(periode).then(function (h) {
+  var tanda = function (ke) {
+    var t = "Google is slow to answer. Trying again (" + ke + " of " + COBA_MAKS + ")…";
+    var m1 = $("lapMuat");
+    if (m1) m1.textContent = t;
+    var b = $("bBuka");
+    if (b) b.textContent = "Trying again (" + ke + " of " + COBA_MAKS + ")…";
+    var s = $("kodeSalah");
+    if (s) s.textContent = "Google is slow to answer. Still trying, please wait.";
+  };
+  panggil(periode, tanda).then(function (h) {
     if (!h || !h.ok) {
       var tolak = h && (h.gagal !== undefined || /Kode akses|access code/i.test(String(h.pesan || "")));
       layarKode(tolak ? "The access code does not match. Ask the board owner for it and type it again."
@@ -116,8 +151,7 @@ function muat(periode) {
     gambar(h);
   }).catch(function (err) {
     var m2 = $("lapMuat");
-    var teks = "The connection dropped" + (err && err.name === "AbortError" ? " (no answer after 90 seconds)" : "") +
-      ". Nothing changed; try again.";
+    var teks = "Google did not answer after " + COBA_MAKS + " tries. Nothing changed. Wait a minute and press Open report again.";
     if (m2) { m2.textContent = teks; return; }
     layarKode(teks);
   });
