@@ -181,7 +181,11 @@
     if (S.memuat[fn]) return S.memuat[fn];
     S.memuat[fn] = panggil(fn, fn === 'lapangan' ? { periode: '' } : null).then(function (h) {
       S[kunciS] = h; S.waktu[fn] = Date.now(); if (fn === 'data') S.model = null;
-      try { taruh('wms_simpan_' + fn, JSON.stringify({ t: S.waktu[fn], isi: h }), awet()); } catch (e) {}
+      /* Selalu di localStorage (seperti papan lama), walau tiketnya cuma
+         untuk sesi ini: bukaan berikutnya langsung menampilkan angka terakhir
+         sambil menunggu server (yang butuh beberapa detik), lalu diganti
+         angka baru. Dibuang saat keluar atau tiket ditolak. */
+      try { taruh('wms_simpan_' + fn, JSON.stringify({ t: S.waktu[fn], isi: h }), true); } catch (e) {}
       S.memuat[fn] = null; return h;
     }, function (e) { S.memuat[fn] = null; throw e; });
     return S.memuat[fn];
