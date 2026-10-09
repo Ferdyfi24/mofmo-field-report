@@ -48,6 +48,18 @@ button{font:inherit;cursor:pointer}
 var API = "https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec";
 var KUNCI = "";
 var PILIH = null;
+/* Kunjungan yang dituju dari kartu Google Chat (#k=ID kunjungan). Yang ada di
+   alamat cuma ID kunjungan, bukan kode akses. Sesudah kode diketik, pekan
+   kunjungan itu yang dibuka, lalu barisnya digulir ke tengah dan disorot. */
+var TUJUAN = bacaTujuan();
+function bacaTujuan() {
+  var m = String(location.hash || "").match(/^#k=([A-Za-z0-9_-]{1,60})$/);
+  return m ? m[1] : "";
+}
+function tanggalTujuan(id) {
+  var m = String(id || "").match(/^KJ-(\d{4})(\d{2})(\d{2})-/);
+  return m ? m[1] + "-" + m[2] + "-" + m[3] : "";
+}
 
 function $(id) { return document.getElementById(id); }
 function esc(s) {
@@ -107,6 +119,7 @@ function layarKode(pesan) {
   $("kanan").innerHTML = "";
   $("isi").innerHTML =
     (pesan ? '<div class="pita" role="alert">' + esc(pesan) + "</div>" : "") +
+    (TUJUAN ? '<p class="kecil" id="tujuanCatat">After the code, the report opens at visit <b>' + esc(TUJUAN) + "</b>.</p>" : "") +
     '<form class="kartu" id="fKode" autocomplete="off">' +
     '<label for="kode">Access code</label>' +
     '<input id="kode" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text">' +
@@ -125,7 +138,7 @@ function layarKode(pesan) {
     var b = $("bBuka");
     b.disabled = true;
     b.textContent = "Checking…";
-    muat("");
+    muat(tanggalTujuan(TUJUAN));
   });
 }
 
@@ -171,9 +184,35 @@ function gambar(h) {
   var host = $("lapHost");
   if (host.attachShadow) host.attachShadow({ mode: "open" }).innerHTML = h.html || "";
   else host.innerHTML = h.html || "";
+  if (TUJUAN) sorotTujuan(host.shadowRoot || host);
   $("pilihLap").addEventListener("change", function () { muat(this.value); });
   $("bTutup").addEventListener("click", function () { layarKode(""); });
 }
+
+function sorotTujuan(akar) {
+  var id = TUJUAN;
+  TUJUAN = "";
+  var baris = akar.querySelector('tr[data-kj="' + id + '"]');
+  var m = $("lapMuat");
+  if (!baris) {
+    if (m) m.textContent = "Visit " + id + " is not in this period. It may have been moved or removed.";
+    return;
+  }
+  baris.style.outline = "3px solid #A0562C";
+  baris.style.outlineOffset = "-3px";
+  Array.prototype.forEach.call(baris.children, function (td) { td.style.background = "#FFF1DE"; });
+  if (m) m.textContent = "Showing visit " + id + ", highlighted below.";
+  setTimeout(function () {
+    try { baris.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) { baris.scrollIntoView(); }
+  }, 60);
+}
+/* Kartu Chat lain diklik saat halaman ini masih terbuka di tab yang sama. */
+window.addEventListener("hashchange", function () {
+  TUJUAN = bacaTujuan();
+  if (!TUJUAN) return;
+  if (KUNCI) muat(tanggalTujuan(TUJUAN));
+  else layarKode("");
+});
 
 layarKode("");
 </script>
