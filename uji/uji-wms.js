@@ -1,4 +1,4 @@
-/* Uji WMS baru (wms/, 10 Okt 2026). Harapan: "32 pemeriksaan, SEMUA LULUS".
+/* Uji WMS baru (wms/, 10 Okt 2026). Harapan: "42 pemeriksaan, SEMUA LULUS".
  * Chromium sungguhan, halaman dilayani dari localhost, server Apps Script
  * palsu (aksi 'wms'), pustaka QR palsu, AudioContext palsu yang mencatat nada.
  *
@@ -9,6 +9,12 @@
  * barang di rak yang salah dengan bunyi "berhasil". Kalau kode akses bocor ke
  * alamat atau tersimpan di HP, papan bisa dibuka orang lain.
  *
+ * Sejak L4 (10 Okt): halaman masuk papan dok + konveyor + boneka yang
+ * bereaksi, Supabase palsu (potret baca cepat) dengan tiga keadaan: mati,
+ * kosong (belum didaftarkan, keadaan nyata hari ini), dan hidup; serta papan
+ * lengkap (papan/) yang menjalankan HTML papan lama dengan pengganti
+ * google.script.run.
+ *
  * Semua angka harapan dihitung tangan dari fixture di bawah (lihat komentar
  * per angka), bukan disalin dari layar.
  */
@@ -17,7 +23,8 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 32;
+const DIHARAPKAN = 42;
+const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -64,6 +71,14 @@ const GUDANG = { ok: true, stokHO: 50, diLokasi: 28, terisi: 2, jml: 3, rendah: 
 const KIRIMAN = { ok: true, jml: 2, daftar: [
   { lajur: 'Retail', ref: 'DO-0101', tujuan: 'Toys Kingdom PIM', tanggal: '2026-10-03', noPo: 'PO-77', tahap: 'PACKING', noSj: 'SJ-0101', pcsPesan: 12, pcsPetik: 12, pcsKemas: 10, koli: 1 },
   { lajur: 'Shopee', ref: 'SHP-9', tujuan: 'Pembeli Shopee', tanggal: '2026-10-08', noPo: '', tahap: 'DELIVERED', noSj: '', pcsPesan: 1, pcsPetik: 1, pcsKemas: 1, koli: 1, kurir: 'SPX', resi: 'SPX123' }] };
+/* Papan lama palsu: bentuknya meniru yang penting saja. buka() membaca #kode
+   lalu memanggil dataPapan(k); tombol tulis memanggil fungsi tulis lalu
+   membaca lagi. */
+const PAPAN_PALSU = '<!doctype html><html><head><title>Papan</title></head><body><input id="kode"><div id="hasil"></div>' +
+  '<script>var KODE="";function buka(){var k=document.getElementById("kode").value;KODE=k;window.__k=k;' +
+  'google.script.run.withSuccessHandler(function(r){document.getElementById("hasil").textContent="MASUK "+r.prod.length;window.__siap=1;}).withFailureHandler(function(e){window.__gagal=e.message;}).dataPapan(k);}' +
+  'function tulis(){google.script.run.withSuccessHandler(function(r){window.__tulis=r;google.script.run.withSuccessHandler(function(x){window.__baca2=x;}).papanInventory(KODE,"12b");}).withFailureHandler(function(e){window.__gagal=e.message;}).simpanOpname(KODE,{lok:"A-01-1",qty:3});}' +
+  '<\/script></body></html>';
 const LAPANGAN = { ok: true, html: '<div class="lap"><h3>LAPORAN-LAPANGAN-UJI</h3><a href="https://mofmo-lapangan.pages.dev/?pekan=1">detail</a></div>' };
 
 const QR_PALSU = 'window.qrcode=function(){var d="";return{addData:function(x){d=x},make:function(){},createSvgTag:function(){return "<svg data-qr=\\""+d.replace(/"/g,"")+"\\"></svg>"}}};';
@@ -83,7 +98,14 @@ const AUDIO_PALSU = () => {
   await new Promise(r => srv.listen(8766, r));
   const URL0 = 'http://localhost:8766/wms/';
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }).catch(() => chromium.launch());
-  const S = { badan: [], perluMasuk: false, galatData: false };
+  const S = { badan: [], perluMasuk: false, galatData: false, supa: 'mati', supaBadan: [], papanAda: false, segarkanLama: false };
+  const POTRET = () => {
+    const w = new Date(Date.now() - 3 * 60000).toISOString();
+    const o = { 'dataPapan|["K"]': Object.assign({ ok: true, awal: '2026-08-01', akhir: '2026-10-08', bagianLain: 'tidak dipakai WMS' }, { lok, prod, baris, sehat: DATA.sehat }),
+      'wmsGudang|["K"]': GUDANG, 'obdDaftar|["K"]': KIRIMAN, 'fapLaporanAtasan|["K",""]': LAPANGAN, 'papanInventory|["K","12b"]': { ok: true, dari: 'supa' } };
+    if (S.papanAda) o['klien|papan'] = { ok: true, versi: 'uji', html: PAPAN_PALSU };
+    const r = {}; Object.keys(o).forEach(k => { r[k] = { waktu: w, data: o[k] }; }); return r;
+  };
   const ctx = await b.newContext({ viewport: { width: 1360, height: 900 } });
   await ctx.addInitScript(AUDIO_PALSU);
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
@@ -100,8 +122,23 @@ const AUDIO_PALSU = () => {
     else if (m.fn === 'gudang') h = { pintu: 'ok', hasil: GUDANG };
     else if (m.fn === 'kiriman') h = { pintu: 'ok', hasil: KIRIMAN };
     else if (m.fn === 'lapangan') h = { pintu: 'ok', hasil: LAPANGAN };
+    else if (m.fn === 'segarkan') h = S.segarkanLama ? { pintu: 'galat', pesan: 'Fungsi "segarkan" tidak dibuka untuk WMS.' } : { pintu: 'ok', hasil: { ok: true, didorong: m.hanya } };
+    else if (m.fn === 'panggil') h = m.nama === 'simpanOpname' ? { pintu: 'ok', hasil: { ok: true, tersimpan: 1 } } : m.nama === 'papanInventory' ? { pintu: 'ok', hasil: { ok: true, dari: 'gas' } } : m.nama === 'dataPapan' ? { pintu: 'ok', hasil: Object.assign({ ok: true }, DATA) } : { pintu: 'galat', pesan: 'tidak boleh' };
     else h = { pintu: 'ok', hasil: { ok: false, pesan: 'fn tidak dikenal' } };
     await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(h) });
+  });
+  await ctx.route(SUPA, async r => {
+    let m = {}; try { m = JSON.parse(r.request().postData() || '{}'); } catch (e) {}
+    S.supaBadan.push(m);
+    if (S.supa === 'mati') return r.abort();
+    let h;
+    if (S.supa === 'kosong') h = m.fn === 'masuk' ? { ok: false, pesan: 'The new WMS is not connected to the board yet.' } : { ok: false, perluMasuk: true, pesan: 'Please enter the access code again.' };
+    else if (m.fn === 'masuk') h = String(m.kode || '').trim().toUpperCase() === KODE_BENAR ? { ok: true, tiket: 'TIKET.SUPA', ingat: !!m.ingat } : { ok: false, pesan: 'That access code is not right.' };
+    else if (m.fn === 'ambil') {
+      if (!/^TIKET\./.test(m.tiket || '')) h = { ok: false, perluMasuk: true };
+      else { const P = POTRET(), isi = {}; (m.kunci || []).forEach(k => { if (P[k]) isi[k] = P[k]; }); h = { ok: true, isi }; }
+    } else h = { ok: false, pesan: 'Unknown request.' };
+    await r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(h) });
   });
   const cek = []; const c = (n, ok, k) => cek.push([n, !!ok, k]);
   const galatHalaman = [];
@@ -122,7 +159,16 @@ const AUDIO_PALSU = () => {
     await p.evaluate(() => { localStorage.setItem('wms_tema', 'light'); localStorage.setItem('wms_bhs', 'en'); });
     await p.reload();
     await tunggu(() => document.getElementById('formMasuk'));
-    c('W1 tanpa tiket yang tampil halaman masuk, dan tidak ada panggilan data sebelum masuk', await p.$('#formMasuk') && !S.badan.some(x => x.fn === 'data'), JSON.stringify(S.badan.map(x => x.fn)));
+    c('W1 tanpa tiket yang tampil halaman masuk, dan tidak ada panggilan data sebelum masuk', await p.$('#formMasuk') && !S.badan.some(x => x.fn === 'data') && !S.supaBadan.some(x => x.fn === 'ambil'), JSON.stringify(S.badan.map(x => x.fn)));
+    const papan1 = await p.evaluate(() => ({ baris: Array.prototype.map.call(document.querySelectorAll('.papan .papan-baris'), b => ({ n: b.querySelectorAll('.keping').length, t: b.innerText.replace(/\s+/g, '') })),
+      lewat: document.querySelectorAll('#garisTahap .lewat').length, gel: document.getElementById('gelembung').textContent,
+      kardus: Array.prototype.map.call(document.querySelectorAll('.konveyor .kardus'), k => !!k.querySelector('svg.boneka') + k.querySelector('.kode-k').textContent), maskot: !!document.querySelector('#maskot svg .kedip') }));
+    await jeda(2750);
+    const papan2 = await p.evaluate(() => ({ t: document.querySelector('#barisTahap').innerText.replace(/\s+/g, ''), lewat: document.querySelectorAll('#garisTahap .lewat').length }));
+    /* baris tahap: '> PICKING' = 9 huruf (spasi jadi keping kosong), 14 keping per baris */
+    c('W33 papan dok: 3 baris x 14 keping, tahap berputar PICKING -> PACKING tiap 2,6 detik, boneka berkedip menyapa, 3 kardus berboneka di konveyor',
+      papan1.baris.length === 3 && papan1.baris.every(b => b.n === 14) && papan1.baris[0].t === 'MOFMOFRIENDS' && papan1.baris[1].t === 'WMSHOHAERY' && papan1.baris[2].t === '>PICKING' && papan1.lewat === 1 &&
+      papan2.t === '>PACKING' && papan2.lewat === 2 && papan1.gel === 'MOF! CODE, PLEASE' && papan1.maskot && JSON.stringify(papan1.kardus) === '["trueDO-0101","trueSHP-9","truePO-77"]', JSON.stringify([papan1, papan2]));
     await foto('01-masuk');
     /* Server papan belum di-deploy: jawabannya bentuk lama ({ok:false,pesan:'Kunci pintu salah.'}), tanpa 'pintu'. */
     S.serverLama = true;
@@ -138,9 +184,17 @@ const AUDIO_PALSU = () => {
     await tunggu(() => /not right/.test(document.getElementById('galatMasuk').textContent));
     const salah = await p.evaluate(() => ({ g: document.getElementById('galatMasuk').textContent, ls: JSON.stringify(localStorage), ss: JSON.stringify(sessionStorage), anim: document.getElementById('kode').style.animation }));
     const nSalah = await nada();
-    c('W2 kode salah: pesan tampil, input bergeleng, bunyi gagal, tidak ada tiket tersimpan', /not right/.test(salah.g) && /geleng/.test(salah.anim) && nSalah.indexOf(330) > -1 && !/wms_tiket/.test(salah.ls + salah.ss), JSON.stringify(salah) + ' ' + nSalah);
+    c('W2 kode salah: pesan tampil, input bergeleng, bunyi tolak scanner (220 lalu 185 Hz), tidak ada tiket tersimpan', /not right/.test(salah.g) && /geleng/.test(salah.anim) && nSalah.indexOf(220) > -1 && nSalah.indexOf(185) > nSalah.indexOf(220) && !/wms_tiket/.test(salah.ls + salah.ss), JSON.stringify(salah) + ' ' + nSalah);
+    const sedih = await p.evaluate(() => ({ k: document.getElementById('maskot').className, mata: !!document.querySelector('#maskot path[d^="M39 58"]'), kedip: !!document.querySelector('#maskot .kedip'), gel: document.getElementById('gelembung').textContent }));
+    c('W34 kode salah: boneka geleng kepala dengan mata > <, gelembung "HMM. TRY THAT CODE AGAIN"', /gelengKepala/.test(sedih.k) && sedih.mata && !sedih.kedip && sedih.gel === 'HMM. TRY THAT CODE AGAIN', JSON.stringify(sedih));
+    await foto('01b-masuk-tolak');
+    S.supa = 'kosong';
     await p.fill('#kode', ' kode-palsu-uji ');
     await p.click('#tMasuk');
+    await tunggu(() => document.querySelector('#capMasuk .cap'));
+    const senang = await p.evaluate(() => ({ cap: (document.querySelector('#capMasuk .cap') || {}).textContent, k: (document.getElementById('maskot') || {}).className, mata: !!document.querySelector('#maskot path[d^="M38 66"]'), gel: (document.getElementById('gelembung') || {}).textContent }));
+    c('W35 kode benar: cap CHECKED tertempel, boneka melompat dengan mata senang, gelembung "YAY! OPENING THE LEDGER"', senang.cap === 'CHECKED' && /lompat/.test(senang.k) && senang.mata && senang.gel === 'YAY! OPENING THE LEDGER', JSON.stringify(senang));
+    await foto('01c-masuk-lolos');
     await tunggu(() => document.querySelector('.grid-kpi .kpi'), null, 8000);
     const masuk = await p.evaluate(() => ({ h: location.hash, href: location.href, ls: JSON.stringify(localStorage), ss: JSON.stringify(sessionStorage) }));
     const kirimMasuk = S.badan.filter(x => x.fn === 'masuk').pop() || {};
@@ -174,6 +228,10 @@ const AUDIO_PALSU = () => {
     await p.click('[data-aksi=saringStok][data-nilai=never]');
     const takLaku = await p.evaluate(() => Array.prototype.map.call(document.querySelectorAll('tbody tr b'), e => e.textContent));
     c('W11 saring stok: tipis di HO = Bunny (4), belum pernah laku = Bunny', JSON.stringify(rendah) === '["Bunny Pouch"]' && JSON.stringify(takLaku) === '["Bunny Pouch"]', JSON.stringify([rendah, takLaku]));
+    /* noshelf: tiga SKU semuanya ada di rak gerai (koala T305, bear K01, bunny T305/K02), jadi kosong */
+    await p.click('[data-aksi=saringStok][data-nilai=noshelf]');
+    const tidur = await p.evaluate(() => ({ n: document.querySelectorAll('tbody tr b').length, boneka: document.querySelectorAll('.kosong svg.boneka-kecil').length, mata: !!document.querySelector('.kosong svg.boneka-kecil path[d^="M27 42"]') }));
+    c('W42 hasil kosong ditemani boneka kecil yang tidur', tidur.n === 0 && tidur.boneka === 1 && tidur.mata, JSON.stringify(tidur));
     await p.click('[data-aksi=saringStok][data-nilai=all]');
     await foto('03-stok');
 
@@ -309,6 +367,53 @@ const AUDIO_PALSU = () => {
     const habis = await p.evaluate(() => ({ form: !!document.getElementById('formMasuk'), ss: JSON.stringify(sessionStorage), ls: JSON.stringify(localStorage) }));
     c('W29 tiket ditolak server: kembali ke halaman masuk dan tiket serta data simpanan dibuang', habis.form && !/TIKET|wms_simpan/.test(habis.ss + habis.ls), JSON.stringify(habis).slice(0, 200));
     S.perluMasuk = false;
+
+    /* ---------- Supabase hidup: masuk dan baca tanpa Apps Script ---------- */
+    S.supa = 'hidup'; S.badan.length = 0; S.supaBadan.length = 0;
+    await p.fill('#kode', 'kode-palsu-uji');
+    await p.click('#tMasuk');
+    await tunggu(() => document.querySelector('.grid-kpi .kpi'), null, 8000);
+    await tunggu(() => window.__wms && window.__wms.S.gudang && window.__wms.S.kiriman, null, 8000);
+    await jeda(900);
+    const cepat = await p.evaluate(() => ({ kpi: Array.prototype.map.call(document.querySelectorAll('.grid-kpi .kpi .angka'), e => e.textContent), pil: (document.querySelector('.atas .pil') || {}).textContent, ss: JSON.stringify(sessionStorage), sumber: window.__wms.S.sumber }));
+    c('W36 Supabase hidup: masuk dan semua data dibaca dari potret (tanpa satu pun panggilan Apps Script), angka sama, umur data ikut potret',
+      S.badan.length === 0 && S.supaBadan.some(x => x.fn === 'masuk') && /TIKET\.SUPA/.test(cepat.ss) && cepat.kpi[2] === '69' && /Updated 3 min ago/.test(cepat.pil) && cepat.sumber.data === 'supa',
+      JSON.stringify({ gas: S.badan.map(x => x.fn), cepat }));
+    const ambilSebelum = S.supaBadan.filter(x => x.fn === 'ambil').length;
+    await p.click('.atas [data-aksi=muat]');
+    await tunggu(() => /Latest data loaded/.test(document.getElementById('toast').innerText));
+    const seg = S.badan.filter(x => x.fn === 'segarkan')[0] || {};
+    c('W37 tombol segarkan: Apps Script diminta menyusun ulang potret halaman ini (dataPapan, wmsGudang, obdDaftar), lalu dibaca lagi dari Supabase',
+      JSON.stringify(seg.hanya) === '["dataPapan","wmsGudang","obdDaftar"]' && seg.tiket === 'TIKET.SUPA' && !S.badan.some(x => x.fn === 'data') && S.supaBadan.filter(x => x.fn === 'ambil').length >= ambilSebelum + 3,
+      JSON.stringify({ gas: S.badan.map(x => x.fn), seg }));
+    S.segarkanLama = true; S.badan.length = 0;
+    await p.evaluate(() => { document.getElementById('toast').innerHTML = ''; });
+    await p.click('.atas [data-aksi=muat]');
+    await tunggu(() => /Latest data loaded/.test(document.getElementById('toast').innerText));
+    c('W38 server belum di-deploy (segarkan belum dikenal): segarkan jatuh ke pembacaan langsung dari Apps Script', ['segarkan', 'data', 'gudang', 'kiriman'].every(f => S.badan.some(x => x.fn === f)), JSON.stringify(S.badan.map(x => x.fn)));
+    S.segarkanLama = false;
+
+    /* ---------- papan lengkap ---------- */
+    S.papanAda = true; S.badan.length = 0;
+    await p.goto('http://localhost:8766/wms/papan/');
+    await tunggu(() => window.__siap, null, 8000);
+    const pp = await p.evaluate(() => ({ k: window.__k, hasil: (document.getElementById('hasil') || {}).textContent, balik: Array.prototype.some.call(document.querySelectorAll('a'), a => /\/wms\/$/.test(a.href) && /WMS/.test(a.textContent)), href: location.href }));
+    c('W39 papan lengkap: HTML papan lama jalan, masuk sendiri dengan kata pengganti WMS-TIKET, dataPapan dibaca dari Supabase, ada tombol kembali ke WMS',
+      pp.k === 'WMS-TIKET' && pp.hasil === 'MASUK 3' && pp.balik && !S.badan.some(x => x.fn === 'panggil') && !/kode-palsu/i.test(pp.href), JSON.stringify({ pp, gas: S.badan.map(x => x.fn + ':' + x.nama) }));
+    await foto('14-papan-lengkap');
+    await p.evaluate(() => tulis());
+    await tunggu(() => window.__baca2, null, 6000);
+    const tl = await p.evaluate(() => ({ tulis: window.__tulis, baca2: window.__baca2, gagal: window.__gagal }));
+    const pTulis = S.badan.filter(x => x.fn === 'panggil');
+    c('W40 papan lengkap menulis lewat Apps Script (tiket + WMS-TIKET, bukan kode), dan bacaan sesudah tulisan diambil dari Apps Script, bukan potret lama',
+      tl.tulis && tl.tulis.tersimpan === 1 && tl.baca2 && tl.baca2.dari === 'gas' && pTulis.length === 2 && pTulis[0].nama === 'simpanOpname' && pTulis[0].args[0] === 'WMS-TIKET' && pTulis[0].tiket === 'TIKET.SUPA' && !('kode' in pTulis[0]),
+      JSON.stringify({ tl, p: pTulis }));
+    S.papanAda = false;
+    await p.evaluate(() => sessionStorage.removeItem('wms_kotor'));
+    await p.goto('http://localhost:8766/wms/papan/');
+    await tunggu(() => /not ready/i.test(document.body.innerText), null, 6000);
+    const blm = await p.evaluate(() => ({ t: document.body.innerText, lama: Array.prototype.some.call(document.querySelectorAll('a'), a => /\?lihat=1$/.test(a.href)) }));
+    c("W41 papan lengkap belum dicerminkan: pesan jelas dan tautan ke papan lama, tidak macet", /Full board is not ready yet/i.test(blm.t) && blm.lama, blm.t.slice(0, 200));
   } catch (e) {
     c('MATI di tengah jalan', false, e.stack);
   }
