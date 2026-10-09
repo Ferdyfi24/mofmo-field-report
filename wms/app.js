@@ -1,9 +1,13 @@
 /* WMS Mofmofriends, versi baru (10 Okt 2026).
  *
- * Halaman statis di Cloudflare Pages. Semua data diambil dari Apps Script
- * lewat doPost aksi 'wms' (wmsPintu_ di FieldOp.gs): kode akses dikirim
- * sekali, sesudah itu cuma tiket bertanda tangan yang dipegang perangkat.
- * Tidak ada yang menulis ke spreadsheet dari halaman ini.
+ * Halaman statis di Cloudflare Pages. Data dibaca lebih dulu dari potret di
+ * Supabase (Edge Function "wms", sekitar 0,2 detik), yang diisi Apps Script
+ * tiap 10 menit dan setiap kali ada yang menulis. Kalau potretnya belum ada,
+ * jatuh ke Apps Script lewat doPost aksi 'wms' (wmsPintu_ di FieldOp.gs).
+ * Kode akses dikirim sekali, sesudah itu cuma tiket bertanda tangan yang
+ * dipegang perangkat; tiket yang sama sah di kedua server.
+ * Halaman ini sendiri tidak menulis ke spreadsheet. Fitur tulis ada di
+ * papan lengkap (papan/), yang memanggil fungsi papan lama lewat Apps Script.
  *
  * Hitungan stok dan penjualan memakai baris buku besar yang sama dengan
  * papan lama (dataPapan: [tanggal, produk, qty, dari, ke]), jadi angkanya
@@ -15,6 +19,7 @@
   var APP_LAPANGAN = 'https://mofmo-lapangan.pages.dev/lapangan/';
   var LAPORAN_LAPANGAN = 'https://mofmo-lapangan.pages.dev/';
   var PAPAN_LAMA = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec?lihat=1';
+  var SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
   var QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
 
   /* ================= penyimpanan ================= */
@@ -42,7 +47,7 @@
       back: 'Back', print: 'Print', zone: 'Zone', location: 'Location', inside: 'Inside', fill: 'Full',
       verify: 'Scan a barcode to check this rack', scanHere: 'Scan or type barcode',
       openApp: 'Open field app', openReport: 'Open field report', noData: 'No data yet.', events: 'Selling events', checklist: 'Checklist',
-      findings: 'Findings', rows: 'ledger rows', products: 'products', stage: 'Stage', ref: 'Document', dest: 'Destination', date: 'Date', pcs: 'Pcs', po: 'PO'
+      fullBoard: 'Full board', findings: 'Findings', rows: 'ledger rows', products: 'products', stage: 'Stage', ref: 'Document', dest: 'Destination', date: 'Date', pcs: 'Pcs', po: 'PO'
     },
     id: {
       summary: 'Ringkasan', inventory: 'Persediaan', stock: 'Stok per SKU', map: 'Peta gudang', stores: 'Gerai offline', passport: 'Paspor SKU',
@@ -58,7 +63,7 @@
       back: 'Kembali', print: 'Cetak', zone: 'Zona', location: 'Lokasi', inside: 'Isi', fill: 'Terisi',
       verify: 'Scan barcode untuk mengecek rak ini', scanHere: 'Scan atau ketik barcode',
       openApp: 'Buka aplikasi lapangan', openReport: 'Buka laporan lapangan', noData: 'Belum ada data.', events: 'Acara penjualan', checklist: 'Daftar persiapan',
-      findings: 'Temuan', rows: 'baris buku besar', products: 'produk', stage: 'Tahap', ref: 'Dokumen', dest: 'Tujuan', date: 'Tanggal', pcs: 'Pcs', po: 'PO'
+      fullBoard: 'Papan lengkap', findings: 'Temuan', rows: 'baris buku besar', products: 'produk', stage: 'Tahap', ref: 'Dokumen', dest: 'Tujuan', date: 'Tanggal', pcs: 'Pcs', po: 'PO'
     }
   };
   function bhs() { return setelan('wms_bhs') === 'id' ? 'id' : 'en'; }
@@ -129,7 +134,7 @@
     sum: 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z', inv: 'M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8', shp: 'M3 7h11v10H3zM14 10h4l3 3v4h-7',
     fo: 'M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z', plan: 'M4 5h16v15H4zM4 10h16M9 3v4M15 3v4', dq: 'M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7zM9 12l2 2 4-4',
     cari: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-3.5-3.5', muat: 'M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5', suara: 'M4 9v6h4l5 4V5L8 9zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12',
-    bisu: 'M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6'
+    bisu: 'M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6', papan: 'M3 4h18v12H3zM8 20h8M12 16v4M7 8h4M7 12h10'
   };
   function svg(d, uk) { return '<svg width="' + (uk || 18) + '" height="' + (uk || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"></path></svg>'; }
 
@@ -141,11 +146,11 @@
     document.body.classList.add('ganti-tema');
     document.documentElement.setAttribute('data-theme', tm);
     setTimeout(function () { document.body.classList.remove('ganti-tema'); }, 450);
-    var meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.setAttribute('content', tm === 'dark' ? '#0D1014' : '#8C4A24');
+    var meta = document.querySelector('meta[name=theme-color]'); if (meta) meta.setAttribute('content', tm === 'dark' ? '#121212' : '#FFFFFF');
   }
 
   /* ================= server ================= */
-  var S = { tiket: ambil('wms_tiket') || '', data: null, gudang: null, kiriman: null, lapangan: null, model: null, waktu: {}, memuat: {} };
+  var S = { tiket: ambil('wms_tiket') || '', data: null, gudang: null, kiriman: null, lapangan: null, model: null, waktu: {}, memuat: {}, sumber: {} };
   function kirim(badan, batas) {
     var ctl = typeof AbortController === 'function' ? new AbortController() : null;
     var tm = ctl ? setTimeout(function () { ctl.abort(); }, batas || 90000) : null;
@@ -162,6 +167,47 @@
         return h.hasil;
       }, function (e) { if (tm) clearTimeout(tm); throw new Error(e && e.name === 'AbortError' ? 'The server took too long. Try again.' : 'Connection lost. Try again when the signal is back.'); });
   }
+  /* ---------- Supabase: potret baca cepat ---------- */
+  function kirimSupa(badan, batas) {
+    var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    var tm = ctl ? setTimeout(function () { ctl.abort(); }, batas || 20000) : null;
+    return fetch(SUPA, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(badan), credentials: 'omit', cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.json(); })
+      .then(function (h) { if (tm) clearTimeout(tm); return h; }, function (e) { if (tm) clearTimeout(tm); throw e; });
+  }
+  /* Kunci potret = nama fungsi papan + argumennya, kode akses diganti 'K'.
+     Harus sama persis dengan wmsKunciPotret_ di Apps Script. */
+  function kunciPotret(nama, sisa) { return nama + '|' + JSON.stringify(['K'].concat(sisa || [])); }
+  var POTRET = {
+    data: { k: kunciPotret('dataPapan'), ubah: rampingData },
+    gudang: { k: kunciPotret('wmsGudang') },
+    kiriman: { k: kunciPotret('obdDaftar') },
+    lapangan: { k: kunciPotret('fapLaporanAtasan', ['']) }
+  };
+  function tglJakarta(d, pola) {
+    var x = new Date(d.getTime() + 7 * 3600000), th = x.getUTCFullYear(), bl = ('0' + (x.getUTCMonth() + 1)).slice(-2), hr = ('0' + x.getUTCDate()).slice(-2);
+    return pola === 'bulan' ? th + '-' + bl : th + '-' + bl + '-' + hr;
+  }
+  /* Sama dengan wmsData_ di Apps Script: dataPapan dipangkas ke yang dipakai WMS. */
+  function rampingData(s, waktu) {
+    if (!s || !s.ok) return null;
+    var kini = new Date();
+    return { ok: true, lok: s.lok || [], prod: s.prod || [], baris: s.baris || [], sehat: s.sehat || {}, awal: s.awal || '', akhir: s.akhir || '', tarif: s.tarif || null,
+      hariIni: tglJakarta(kini), bulanIni: tglJakarta(kini, 'bulan'), diperbarui: waktu || '' };
+  }
+  /* Mengembalikan {isi, t} atau null kalau potretnya belum ada / server
+     Supabase tidak bisa dipakai. Null berarti jatuh ke Apps Script. */
+  function dariSupa(fn) {
+    var P = POTRET[fn]; if (!P || !S.tiket) return Promise.resolve(null);
+    return kirimSupa({ fn: 'ambil', tiket: S.tiket, kunci: [P.k] }).then(function (h) {
+      var x = h && h.ok && h.isi ? h.isi[P.k] : null;
+      if (!x || !x.data) return null;
+      var isi = P.ubah ? P.ubah(x.data, x.waktu) : x.data;
+      if (!isi || isi.ok === false) return null;
+      var t = Date.parse(x.waktu) || Date.now();
+      return { isi: isi, t: t };
+    }, function () { return null; });
+  }
   function panggil(fn, extra) {
     var b = { aksi: 'wms', fn: fn, tiket: S.tiket };
     Object.keys(extra || {}).forEach(function (k) { b[k] = extra[k]; });
@@ -174,13 +220,16 @@
   /* Data terakhir disimpan di perangkat (seperti papan lama) supaya bukaan
      berikutnya langsung tampil, lalu diganti angka baru dari server. */
   function bacaSimpan(fn) { try { var x = JSON.parse(ambil('wms_simpan_' + fn) || 'null'); return x && x.isi ? x : null; } catch (e) { return null; } }
-  function muat(fn, paksa) {
+  function muat(fn, paksa, segar) {
     var kunciS = fn === 'lapangan' ? 'lapangan' : fn;
     if (!paksa && S[kunciS]) return Promise.resolve(S[kunciS]);
     if (!paksa) { var lama = bacaSimpan(fn); if (lama) { S[kunciS] = lama.isi; S.waktu[fn] = lama.t; if (fn === 'data') S.model = null; setTimeout(function () { muat(fn, true).then(function () { if (rute().hal === halamanSekarang) gambar(); }, function () {}); }, 50); return Promise.resolve(lama.isi); } }
     if (S.memuat[fn]) return S.memuat[fn];
-    S.memuat[fn] = panggil(fn, fn === 'lapangan' ? { periode: '' } : null).then(function (h) {
-      S[kunciS] = h; S.waktu[fn] = Date.now(); if (fn === 'data') S.model = null;
+    var dariServer = function () { return panggil(fn, fn === 'lapangan' ? { periode: '' } : null).then(function (h) { return { isi: h, t: Date.now(), sumber: 'gas' }; }); };
+    var jalan = (segar ? Promise.resolve(null) : dariSupa(fn)).then(function (x) { return x ? (x.sumber = 'supa', x) : dariServer(); });
+    S.memuat[fn] = jalan.then(function (x) {
+      var h = x.isi;
+      S[kunciS] = h; S.waktu[fn] = x.t; S.sumber[fn] = x.sumber; if (fn === 'data') S.model = null;
       /* Selalu di localStorage (seperti papan lama), walau tiketnya cuma
          untuk sesi ini: bukaan berikutnya langsung menampilkan angka terakhir
          sambil menunggu server (yang butuh beberapa detik), lalu diganti
@@ -189,6 +238,17 @@
       S.memuat[fn] = null; return h;
     }, function (e) { S.memuat[fn] = null; throw e; });
     return S.memuat[fn];
+  }
+  /* Tombol segarkan: minta Apps Script menyusun ulang potret yang dibutuhkan
+     halaman ini lalu mendorongnya ke Supabase, kemudian baca lagi dari sana.
+     Server yang belum di-deploy belum mengenal 'segarkan', jadi jatuh ke
+     pembacaan langsung dari Apps Script seperti sebelumnya. */
+  function segarkan(daftar) {
+    var hanya = []; daftar.forEach(function (k) { if (POTRET[k]) hanya.push(POTRET[k].k.split('|')[0]); });
+    return kirim({ aksi: 'wms', fn: 'segarkan', tiket: S.tiket, hanya: hanya }, 120000).then(function (h) {
+      if (h && h.perluMasuk) { keluarAkun(true); throw new Error(h.pesan || 'Please sign in again.'); }
+      return Promise.all(daftar.map(function (k) { return muat(k, true); }));
+    }, function () { return Promise.all(daftar.map(function (k) { return muat(k, true, true); })); });
   }
   function keluarAkun(diam) {
     ['wms_tiket', 'wms_ingat', 'wms_simpan_data', 'wms_simpan_gudang', 'wms_simpan_kiriman', 'wms_simpan_lapangan'].forEach(buang);
@@ -235,7 +295,8 @@
     { k: 'shipments', ik: 'shp', h: '#/shipments' },
     { k: 'field', ik: 'fo', h: '#/field' },
     { k: 'planning', ik: 'plan', sub: [['calendar', '#/calendar'], ['labels', '#/labels']] },
-    { k: 'quality', ik: 'dq', h: '#/quality' }
+    { k: 'quality', ik: 'dq', h: '#/quality' },
+    { k: 'fullBoard', ik: 'papan', h: 'papan/', luar: true }
   ];
   var GRUP_HAL = { summary: 'summary', stock: 'inventory', map: 'inventory', stores: 'inventory', passport: 'inventory', shipments: 'shipments', field: 'field', calendar: 'planning', labels: 'planning', quality: 'quality' };
   function rute() {
@@ -250,13 +311,13 @@
     var grupAktif = GRUP_HAL[hal];
     var nav = MENU.map(function (g) {
       var on = g.k === grupAktif;
-      var a = '<a class="nv' + (on ? ' on' : '') + '" href="' + (g.h || g.sub[0][1]) + '" data-suara="klik">' + svg(IK[g.ik]) + esc(t(g.k)) + '</a>';
+      var a = '<a class="nv' + (on ? ' on' : '') + '" href="' + (g.h || g.sub[0][1]) + '" data-suara="klik">' + svg(IK[g.ik]) + '<span style="flex:1">' + esc(t(g.k)) + '</span>' + (g.luar ? '<span class="pil n" style="height:20px">' + (bhs() === 'id' ? 'TULIS' : 'EDIT') + '</span>' : '') + '</a>';
       if (g.sub && on) a += g.sub.map(function (s) { return '<a class="sb' + (s[0] === hal ? ' on' : '') + '" href="' + s[1] + '" data-suara="klik">' + esc(t(s[0])) + '</a>'; }).join('');
       return a;
     }).join('');
     var umur = S.waktu.data ? Math.max(0, Math.round((Date.now() - S.waktu.data) / 60000)) : null;
     return '<div class="app">' +
-      '<nav class="side" aria-label="Main menu"><div class="merek"><div class="logo">M</div><div><b>Mofmofriends</b><small>Warehouse &amp; field ops</small></div></div>' +
+      '<nav class="side" aria-label="Main menu"><div class="merek"><div class="logo">M</div><div><b>Mofmofriends</b><small>WMS · HO Haery</small></div></div>' +
       '<div class="nav-isi">' + nav + '</div>' +
       '<div class="side-kaki"><a href="' + PAPAN_LAMA + '" target="_blank" rel="noopener">' + esc(t('oldBoard')) + '</a>' +
       '<button type="button" class="btn dua" data-aksi="temaAuto">' + esc(t('auto')) + '</button>' +
@@ -278,40 +339,143 @@
   }
   function galatHtml(e) { return '<div class="peringatan" role="alert">' + esc(e && e.message ? e.message : e) + ' <button type="button" class="btn dua" data-aksi="muat" style="margin-left:10px">' + esc(t('refresh')) + '</button></div>'; }
 
-  /* ================= halaman: masuk ================= */
+  /* ================= boneka mofmof =================
+     Beruang orisinal (bukan karakter resmi Mofmofriends). Garis luar selalu
+     hitam, bulu krem, telinga dalam oren. Ekspresi: diam (kedip), senang
+     (mata lengkung), sedih (mata > <). */
+  var BULU = '#F6E8D6', PIPI = '#F4B4A2';
+  function bonekaBesar(ekspresi) {
+    var mata = ekspresi === 'senang' ? '<path d="M38 66 Q45 56 52 66 M68 66 Q75 56 82 66" fill="none" stroke-width="3.5" stroke-linecap="round"></path>'
+      : ekspresi === 'sedih' ? '<path d="M39 58 L49 64 L39 70 M81 58 L71 64 L81 70" fill="none" stroke-width="3.5" stroke-linecap="round"></path>'
+      : '<circle class="kedip" cx="45" cy="64" r="5" fill="#121212" stroke="none"></circle><circle class="kedip" cx="75" cy="64" r="5" fill="#121212" stroke="none"></circle>';
+    return '<svg viewBox="0 0 120 124" stroke="#121212" stroke-width="3" stroke-linejoin="round" aria-hidden="true">' +
+      '<path class="telinga" d="M41.0 30.0Q43.3 35.6 38.1 38.8Q36.7 44.7 30.6 44.3Q26.0 48.2 21.4 44.3Q15.3 44.7 13.9 38.8Q8.7 35.6 11.0 30.0Q8.7 24.4 13.9 21.2Q15.3 15.3 21.4 15.7Q26.0 11.8 30.6 15.7Q36.7 15.3 38.1 21.2Q43.3 24.4 41.0 30.0Z" fill="' + BULU + '"></path>' +
+      '<path class="telinga" d="M109.0 30.0Q111.3 35.6 106.1 38.8Q104.7 44.7 98.6 44.3Q94.0 48.2 89.4 44.3Q83.3 44.7 81.9 38.8Q76.7 35.6 79.0 30.0Q76.7 24.4 81.9 21.2Q83.3 15.3 89.4 15.7Q94.0 11.8 98.6 15.7Q104.7 15.3 106.1 21.2Q111.3 24.4 109.0 30.0Z" fill="' + BULU + '"></path>' +
+      '<circle cx="26" cy="30" r="7" fill="#F26419" stroke="none"></circle><circle cx="94" cy="30" r="7" fill="#F26419" stroke="none"></circle>' +
+      '<path d="M102.0 66.0Q105.9 72.6 100.3 77.8Q102.2 85.3 95.3 88.7Q95.1 96.4 87.5 97.7Q85.1 105.0 77.4 104.2Q73.1 110.5 66.0 107.6Q60.0 112.4 54.0 107.6Q46.9 110.5 42.6 104.2Q34.9 105.0 32.5 97.7Q24.9 96.4 24.7 88.7Q17.8 85.3 19.7 77.8Q14.1 72.6 18.0 66.0Q14.1 59.4 19.7 54.2Q17.8 46.7 24.7 43.3Q24.9 35.6 32.5 34.3Q34.9 27.0 42.6 27.8Q46.9 21.5 54.0 24.4Q60.0 19.6 66.0 24.4Q73.1 21.5 77.4 27.8Q85.1 27.0 87.5 34.3Q95.1 35.6 95.3 43.3Q102.2 46.7 100.3 54.2Q105.9 59.4 102.0 66.0Z" fill="' + BULU + '"></path>' +
+      '<ellipse cx="60" cy="82" rx="17" ry="13" fill="#FFFFFF"></ellipse><ellipse cx="60" cy="76" rx="5.5" ry="4" fill="#121212" stroke="none"></ellipse>' +
+      '<path d="M60 80 Q60 88 53 88 M60 80 Q60 88 67 88" fill="none" stroke-width="2.5"></path>' +
+      '<circle cx="35" cy="80" r="7" fill="' + PIPI + '" stroke="none"></circle><circle cx="85" cy="80" r="7" fill="' + PIPI + '" stroke="none"></circle>' +
+      mata +
+      '<ellipse cx="40" cy="116" rx="13" ry="9" fill="' + BULU + '"></ellipse><ellipse cx="80" cy="116" rx="13" ry="9" fill="' + BULU + '"></ellipse></svg>';
+  }
+  function bonekaKecil(kelas, ekspresi) {
+    var mata = ekspresi === 'senang' ? '<path d="M27 43 Q31 37 35 43 M45 43 Q49 37 53 43" fill="none" stroke-width="2.5" stroke-linecap="round"></path>'
+      : ekspresi === 'tidur' ? '<path d="M27 42 Q31 45 35 42 M45 42 Q49 45 53 42" fill="none" stroke-width="2.5" stroke-linecap="round"></path>'
+      : ekspresi === 'sedih' ? '<path d="M27 38 L34 42 L27 46 M53 38 L46 42 L53 46" fill="none" stroke-width="2.5" stroke-linecap="round"></path>'
+      : '<circle class="kedip" cx="31" cy="42" r="3" fill="#121212" stroke="none"></circle><circle class="kedip" cx="49" cy="42" r="3" fill="#121212" stroke="none"></circle>';
+    return '<svg class="' + (kelas || '') + '" viewBox="0 0 80 74" stroke="#121212" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true">' +
+      '<path class="telinga" d="M28.0 20.0Q29.5 24.7 25.1 27.1Q22.7 31.5 18.0 30.0Q13.3 31.5 10.9 27.1Q6.5 24.7 8.0 20.0Q6.5 15.3 10.9 12.9Q13.3 8.5 18.0 10.0Q22.7 8.5 25.1 12.9Q29.5 15.3 28.0 20.0Z" fill="' + BULU + '"></path>' +
+      '<path class="telinga" d="M72.0 20.0Q73.5 24.7 69.1 27.1Q66.7 31.5 62.0 30.0Q57.3 31.5 54.9 27.1Q50.5 24.7 52.0 20.0Q50.5 15.3 54.9 12.9Q57.3 8.5 62.0 10.0Q66.7 8.5 69.1 12.9Q73.5 15.3 72.0 20.0Z" fill="' + BULU + '"></path>' +
+      '<circle cx="18" cy="20" r="4.5" fill="#F26419" stroke="none"></circle><circle cx="62" cy="20" r="4.5" fill="#F26419" stroke="none"></circle>' +
+      '<path d="M66.0 44.0Q68.6 49.7 64.0 53.9Q64.3 60.2 58.4 62.4Q56.2 68.3 49.9 68.0Q45.7 72.6 40.0 70.0Q34.3 72.6 30.1 68.0Q23.8 68.3 21.6 62.4Q15.7 60.2 16.0 53.9Q11.4 49.7 14.0 44.0Q11.4 38.3 16.0 34.1Q15.7 27.8 21.6 25.6Q23.8 19.7 30.1 20.0Q34.3 15.4 40.0 18.0Q45.7 15.4 49.9 20.0Q56.2 19.7 58.4 25.6Q64.3 27.8 64.0 34.1Q68.6 38.3 66.0 44.0Z" fill="' + BULU + '"></path>' +
+      '<ellipse cx="40" cy="52" rx="9" ry="7" fill="#FFFFFF"></ellipse>' + mata +
+      '<ellipse cx="40" cy="49" rx="3.5" ry="2.5" fill="#121212" stroke="none"></ellipse>' +
+      '<circle cx="24" cy="50" r="4" fill="' + PIPI + '" stroke="none"></circle><circle cx="56" cy="50" r="4" fill="' + PIPI + '" stroke="none"></circle></svg>';
+  }
+
+  /* ================= halaman: masuk (L4) ================= */
+  var putarPapan = null, langkahPapan = 0;
+  function tahapGudang() { return bhs() === 'id' ? ['AMBIL', 'KEMAS', 'SIAP KIRIM', 'PERJALANAN', 'TERKIRIM'] : ['PICKING', 'PACKING', 'STAGING', 'IN TRANSIT', 'DELIVERED']; }
+  function barisKeping(teks, oren, mulai) {
+    var s = (String(teks) + '              ').slice(0, 14).split('');
+    return '<div class="papan-baris">' + s.map(function (h, i) { return '<span class="keping' + (oren ? ' oren' : '') + '" style="animation-delay:' + (mulai + i * 45) + 'ms">' + (h === ' ' ? '' : esc(h)) + '</span>'; }).join('') + '</div>';
+  }
+  function garisTahap(aktif) {
+    return tahapGudang().map(function (n, i) { return '<span class="' + (i <= aktif ? 'lewat' : '') + (i === aktif ? ' kini' : '') + '">' + esc(n) + '</span>'; }).join('');
+  }
+  var KATA_BONEKA = {
+    en: { diam: 'MOF! CODE, PLEASE', cek: 'SNIFFING THE CODE…', senang: 'YAY! OPENING THE LEDGER', sedih: 'HMM. TRY THAT CODE AGAIN' },
+    id: { diam: 'MOF! KODENYA DONG', cek: 'LAGI DIENDUS…', senang: 'YAY! BUKU BESAR DIBUKA', sedih: 'HMM. COBA KODENYA LAGI' }
+  };
   function halMasuk() {
-    return '<div class="masuk"><section class="masuk-kiri"><div class="merek" style="padding:0"><div class="logo">M</div><div><b>Mofmofriends WMS</b><small style="color:inherit;opacity:.75">One Logistics Solutions</small></div></div>' +
-      '<div style="font-size:44px;line-height:1.08;font-weight:800;letter-spacing:-.03em;max-width:540px">' + (bhs() === 'id' ? 'Stok, gerai, dan kunjungan lapangan dalam satu tempat.' : 'Stock, stores and field visits in one place.') + '</div>' +
-      '<div style="font-size:14px;opacity:.75">Haery 1 Building, Kemang Selatan</div></section>' +
-      '<section class="masuk-kanan"><div style="position:absolute;top:20px;right:20px;display:flex;gap:8px">' +
-      '<button type="button" class="saklar" data-aksi="tema"><span class="rel"><span class="tombol-rel"></span></span>' + esc(temaTerpakai() === 'dark' ? t('night') : t('day')) + '</button>' +
-      '<button type="button" class="saklar" data-aksi="bahasa">' + (bhs() === 'id' ? 'ID' : 'EN') + '</button></div>' +
-      '<form id="formMasuk" autocomplete="on"><div><h1 style="margin:0;font-size:34px;font-weight:800;letter-spacing:-.02em">' + esc(t('welcome')) + '</h1><p style="margin:8px 0 0;color:var(--mut)">' + esc(t('enterCode')) + '</p></div>' +
-      '<label for="kode" style="font-weight:700;font-size:14px">' + esc(t('accessCode')) + '</label>' +
+    var id = bhs() === 'id', aktif = langkahPapan % 5, tahap = tahapGudang();
+    var kardus = [['DO-0101', 110, ''], ['SHP-9', 96, ' k2'], ['PO-77', 124, ' k3']];
+    var roda = ''; for (var i = 0; i < 12; i++) roda += '<g class="roda"><circle cx="' + (30 + i * 130) + '" cy="20" r="11"></circle><path d="M' + (30 + i * 130) + ' 9v22"></path></g>';
+    return '<div class="masuk"><div class="masuk-isi">' +
+      '<header class="masuk-atas"><div class="merek" style="padding:0"><div class="logo">M</div><div><b>Mofmofriends WMS</b><small>One Logistics Solutions</small></div></div>' +
+      '<div class="alat"><button type="button" class="saklar" data-aksi="tema" aria-label="' + esc(temaTerpakai() === 'dark' ? t('day') : t('night')) + '"><span class="rel"><span class="tombol-rel"></span></span>' + esc(temaTerpakai() === 'dark' ? t('night') : t('day')) + '</button>' +
+      '<button type="button" class="saklar" data-aksi="bahasa" aria-label="Language">' + (id ? 'ID' : 'EN') + '</button></div></header>' +
+      '<div class="masuk-tengah"><div class="masuk-kiri">' +
+      '<section class="papan" aria-label="' + (id ? 'Papan dok' : 'Dock board') + '"><div class="papan-kepala"><span>OUTBOUND · DOCK 01</span><span>HO HAERY · KEMANG SELATAN</span></div>' +
+      barisKeping('MOFMOFRIENDS', false, 0) + barisKeping('WMS HO HAERY', false, 300) + '<div id="barisTahap">' + barisKeping('> ' + tahap[aktif], true, 0) + '</div></section>' +
+      '<p class="slogan">' + (id ? 'Setiap boneka, setiap kardus, satu buku besar.' : 'Every plush, every box, one ledger.') + '</p>' +
+      '<div class="tahap-garis" id="garisTahap">' + garisTahap(aktif) + '</div></div>' +
+      '<form class="label-masuk" id="formMasuk" autocomplete="on">' +
+      '<div class="gelembung" id="gelembung" role="status">' + esc(KATA_BONEKA[bhs()].diam) + '</div>' +
+      '<div class="maskot" id="maskot">' + bonekaBesar('diam') + '</div>' +
+      '<div class="dari"><div><small>' + (id ? 'DARI' : 'FROM') + '</small>HO HAERY · KEMANG</div><div><small>' + (id ? 'KE' : 'TO') + '</small>MOFMOFRIENDS WMS</div></div>' +
+      '<div class="badan"><h1>' + (id ? 'Masuk' : 'Sign in') + '</h1>' +
+      '<label for="kode" class="judul">' + (id ? 'KODE AKSES' : 'ACCESS CODE') + '</label>' +
       '<input id="kode" name="kode" type="password" autocomplete="current-password" required>' +
-      '<label class="centang"><input type="checkbox" id="ingat">' + esc(t('remember')) + '</label>' +
-      '<div class="galat" id="galatMasuk" role="alert"></div>' +
-      '<button type="submit" class="btn" style="height:56px;font-size:17px" id="tMasuk">' + esc(t('open')) + '</button>' +
-      '<div style="font-size:14px;color:var(--mut)">' + esc(t('fieldHint')) + ': <a href="' + APP_LAPANGAN + '" style="font-weight:700">mofmo-lapangan.pages.dev/lapangan</a></div></form></section></div>';
+      '<label class="centang"><input type="checkbox" id="ingat">' + (id ? 'TETAP MASUK · 7 HARI' : 'KEEP ME SIGNED IN · 7 DAYS') + '</label>' +
+      '<button type="submit" class="btn" id="tMasuk"><span id="tMasukTeks">' + (id ? 'Buka WMS' : 'Open the WMS') + '</span><span aria-hidden="true">→</span></button>' +
+      '<div class="galat" id="galatMasuk" role="alert"></div><div id="capMasuk"></div></div>' +
+      '<div class="kaki"><span style="color:var(--mut)">' + (id ? 'PETUGAS FIELD OP' : 'FIELD OP STAFF') + '</span><a href="' + APP_LAPANGAN + '" style="font-weight:600">mofmo-lapangan.pages.dev/lapangan</a></div></form>' +
+      '</div></div>' +
+      '<div class="konveyor" aria-hidden="true"><div class="tiang"></div><div class="kepala-scan"></div><div class="laser"></div><div class="kilat">SCANNED</div>' +
+      kardus.map(function (k) { return '<div class="kardus' + k[2] + '" style="width:' + k[1] + 'px">' + bonekaKecil('boneka') + '<div class="badan-kardus"><div class="tutup"></div><div class="label-k"><i style="width:2px"></i><i style="width:4px"></i><i style="width:1px"></i><i style="width:3px"></i><i style="width:2px"></i><i style="width:5px"></i><i style="width:1px"></i></div><div class="kode-k">' + k[0] + '</div></div></div>'; }).join('') +
+      '<div class="sabuk"></div><svg class="roda-roda" viewBox="0 0 1500 40" preserveAspectRatio="xMinYMid slice"><g fill="none" stroke="currentColor" stroke-width="3">' + roda + '</g></svg>' +
+      '<div class="hazard jalan"></div></div></div>';
+  }
+  function ekspresiBoneka(e) {
+    var m = document.getElementById('maskot'), g = document.getElementById('gelembung'); if (!m) return;
+    m.innerHTML = bonekaBesar(e === 'cek' ? 'diam' : e);
+    m.classList.remove('lompat', 'gelengKepala'); void m.offsetWidth;
+    if (e === 'senang') m.classList.add('lompat'); if (e === 'sedih') m.classList.add('gelengKepala');
+    if (g) { g.textContent = KATA_BONEKA[bhs()][e] || ''; g.style.animation = 'none'; void g.offsetWidth; g.style.animation = ''; }
+  }
+  /* Kode diperiksa Supabase lebih dulu (0,2 detik). Kalau Supabase belum
+     tersambung, menolak, atau tidak terjangkau, Apps Script yang memutuskan:
+     sidik kode di Supabase bisa tertinggal beberapa menit setelah kode diganti. */
+  function masukServer(kode, ingat) {
+    var h1 = null;
+    return kirimSupa({ fn: 'masuk', kode: kode, ingat: ingat }, 8000).then(function (h) { h1 = h; }, function () { h1 = null; }).then(function () {
+      if (h1 && h1.ok && h1.tiket) return h1;
+      if (h1 && /too many/i.test(String(h1.pesan || ''))) throw new Error(h1.pesan);
+      return kirim({ aksi: 'wms', fn: 'masuk', kode: kode, ingat: ingat }).then(function (h) {
+        if (!h || !h.ok || !h.tiket) throw new Error((h && h.pesan) || 'That access code is not right.');
+        return h;
+      }, function (e) {
+        if (h1 && /not right/i.test(String(h1.pesan || ''))) throw new Error(h1.pesan);
+        throw e;
+      });
+    });
   }
   function pasangMasuk() {
     var f = document.getElementById('formMasuk'); if (!f) return;
+    if (putarPapan) clearInterval(putarPapan);
+    if (gerakBoleh()) putarPapan = setInterval(function () {
+      var b = document.getElementById('barisTahap'), gt = document.getElementById('garisTahap');
+      if (!b) { clearInterval(putarPapan); putarPapan = null; return; }
+      langkahPapan++; var a = langkahPapan % 5;
+      b.innerHTML = barisKeping('> ' + tahapGudang()[a], true, 0); if (gt) gt.innerHTML = garisTahap(a);
+    }, 2600);
+    var inp = document.getElementById('kode');
+    inp.addEventListener('input', function () { var g = document.getElementById('galatMasuk'); if (g && g.classList.contains('tolak')) { g.classList.remove('tolak'); g.textContent = ''; ekspresiBoneka('diam'); } });
     f.addEventListener('submit', function (ev) {
       ev.preventDefault();
-      var kode = document.getElementById('kode').value, ingat = document.getElementById('ingat').checked;
-      var tb = document.getElementById('tMasuk'), g = document.getElementById('galatMasuk');
-      tb.disabled = true; tb.textContent = t('checking'); g.textContent = '';
-      kirim({ aksi: 'wms', fn: 'masuk', kode: kode, ingat: ingat }).then(function (h) {
-        if (!h || !h.ok || !h.tiket) throw new Error((h && h.pesan) || 'That access code is not right.');
+      var id = bhs() === 'id', kode = inp.value, ingat = document.getElementById('ingat').checked;
+      var tb = document.getElementById('tMasuk'), tt = document.getElementById('tMasukTeks'), g = document.getElementById('galatMasuk');
+      if (!String(kode).trim()) { Suara.scanTolak(); g.className = 'galat tolak'; g.textContent = id ? 'DITOLAK · KODE AKSES KOSONG' : 'REJECTED · ACCESS CODE IS EMPTY'; ekspresiBoneka('sedih'); inp.focus(); return; }
+      tb.disabled = true; tt.textContent = t('checking'); g.className = 'galat'; g.textContent = ''; ekspresiBoneka('cek'); Suara.klik();
+      masukServer(kode, ingat).then(function (h) {
         buang('wms_tiket'); buang('wms_ingat');
         taruh('wms_tiket', h.tiket, ingat); if (ingat) taruh('wms_ingat', '1', true);
-        S.tiket = h.tiket; Suara.sukses();
-        if (!location.hash || location.hash === '#/') location.hash = '#/summary';
-        gambar();
+        Suara.scanOk(); setTimeout(Suara.sukses, 120); getar(30);
+        ekspresiBoneka('senang'); g.textContent = id ? 'KODE DITERIMA · MEMUAT BUKU BESAR' : 'CODE ACCEPTED · LOADING LEDGER';
+        tt.textContent = id ? 'Membuka…' : 'Opening…';
+        document.getElementById('capMasuk').innerHTML = '<div class="cap">' + (id ? 'LOLOS' : 'CHECKED') + '</div>';
+        setTimeout(function () {
+          S.tiket = h.tiket;
+          if (!location.hash || location.hash === '#/') location.hash = '#/summary';
+          gambar();
+        }, gerakBoleh() ? 900 : 0);
       }).catch(function (e) {
-        Suara.gagal(); getar([60, 60, 60]);
-        g.textContent = e.message; tb.disabled = false; tb.textContent = t('open');
-        var inp = document.getElementById('kode'); inp.style.animation = 'none'; void inp.offsetWidth; inp.style.animation = 'geleng .45s ease'; inp.focus(); inp.select();
+        Suara.scanTolak(); getar([60, 60, 60]); ekspresiBoneka('sedih');
+        g.className = 'galat tolak'; g.textContent = (id ? 'DITOLAK · ' : 'REJECTED · ') + String(e.message || '');
+        tb.disabled = false; tt.textContent = id ? 'Buka WMS' : 'Open the WMS';
+        inp.style.animation = 'none'; void inp.offsetWidth; inp.style.animation = 'geleng .45s ease'; inp.focus(); inp.select();
       });
     });
     setTimeout(function () { var k = document.getElementById('kode'); if (k) k.focus(); }, 30);
@@ -402,7 +566,7 @@
   function ringkasGudang() {
     var g = S.gudang, id = bhs() === 'id';
     if (!g) return '<div class="kerangka" style="height:150px"></div>';
-    var u = function (l, n, k, w) { return '<div style="background:' + (w ? 'var(--wBg)' : 'var(--soft)') + ';border-radius:12px;padding:12px"><div class="lbl"' + (w ? ' style="color:var(--wInk)"' : '') + '>' + esc(l) + '</div><div class="num" style="font-size:24px;font-weight:600;margin-top:4px' + (w ? ';color:var(--wInk)' : '') + '">' + nf(n) + '</div><div style="font-size:13px;color:' + (w ? 'var(--wInk)' : 'var(--mut)') + '">' + esc(k) + '</div></div>'; };
+    var u = function (l, n, k, w) { return '<div style="background:' + (w ? 'var(--wBg)' : 'var(--soft)') + ';border-radius:0;padding:12px"><div class="lbl"' + (w ? ' style="color:var(--wInk)"' : '') + '>' + esc(l) + '</div><div class="num" style="font-size:24px;font-weight:600;margin-top:4px' + (w ? ';color:var(--wInk)' : '') + '">' + nf(n) + '</div><div style="font-size:13px;color:' + (w ? 'var(--wInk)' : 'var(--mut)') + '">' + esc(k) + '</div></div>'; };
     return '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">' +
       u(id ? 'Stok di HO' : 'Stock at HO', g.stokHO, nf(g.terisi) + (id ? ' dari ' : ' of ') + nf(g.jml) + (id ? ' lokasi terisi' : ' locations used')) +
       u(id ? 'Di rak' : 'In storage', g.diLokasi, id ? 'Rak, tumpuk, meja' : 'Rack, stack, table') +
@@ -461,7 +625,7 @@
     var p = m ? m.prod.filter(function (x) { return String(x.b) === String(l.barcode); })[0] : null;
     return '<div class="baris"><div><div class="lbl">' + esc(t('location')) + '</div><div class="num" style="font-size:40px;font-weight:600;line-height:1.1">' + esc(l.kode) + '</div><div style="color:var(--mut);font-size:14px">' + esc(l.zona || '') + (l.peran ? ' · ' + esc(l.peran) : '') + '</div></div><span class="pil ' + (l.rendah ? 'w' : 'c') + '">' + nf(l.persen) + '% ' + esc(t('fill').toLowerCase()) + '</span></div>' +
       '<div class="mendatar" style="height:12px"><span style="width:' + Math.min(100, Number(l.persen) || 0) + '%;background:var(--acc)"></span></div>' +
-      '<div class="lbl">' + esc(t('inside')) + '</div><div class="baris" style="padding:12px;border-radius:12px;background:var(--soft)"><span><b>' + esc(l.sku || (id ? 'Kosong' : 'Empty')) + '</b><div class="num" style="font-size:12px;color:var(--mut)">' + esc(l.barcode || '') + '</div></span><span class="num" style="font-size:22px;font-weight:600">' + nf(l.isi) + (l.kap ? '<span style="font-size:14px;color:var(--mut)"> / ' + nf(l.kap) + '</span>' : '') + '</span></div>' +
+      '<div class="lbl">' + esc(t('inside')) + '</div><div class="baris" style="padding:12px;border-radius:0;background:var(--soft)"><span><b>' + esc(l.sku || (id ? 'Kosong' : 'Empty')) + '</b><div class="num" style="font-size:12px;color:var(--mut)">' + esc(l.barcode || '') + '</div></span><span class="num" style="font-size:22px;font-weight:600">' + nf(l.isi) + (l.kap ? '<span style="font-size:14px;color:var(--mut)"> / ' + nf(l.kap) + '</span>' : '') + '</span></div>' +
       '<div class="scan-box" id="scanBox"><label class="lbl" for="scanLok" style="color:inherit;opacity:.85">' + esc(t('verify')) + '</label><input id="scanLok" data-cek="' + esc(l.barcode || '') + '" data-nama="' + esc(l.sku || '') + '" placeholder="' + esc(t('scanHere')) + '" autocomplete="off" inputmode="numeric"><div class="scan-pesan" id="scanPesan" aria-live="assertive"></div></div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' + (p ? '<a class="btn dua" href="#/passport/' + encodeURIComponent(p.b) + '" data-suara="klik">' + esc(t('passport')) + '</a>' : '') + '<a class="btn dua" href="#/labels/' + encodeURIComponent(l.zona || '') + '" data-suara="klik">' + esc(t('labels')) + '</a></div>' +
       (mulaiCek ? '<span hidden id="fokusScan"></span>' : '');
@@ -475,10 +639,12 @@
     if (harap && p && String(p.b) === String(harap)) {
       box.classList.add('ok'); Suara.scanOk(); getar(30);
       pesan.textContent = '✓ ' + (id ? 'Cocok: ' : 'Match: ') + (p.n || namaHarap) + (id ? ' memang di rak ini.' : ' belongs here.');
+      pesan.insertAdjacentHTML('afterbegin', bonekaKecil('lompat', 'senang'));
     } else {
       box.classList.add('tolak'); Suara.scanTolak(); getar([60, 60, 60]);
       pesan.textContent = '✕ ' + (p ? (id ? 'Ditolak: ' + p.n + ' bukan barang rak ini' + (namaHarap ? ' (seharusnya ' + namaHarap + ').' : '.') : 'Rejected: ' + p.n + ' does not belong here' + (namaHarap ? ' (expected ' + namaHarap + ').' : '.'))
         : (id ? 'Ditolak: barcode ' + v + ' tidak ada di katalog.' : 'Rejected: barcode ' + v + ' is not in the catalog.'));
+      pesan.insertAdjacentHTML('afterbegin', bonekaKecil('gelengKepala', 'sedih'));
     }
     inp.value = ''; inp.focus();
   }
@@ -531,11 +697,11 @@
     semua.forEach(function (x) { var q = Number(x.row[2]) || 0; if (x.j[1] === 'SOLD') { if (x.j[0] === 'onl') soldOn += q; else soldOff += q; } if (x.j[1] === 'DMG') rusak += q; });
     var bag = [[id ? 'Di HO' : 'At HO', hoQ, 'var(--strong)'], [id ? 'Di rak gerai' : 'On store shelves', tkQ, 'var(--acc)'], [id ? 'Perjalanan' : 'On the way', jlQ, 'var(--mid)'], [id ? 'Terjual di gerai' : 'Sold in stores', soldOff, 'var(--okInk)'], [id ? 'Terjual online / langsung' : 'Sold online / direct', soldOn, 'var(--iInk)'], [id ? 'Rusak' : 'Damaged', rusak, 'var(--wInk)']].filter(function (b) { return b[1] > 0; });
     var totBag = jumlah(bag, function (b) { return b[1]; });
-    var html = '<section class="kartu muncul" style="display:flex;flex-wrap:wrap;gap:20px;align-items:center"><div style="width:84px;height:84px;border-radius:20px;background:var(--chip);color:var(--chipInk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;overflow:hidden">' + (p.f ? '<img src="' + esc(p.f) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : esc(String(p.n).slice(0, 2).toUpperCase())) + '</div>' +
+    var html = '<section class="kartu muncul" style="display:flex;flex-wrap:wrap;gap:20px;align-items:center"><div style="width:84px;height:84px;border-radius:0;background:var(--chip);color:var(--chipInk);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;overflow:hidden">' + (p.f ? '<img src="' + esc(p.f) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : esc(String(p.n).slice(0, 2).toUpperCase())) + '</div>' +
       '<div style="flex:1 1 280px"><div class="lbl">' + esc(t('passport')) + '</div><div style="font-size:28px;font-weight:800;letter-spacing:-.02em">' + esc(p.n) + '</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><span class="pil n num">' + esc(p.b) + '</span>' + (p.s ? '<span class="pil n">' + esc(p.s) + '</span>' : '') + '</div></div>' +
       '<div class="seg" role="group" aria-label="Channel">' + [['all', t('all')], ['offline', t('offline')], ['online', t('online')]].map(function (f) { return '<button type="button" class="' + (saringPaspor === f[0] ? 'on' : '') + '" data-aksi="saringPaspor" data-nilai="' + f[0] + '" aria-pressed="' + (saringPaspor === f[0]) + '">' + esc(f[1]) + '</button>'; }).join('') + '</div></section>';
     html += '<section class="kartu muncul" style="display:flex;flex-direction:column;gap:12px;animation-delay:60ms"><div class="baris"><h2>' + (id ? 'Ke mana saja barang ini pergi' : 'Where this SKU went') + '</h2><span style="font-size:14px;color:var(--mut)">' + (id ? 'Dihitung per jumlah, bukan per unit' : 'Counted by quantity, not by unit') + '</span></div>' +
-      (totBag ? '<div class="tumpuk" style="height:40px;border-radius:12px">' + bag.map(function (b) { return '<span title="' + esc(b[0]) + '" style="flex:' + b[1] + ' 1 0;background:' + b[2] + ';color:var(--card);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px">' + nf(b[1]) + '</span>'; }).join('') + '</div><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:14px">' + bag.map(function (b) { return '<span><span style="color:' + b[2] + '">■</span> ' + esc(b[0]) + ' <b class="num">' + nf(b[1]) + '</b></span>'; }).join('') + '</div>' : '<div class="kosong">' + esc(t('noData')) + '</div>') + '</section>';
+      (totBag ? '<div class="tumpuk" style="height:40px;border-radius:0">' + bag.map(function (b) { return '<span title="' + esc(b[0]) + '" style="flex:' + b[1] + ' 1 0;background:' + b[2] + ';color:var(--card);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:14px">' + nf(b[1]) + '</span>'; }).join('') + '</div><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:14px">' + bag.map(function (b) { return '<span><span style="color:' + b[2] + '">■</span> ' + esc(b[0]) + ' <b class="num">' + nf(b[1]) + '</b></span>'; }).join('') + '</div>' : '<div class="kosong">' + esc(t('noData')) + '</div>') + '</section>';
     html += '<section style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start"><div class="kartu muncul" style="flex:3 1 560px;min-width:0;animation-delay:100ms"><div class="baris" style="margin-bottom:10px"><h2>' + esc(t('journey')) + '</h2><span style="font-size:14px;color:var(--mut)">' + tampil.length + (id ? ' kejadian · terbaru di atas' : ' events · newest first') + '</span></div>' +
       (tampil.length ? tampil.slice(0, 120).map(function (x) { var q = Number(x.row[2]) || 0; return '<div class="jejak"><div class="tgl">' + tglPendek(x.row[0]) + '<div style="font-size:12px;color:var(--mut);font-weight:500">' + esc(String(x.row[0]).slice(0, 4)) + '</div></div><div class="tiang"><i></i><span class="bulat" style="background:var(--' + (x.j[3] === 's' ? 'strong' : x.j[3] + 'Bg') + ');color:var(--' + (x.j[3] === 's' ? 'strongInk' : x.j[3] + 'Ink') + ')">' + esc(x.j[1]) + '</span><i></i></div><div class="isi"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b style="font-size:15px">' + esc(x.j[2]) + '</b><span class="pil ' + (x.j[0] === 'onl' ? 'i' : x.j[0] === 'off' ? 'c' : 'n') + '">' + (x.j[0] === 'onl' ? t('online') : x.j[0] === 'off' ? t('offline') : (id ? 'Gudang' : 'Warehouse')) + '</span><span class="num" style="font-weight:700">' + nf(q) + ' pcs</span></div></div></div>'; }).join('') : '<div class="kosong">' + esc(t('noData')) + '</div>') + '</div>' +
       '<aside class="kartu muncul" style="flex:2 1 300px;display:flex;flex-direction:column;gap:10px;animation-delay:140ms"><h2>' + esc(t('rightNow')) + '</h2><div class="baris" style="min-height:34px"><b>HO</b><span class="num" style="font-weight:600">' + nf(hoQ) + '</span></div>' + perToko.sort(function (a, b) { return b.v - a.v; }).map(function (x) { return '<div class="baris" style="min-height:34px"><span>' + esc(x.n) + '</span><span class="num" style="font-weight:600">' + nf(x.v) + '</span></div>'; }).join('') + (jlQ ? '<div class="baris" style="min-height:34px"><span>' + esc(t('transit')) + '</span><span class="num" style="font-weight:600">' + nf(jlQ) + '</span></div>' : '') + '</aside></section>';
@@ -569,10 +735,10 @@
     return '<div><div class="num" style="font-size:14px;color:var(--mut)">' + esc(x.noSj || x.ref) + '</div><div style="font-size:22px;font-weight:800">' + esc(x.tujuan || '') + '</div></div>' +
       '<div>' + TAHAP.map(function (s, k) { var lewat = k <= i; return '<div style="display:grid;grid-template-columns:20px 1fr;gap:10px;align-items:center;min-height:38px"><span style="width:12px;height:12px;border-radius:50%;justify-self:center;background:' + (lewat ? 'var(--acc)' : 'var(--line)') + '"></span><span style="color:' + (lewat ? 'var(--ink)' : 'var(--mut)') + ';font-weight:' + (k === i ? 800 : 500) + '">' + esc(namaT[s]) + '</span></div>'; }).join('') + '</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px">' +
-      '<div style="background:var(--soft);border-radius:10px;padding:10px"><div class="lbl">' + (id ? 'Dipesan' : 'Ordered') + '</div><b class="num">' + nf(x.pcsPesan) + '</b></div>' +
-      '<div style="background:var(--soft);border-radius:10px;padding:10px"><div class="lbl">' + (id ? 'Dipetik' : 'Picked') + '</div><b class="num">' + nf(x.pcsPetik) + '</b></div>' +
-      '<div style="background:var(--soft);border-radius:10px;padding:10px"><div class="lbl">' + (id ? 'Dikemas' : 'Packed') + '</div><b class="num">' + nf(x.pcsKemas) + '</b></div>' +
-      '<div style="background:var(--soft);border-radius:10px;padding:10px"><div class="lbl">' + (id ? 'Koli' : 'Boxes') + '</div><b class="num">' + nf(x.koli) + '</b></div></div>' +
+      '<div style="background:var(--soft);border-radius:0;padding:10px"><div class="lbl">' + (id ? 'Dipesan' : 'Ordered') + '</div><b class="num">' + nf(x.pcsPesan) + '</b></div>' +
+      '<div style="background:var(--soft);border-radius:0;padding:10px"><div class="lbl">' + (id ? 'Dipetik' : 'Picked') + '</div><b class="num">' + nf(x.pcsPetik) + '</b></div>' +
+      '<div style="background:var(--soft);border-radius:0;padding:10px"><div class="lbl">' + (id ? 'Dikemas' : 'Packed') + '</div><b class="num">' + nf(x.pcsKemas) + '</b></div>' +
+      '<div style="background:var(--soft);border-radius:0;padding:10px"><div class="lbl">' + (id ? 'Koli' : 'Boxes') + '</div><b class="num">' + nf(x.koli) + '</b></div></div>' +
       (x.kurir || x.resi ? '<div style="font-size:14px">' + esc(x.kurir || '') + (x.resi ? ' · <span class="num">' + esc(x.resi) + '</span>' : '') + '</div>' : '') +
       (x.noPo ? '<div style="font-size:14px">PO <b class="num">' + esc(x.noPo) + '</b></div>' : '');
   }
@@ -618,11 +784,11 @@
     var nanti = ev.filter(function (e) { return e.t >= m.hari; }).sort(function (a, b) { return a.t < b.t ? -1 : 1; }).slice(0, 8);
     var html = '<section class="kartu muncul" style="display:flex;flex-direction:column;gap:12px"><div class="baris"><h2>' + (id ? 'Terjual per minggu, dengan acara penjualan' : 'Sold per week, with selling events') + '</h2><span class="lbl">pcs</span></div>' +
       '<div class="tabel-box"><div style="min-width:980px"><div class="batang-area" style="gap:6px;height:240px">' + mg.map(function (w, i) {
-        return '<div class="batang-kol" style="background:' + (w.ev.length ? 'var(--chip)' : 'transparent') + ';border-radius:8px 8px 0 0;' + (w.kini ? 'box-shadow:inset 0 0 0 2px var(--acc)' : '') + '" title="' + esc(w.label + (w.ev.length ? ' · ' + w.ev.map(function (e) { return e.n; }).join(', ') : '')) + '">' +
+        return '<div class="batang-kol" style="background:' + (w.ev.length ? 'var(--chip)' : 'transparent') + ';border-radius:0;' + (w.kini ? 'box-shadow:inset 0 0 0 2px var(--acc)' : '') + '" title="' + esc(w.label + (w.ev.length ? ' · ' + w.ev.map(function (e) { return e.n; }).join(', ') : '')) + '">' +
           (w.ev.length ? '<span style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:12px;font-weight:800;color:var(--chipInk);margin-bottom:auto;padding-top:8px">' + esc(w.ev[0].n) + '</span>' : '') +
-          (w.pcs !== null ? '<span class="num" style="font-size:12px">' + w.pcs + '</span><span class="batang' + (w.kini ? ' terakhir' : '') + '" style="height:' + Math.max(3, Math.round(w.pcs / maks * 160)) + 'px;animation-delay:' + (i * 20) + 'ms;width:70%"></span>' : '<span style="width:70%;height:22px;border:1px dashed var(--line);border-radius:6px 6px 0 0"></span>') + '</div>';
+          (w.pcs !== null ? '<span class="num" style="font-size:12px">' + w.pcs + '</span><span class="batang' + (w.kini ? ' terakhir' : '') + '" style="height:' + Math.max(3, Math.round(w.pcs / maks * 160)) + 'px;animation-delay:' + (i * 20) + 'ms;width:70%"></span>' : '<span style="width:70%;height:22px;border:1px dashed var(--line);border-radius:0"></span>') + '</div>';
       }).join('') + '</div><div class="label-batang" style="gap:6px">' + mg.map(function (w) { return '<span style="font-size:11px">' + esc(w.label) + '</span>'; }).join('') + '</div></div></div></section>';
-    html += '<section class="kartu muncul" style="animation-delay:80ms;display:flex;flex-direction:column;gap:10px"><h2>' + (id ? 'Acara berikutnya' : 'Coming up') + '</h2>' + nanti.map(function (e) { var hari = selisihHari(m.hari, e.t); return '<details style="border:1px solid var(--line2);border-radius:12px;padding:12px 14px"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:700;list-style:none" data-suara="klik"><span>' + esc(e.n) + ' <span class="pil n">' + esc(e.k) + '</span></span><span class="num" style="color:var(--mut);font-size:14px">' + tglPendek(e.t) + ' · ' + (hari === 0 ? (id ? 'hari ini' : 'today') : hari === 1 ? (id ? 'besok' : 'tomorrow') : (id ? hari + ' hari lagi' : 'in ' + hari + ' days')) + '</span></summary><div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">' + e.tugas.map(function (x) { return '<label class="centang" style="min-height:36px"><input type="checkbox">' + esc(x) + '</label>'; }).join('') + '</div></details>'; }).join('') + '</section>';
+    html += '<section class="kartu muncul" style="animation-delay:80ms;display:flex;flex-direction:column;gap:10px"><h2>' + (id ? 'Acara berikutnya' : 'Coming up') + '</h2>' + nanti.map(function (e) { var hari = selisihHari(m.hari, e.t); return '<details style="border:1px solid var(--line2);border-radius:0;padding:12px 14px"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;font-weight:700;list-style:none" data-suara="klik"><span>' + esc(e.n) + ' <span class="pil n">' + esc(e.k) + '</span></span><span class="num" style="color:var(--mut);font-size:14px">' + tglPendek(e.t) + ' · ' + (hari === 0 ? (id ? 'hari ini' : 'today') : hari === 1 ? (id ? 'besok' : 'tomorrow') : (id ? hari + ' hari lagi' : 'in ' + hari + ' days')) + '</span></summary><div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">' + e.tugas.map(function (x) { return '<label class="centang" style="min-height:36px"><input type="checkbox">' + esc(x) + '</label>'; }).join('') + '</div></details>'; }).join('') + '</section>';
     return html;
   }
 
@@ -722,6 +888,7 @@
   }
   function gambar() {
     var app = document.getElementById('app');
+    if (S.tiket && putarPapan) { clearInterval(putarPapan); putarPapan = null; }
     if (!S.tiket) { halamanSekarang = 'masuk'; document.documentElement.lang = bhs(); app.innerHTML = halMasuk(); pasangMasuk(); return; }
     var r = rute(), g = GAMBAR[r.hal] || GAMBAR.summary;
     halamanSekarang = r.hal; document.documentElement.lang = bhs();
@@ -739,6 +906,7 @@
     document.title = t(g.judul) + ' · WMS Mofmofriends';
     if (idAktif) { var balik = document.getElementById(idAktif); if (balik) { balik.value = nilaiAktif; balik.focus(); } }
     pascaGambar(r, tenang);
+    pasangBonekaKosong();
     var kurang = g.butuh.filter(function (k) { return !S[k]; });
     var tambahan = (g.lazim || []).filter(function (k) { return !S[k]; });
     kurang.concat(tambahan).forEach(function (k) {
@@ -746,6 +914,15 @@
         if (halamanSekarang !== r.hal || kurang.indexOf(k) < 0) return;
         var u = document.getElementById('utama'); if (u && S.tiket) { var box = document.createElement('div'); box.innerHTML = galatHtml(e); u.appendChild(box.firstChild); Suara.gagal(); }
       });
+    });
+  }
+  /* Kotak "belum ada data" dan "tidak ada yang menunggu" diberi boneka kecil:
+     tidur kalau datanya kosong, senang kalau memang tidak ada pekerjaan. */
+  function pasangBonekaKosong() {
+    Array.prototype.forEach.call(document.querySelectorAll('.kosong'), function (el) {
+      if (el.querySelector('.boneka-kecil') || el.tagName === 'TD' && el.offsetWidth < 160) return;
+      var senang = el.textContent === t('nothing');
+      el.insertAdjacentHTML('afterbegin', bonekaKecil('boneka-kecil', senang ? 'senang' : 'tidur'));
     });
   }
   function pascaGambar(r, tenang) {
@@ -778,7 +955,8 @@
     if (a === 'muat') {
       Suara.klik(); var r = rute(), g = GAMBAR[r.hal] || GAMBAR.summary;
       var daftar = g.butuh.concat(g.lazim || []); if (!daftar.length) daftar = ['data'];
-      Promise.all(daftar.map(function (k) { return muat(k, true); })).then(function () { Suara.isi(); toast(bhs() === 'id' ? 'Data terbaru dimuat' : 'Latest data loaded'); gambar(); }, function (er) { Suara.gagal(); toast(er.message, 'w'); });
+      var ikon = el.querySelector('svg'); if (ikon) ikon.style.animation = 'putar .9s linear infinite';
+      segarkan(daftar).then(function () { Suara.isi(); toast(bhs() === 'id' ? 'Data terbaru dimuat' : 'Latest data loaded'); gambar(); }, function (er) { Suara.gagal(); toast(er.message, 'w'); });
       return;
     }
     if (a === 'saringStok') { saringStok = v; Suara.klik(); gambar(); return; }
