@@ -1,4 +1,4 @@
-/* Uji WMS baru (wms/, 10 Okt 2026). Harapan: "30 pemeriksaan, SEMUA LULUS".
+/* Uji WMS baru (wms/, 10 Okt 2026). Harapan: "31 pemeriksaan, SEMUA LULUS".
  * Chromium sungguhan, halaman dilayani dari localhost, server Apps Script
  * palsu (aksi 'wms'), pustaka QR palsu, AudioContext palsu yang mencatat nada.
  *
@@ -17,7 +17,7 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 30;
+const DIHARAPKAN = 31;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -92,7 +92,8 @@ const AUDIO_PALSU = () => {
     let m = {}; try { m = JSON.parse(r.request().postData() || '{}'); } catch (e) {}
     S.badan.push(m);
     let h;
-    if (m.aksi !== 'wms') h = { pintu: 'galat', pesan: 'bukan wms' };
+    if (S.serverLama) h = { ok: false, pesan: 'Kunci pintu salah.' };
+    else if (m.aksi !== 'wms') h = { pintu: 'galat', pesan: 'bukan wms' };
     else if (m.fn === 'masuk') h = { pintu: 'ok', hasil: String(m.kode || '').trim().toUpperCase() === KODE_BENAR ? { ok: true, tiket: 'TIKET.' + (m.ingat ? 'INGAT' : 'SESI'), ingat: !!m.ingat } : { ok: false, pesan: 'That access code is not right.' } };
     else if (!/^TIKET\./.test(m.tiket || '') || S.perluMasuk) h = { pintu: 'ok', hasil: { ok: false, perluMasuk: true } };
     else if (m.fn === 'data') h = S.galatData ? { pintu: 'galat', pesan: 'Server sibuk' } : { pintu: 'ok', hasil: DATA };
@@ -123,6 +124,14 @@ const AUDIO_PALSU = () => {
     await tunggu(() => document.getElementById('formMasuk'));
     c('W1 tanpa tiket yang tampil halaman masuk, dan tidak ada panggilan data sebelum masuk', await p.$('#formMasuk') && !S.badan.some(x => x.fn === 'data'), JSON.stringify(S.badan.map(x => x.fn)));
     await foto('01-masuk');
+    /* Server papan belum di-deploy: jawabannya bentuk lama ({ok:false,pesan:'Kunci pintu salah.'}), tanpa 'pintu'. */
+    S.serverLama = true;
+    await p.fill('#kode', 'apa-saja');
+    await p.click('#tMasuk');
+    await tunggu(() => document.getElementById('galatMasuk').textContent);
+    const lama = await p.evaluate(() => document.getElementById('galatMasuk').textContent);
+    c('W31 server papan versi lama: pesannya "server belum diperbarui", bukan "kode salah"', /not updated for the new WMS/.test(lama) && !/not right/.test(lama), lama);
+    S.serverLama = false;
     await p.fill('#kode', 'salah');
     await nada();
     await p.click('#tMasuk');
