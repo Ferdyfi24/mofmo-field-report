@@ -2,6 +2,21 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
+<script>
+/* 10 Okt 2026: aplikasi pindah dari GitHub Pages ke Cloudflare Pages (repo
+   yang sama). Alamat lama di HP petugas dan di kartu Chat lama tetap jalan:
+   langsung dialihkan, parameter dan # ikut terbawa, sebelum ada panggilan
+   apa pun ke server. */
+(function () {
+  var l = location;
+  if (/(^|\.)ferdyfi24\.github\.io$/i.test(l.hostname)) {
+    window.LAP_PINDAH = true;
+    l.replace("https://mofmo-lapangan.pages.dev" + l.pathname.replace(/^\/mofmo-field-report/, "") + l.search + l.hash);
+  }
+})();
+</script>
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
@@ -45,7 +60,11 @@ function tulisSimpanan(x) { try { localStorage.setItem(SIMPAN, JSON.stringify(x)
 /* Dirakit jadi teks lalu ditanam di kepala halaman aplikasi. Bagian ini yang
    menggantikan google.script.run dan google.script.url di luar HtmlService. */
 function prelude(versi) {
-  return "<link rel=\"manifest\" href=\"manifest.webmanifest\"><meta name=\"theme-color\" content=\"#8C4A24\">" +
+  /* preconnect: sambungan TLS ke Google dibuka selagi halaman disusun, jadi
+     panggilan pertama (nama, PIN) tidak menanggung jabat tangan lagi. Harus
+     crossorigin karena fetch-nya tanpa cookie (credentials omit). */
+  return "<link rel=\"preconnect\" href=\"https://script.google.com\" crossorigin><link rel=\"preconnect\" href=\"https://script.googleusercontent.com\" crossorigin>" +
+    "<link rel=\"manifest\" href=\"manifest.webmanifest\"><meta name=\"theme-color\" content=\"#8C4A24\">" +
     "<script>(" + sambungan.toString() + ")(" + JSON.stringify(API) + "," + JSON.stringify(SIMPAN) + "," + JSON.stringify(versi) + "," + BATAS_PANGGIL + ");<\/script>";
 }
 
@@ -70,17 +89,21 @@ function sambungan(API, SIMPAN, VERSI, BATAS) {
   /* Daftar nama petugas hampir tidak pernah berubah, tapi menunggunya dari
      server makan sekitar 6 detik tiap aplikasi dibuka. Yang terakhir diterima
      disimpan di HP dan langsung dipakai, lalu diperbarui diam-diam untuk
-     bukaan berikutnya. Cuma untuk panggilan tanpa argumen yang ada di sini. */
+     bukaan berikutnya. Cuma untuk panggilan tanpa argumen yang ada di sini.
+     Sejak 10 Okt pembaruannya menumpang pemeriksaan versi (__klien), jadi
+     tidak ada panggilan server tambahan saat aplikasi dibuka. */
   var SEGERA = { fapNama: "lap_simpan_fapNama" };
+  function segarkanNama() {
+    kirim(JSON.stringify({ aksi: "lapangan", fn: "fapNama", args: [] }), BATAS).then(function (h) {
+      if (h.pintu === "ok" && h.hasil && h.hasil.ok) { try { localStorage.setItem(SEGERA.fapNama, JSON.stringify(h.hasil)); } catch (e) {} }
+    }, function () {});
+  }
   function panggil(fn, args, ok, gagal) {
     var ks = (SEGERA.hasOwnProperty(fn) && !args.length) ? SEGERA[fn] : "";
     var lama = null;
     if (ks) { try { lama = JSON.parse(localStorage.getItem(ks) || "null"); } catch (e) { lama = null; } }
     if (lama && lama.ok) {
       setTimeout(function () { if (ok) ok(lama); }, 0);
-      kirim(JSON.stringify({ aksi: "lapangan", fn: fn, args: args }), BATAS).then(function (h) {
-        if (h.pintu === "ok" && h.hasil && h.hasil.ok) { try { localStorage.setItem(ks, JSON.stringify(h.hasil)); } catch (e) {} }
-      }, function () {});
       return;
     }
     kirim(JSON.stringify({ aksi: "lapangan", fn: fn, args: args }), BATAS).then(function (h) {
@@ -110,7 +133,12 @@ function sambungan(API, SIMPAN, VERSI, BATAS) {
      dibuka lagi, supaya layar yang sedang diisi petugas tidak ditimpa. */
   setTimeout(function () {
     kirim(JSON.stringify({ aksi: "lapangan", fn: "__klien", alamat: API, versi: VERSI }), 60000).then(function (h) {
-      if (!h || h.pintu !== "ok" || !h.hasil || !h.hasil.html || h.hasil.versi === VERSI) return;
+      if (!h || h.pintu !== "ok" || !h.hasil) return;
+      /* Daftar nama ikut di jawaban ini (server 10 Okt). Server lama belum
+         mengirimnya: daftar nama diperbarui lewat panggilannya sendiri. */
+      if (h.hasil.nama && h.hasil.nama.ok) { try { localStorage.setItem(SEGERA.fapNama, JSON.stringify(h.hasil.nama)); } catch (e) {} }
+      else if (h.hasil.nama === undefined) segarkanNama();
+      if (!h.hasil.html || h.hasil.versi === VERSI) return;
       try { localStorage.setItem(SIMPAN, JSON.stringify({ versi: h.hasil.versi, html: h.hasil.html, waktu: Date.now() })); } catch (e) {}
     }, function () {});
   }, 1500);
@@ -145,6 +173,9 @@ function ambilBaru(ke) {
       if (!h || h.pintu !== "ok" || !h.hasil || !h.hasil.html) throw new Error((h && h.pesan) || "kosong");
       var x = { versi: h.hasil.versi, html: h.hasil.html, waktu: Date.now() };
       tulisSimpanan(x);
+      /* Nama ikut datang di jawaban yang sama: layar masuk langsung berisi nama
+         tanpa panggilan kedua (HP baru dulu menunggu sekitar 10 dtk). */
+      if (h.hasil.nama && h.hasil.nama.ok) { try { localStorage.setItem("lap_simpan_fapNama", JSON.stringify(h.hasil.nama)); } catch (e) {} }
       tampilkan(x);
     })
     .catch(function () {
@@ -159,6 +190,7 @@ function ambilBaru(ke) {
 }
 
 (function mulai() {
+  if (window.LAP_PINDAH) return;
   if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
   var segar = /(^|[?&])segar=1(&|$)/.test(location.search.slice(1));
   var x = segar ? null : bacaSimpanan();
