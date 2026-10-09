@@ -143,6 +143,7 @@ function ambilBaru(ke) {
 }
 
 (function mulai() {
+  if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
   var segar = /(^|[?&])segar=1(&|$)/.test(location.search.slice(1));
   var x = segar ? null : bacaSimpanan();
   if (x) { tampilkan(x); return; }
