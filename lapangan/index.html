@@ -67,8 +67,24 @@ function sambungan(API, SIMPAN, VERSI, BATAS) {
         throw new Error(e && e.name === "AbortError" ? "Server terlalu lama menjawab. Coba lagi." : "Sambungan terputus. Coba lagi saat sinyal ada.");
       });
   }
+  /* Daftar nama petugas hampir tidak pernah berubah, tapi menunggunya dari
+     server makan sekitar 6 detik tiap aplikasi dibuka. Yang terakhir diterima
+     disimpan di HP dan langsung dipakai, lalu diperbarui diam-diam untuk
+     bukaan berikutnya. Cuma untuk panggilan tanpa argumen yang ada di sini. */
+  var SEGERA = { fapNama: "lap_simpan_fapNama" };
   function panggil(fn, args, ok, gagal) {
+    var ks = (SEGERA.hasOwnProperty(fn) && !args.length) ? SEGERA[fn] : "";
+    var lama = null;
+    if (ks) { try { lama = JSON.parse(localStorage.getItem(ks) || "null"); } catch (e) { lama = null; } }
+    if (lama && lama.ok) {
+      setTimeout(function () { if (ok) ok(lama); }, 0);
+      kirim(JSON.stringify({ aksi: "lapangan", fn: fn, args: args }), BATAS).then(function (h) {
+        if (h.pintu === "ok" && h.hasil && h.hasil.ok) { try { localStorage.setItem(ks, JSON.stringify(h.hasil)); } catch (e) {} }
+      }, function () {});
+      return;
+    }
     kirim(JSON.stringify({ aksi: "lapangan", fn: fn, args: args }), BATAS).then(function (h) {
+      if (ks && h.pintu === "ok" && h.hasil && h.hasil.ok) { try { localStorage.setItem(ks, JSON.stringify(h.hasil)); } catch (e) {} }
       if (h.pintu === "ok") { if (ok) ok(h.hasil); return; }
       if (gagal) gagal(new Error(h.pesan || "Server menolak permintaan ini."));
     }, function (e) { if (gagal) gagal(e); });
