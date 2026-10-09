@@ -1,0 +1,17 @@
+{
+  "name": "Kunjungan Lapangan Mofmofriends",
+  "short_name": "Kunjungan",
+  "description": "Aplikasi kunjungan gerai untuk Operational PIC Mofmofriends.",
+  "lang": "id",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F4EF",
+  "theme_color": "#8C4A24",
+  "icons": [
+    { "src": "ikon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "ikon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#8C4A24">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="ikon-192.png">
+<link rel="apple-touch-icon" href="ikon-192.png">
+<title>Kunjungan Lapangan</title>
+<style>
+:root{--latar:#F7F4EF;--ink:#1F1B18;--mut:#5A4E46;--aksen:#8C4A24;--merah:#B42318}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--latar);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.isi{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+.cincin{width:34px;height:34px;border-radius:50%;border:4px solid #E2D9CE;border-top-color:var(--aksen);animation:putar .9s linear infinite}
+@keyframes putar{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.cincin{animation:none;border-top-color:#E2D9CE}}
+.pesan{max-width:340px;color:var(--mut)}
+.salah{color:var(--merah);font-weight:600}
+button{font:inherit;font-weight:700;min-height:52px;padding:0 22px;border:0;border-radius:14px;background:var(--aksen);color:#fff;cursor:pointer}
+</style>
+</head>
+<body>
+<main class="isi" id="isi"><div class="cincin" aria-hidden="true"></div><p class="pesan" id="pesan" role="status">Membuka aplikasi kunjungan…</p></main>
+<script>
+/* Pemuat aplikasi kunjungan lapangan (9 Okt 2026).
+   Kenapa ada: aplikasi lewat script.google.com mengunduh halaman 83 KB plus
+   bungkus Google tiap kali dibuka, dan di HP yang login banyak akun Google
+   kadang gagal dibuka. Di sini tampilan aplikasinya disimpan di HP (berversi),
+   jadi bukaan berikutnya langsung tampil; yang diambil dari server cuma
+   datanya. Semua panggilan google.script.run diganti fetch ke doPost aksi
+   'lapangan' (fapPintuLapangan_ di FieldOp.gs).
+   PIN, tiket, dan kode akses tidak pernah ditaruh di alamat: selalu di badan
+   POST. Tiket sesi tetap di sessionStorage seperti aplikasi lama. */
+var API = "https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec";
+var SIMPAN = "lap_klien_v1";
+var BATAS_PANGGIL = 90000;
+
+function bacaSimpanan() { try { var x = JSON.parse(localStorage.getItem(SIMPAN) || "null"); return (x && x.versi && x.html) ? x : null; } catch (e) { return null; } }
+function tulisSimpanan(x) { try { localStorage.setItem(SIMPAN, JSON.stringify(x)); return true; } catch (e) { return false; } }
+
+/* Dirakit jadi teks lalu ditanam di kepala halaman aplikasi. Bagian ini yang
+   menggantikan google.script.run dan google.script.url di luar HtmlService. */
+function prelude(versi) {
+  return "<link rel=\"manifest\" href=\"manifest.webmanifest\"><meta name=\"theme-color\" content=\"#8C4A24\">" +
+    "<script>(" + sambungan.toString() + ")(" + JSON.stringify(API) + "," + JSON.stringify(SIMPAN) + "," + JSON.stringify(versi) + "," + BATAS_PANGGIL + ");<\/script>";
+}
+
+function sambungan(API, SIMPAN, VERSI, BATAS) {
+  function kirim(badan, batas) {
+    var ctl = typeof AbortController === "function" ? new AbortController() : null;
+    var t = ctl ? setTimeout(function () { ctl.abort(); }, batas) : null;
+    return fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: badan,
+      credentials: "omit", redirect: "follow", cache: "no-store", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) {
+        return r.text().then(function (s) {
+          if (t) clearTimeout(t);
+          var h = null; try { h = JSON.parse(s); } catch (e) { h = null; }
+          if (!h || typeof h !== "object") throw new Error("Server belum membalas dengan benar (HTTP " + r.status + "). Coba lagi sebentar.");
+          return h;
+        });
+      }, function (e) {
+        if (t) clearTimeout(t);
+        throw new Error(e && e.name === "AbortError" ? "Server terlalu lama menjawab. Coba lagi." : "Sambungan terputus. Coba lagi saat sinyal ada.");
+      });
+  }
+  function panggil(fn, args, ok, gagal) {
+    kirim(JSON.stringify({ aksi: "lapangan", fn: fn, args: args }), BATAS).then(function (h) {
+      if (h.pintu === "ok") { if (ok) ok(h.hasil); return; }
+      if (gagal) gagal(new Error(h.pesan || "Server menolak permintaan ini."));
+    }, function (e) { if (gagal) gagal(e); });
+  }
+  function jalan(ok, gagal) {
+    return new Proxy({}, { get: function (t, k) {
+      if (k === "withSuccessHandler") return function (f) { return jalan(f, gagal); };
+      if (k === "withFailureHandler") return function (f) { return jalan(ok, f); };
+      if (k === "withUserObject") return function () { return jalan(ok, gagal); };
+      if (typeof k !== "string" || k === "then") return undefined;
+      return function () { panggil(k, Array.prototype.slice.call(arguments), ok, gagal); };
+    } });
+  }
+  var param = {};
+  try { new URLSearchParams(location.search).forEach(function (v, k) { param[k] = v; }); } catch (e) {}
+  window.google = { script: {
+    run: jalan(null, null),
+    url: { getLocation: function (cb) { cb({ parameter: param, parameters: {}, hash: String(location.hash || "").slice(1) }); } },
+    host: { close: function () {}, setHeight: function () {}, setWidth: function () {} }
+  } };
+  if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
+  /* Cek versi di latar belakang. Versi baru disimpan dan dipakai saat aplikasi
+     dibuka lagi, supaya layar yang sedang diisi petugas tidak ditimpa. */
+  setTimeout(function () {
+    kirim(JSON.stringify({ aksi: "lapangan", fn: "__klien", alamat: API, versi: VERSI }), 60000).then(function (h) {
+      if (!h || h.pintu !== "ok" || !h.hasil || !h.hasil.html || h.hasil.versi === VERSI) return;
+      try { localStorage.setItem(SIMPAN, JSON.stringify({ versi: h.hasil.versi, html: h.hasil.html, waktu: Date.now() })); } catch (e) {}
+    }, function () {});
+  }, 1500);
+}
+
+function tampilkan(x) {
+  var html = String(x.html);
+  var m = html.match(/<head[^>]*>/i);
+  html = m ? html.replace(m[0], m[0] + prelude(x.versi)) : prelude(x.versi) + html;
+  document.open();
+  document.write(html);
+  document.close();
+}
+
+function galat(teks) {
+  document.getElementById("isi").innerHTML = '<p class="pesan salah" role="alert"></p><button type="button" id="bUlang">Coba lagi</button>';
+  document.querySelector(".salah").textContent = teks;
+  document.getElementById("bUlang").addEventListener("click", function () { location.reload(); });
+}
+
+function ambilBaru(ke) {
+  ke = ke || 1;
+  var ctl = typeof AbortController === "function" ? new AbortController() : null;
+  var t = ctl ? setTimeout(function () { ctl.abort(); }, 45000) : null;
+  fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ aksi: "lapangan", fn: "__klien", alamat: API }),
+    credentials: "omit", redirect: "follow", cache: "no-store", signal: ctl ? ctl.signal : undefined })
+    .then(function (r) { return r.text(); })
+    .then(function (s) {
+      if (t) clearTimeout(t);
+      var h = JSON.parse(s);
+      if (!h || h.pintu !== "ok" || !h.hasil || !h.hasil.html) throw new Error((h && h.pesan) || "kosong");
+      var x = { versi: h.hasil.versi, html: h.hasil.html, waktu: Date.now() };
+      tulisSimpanan(x);
+      tampilkan(x);
+    })
+    .catch(function () {
+      if (t) clearTimeout(t);
+      if (ke < 3) {
+        document.getElementById("pesan").textContent = "Google lambat menjawab. Mencoba lagi (" + (ke + 1) + " dari 3)…";
+        setTimeout(function () { ambilBaru(ke + 1); }, 1200 * ke);
+        return;
+      }
+      galat("Aplikasi belum bisa dibuka karena sambungan ke server gagal 3 kali. Tidak ada data yang hilang. Coba lagi saat sinyal ada.");
+    });
+}
+
+(function mulai() {
+  var segar = /(^|[?&])segar=1(&|$)/.test(location.search.slice(1));
+  var x = segar ? null : bacaSimpanan();
+  if (x) { tampilkan(x); return; }
+  ambilBaru(1);
+})();
+</script>
+</body>
+</html>
