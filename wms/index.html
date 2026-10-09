@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#8C4A24">
+<title>WMS Mofmofriends</title>
+<script>
+/* Tema dipasang sebelum halaman digambar supaya tidak berkedip putih di malam hari.
+   auto = terang 06.00 sampai 18.00, gelap di luar itu. */
+(function () {
+  var p = 'auto';
+  try { p = localStorage.getItem('wms_tema') || 'auto'; } catch (e) {}
+  var j = new Date().getHours();
+  var t = p === 'light' || p === 'dark' ? p : (j >= 6 && j < 18 ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', t);
+})();
+</script>
+<link rel="preconnect" href="https://script.google.com" crossorigin>
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+<link rel="icon" href="ikon.svg" type="image/svg+xml">
+</head>
+<body>
+<div id="app"><div style="min-height:100vh;display:flex;align-items:center;justify-content:center"><div class="putar" role="status" aria-label="Loading"></div></div></div>
+<div class="toast-box" id="toast" aria-live="polite"></div>
+<script src="app.js" defer></script>
+</body>
+</html>
