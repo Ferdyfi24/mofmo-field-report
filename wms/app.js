@@ -155,6 +155,9 @@
         if (tm) clearTimeout(tm);
         var h = null; try { h = JSON.parse(s); } catch (e) { h = null; }
         if (!h || typeof h !== 'object') throw new Error(bhs() === 'id' ? 'Server papan tidak menjawab dengan benar. Kalau WMS baru ini baru dipasang, server papan mungkin belum diperbarui (deploy versi baru).' : 'The board server did not answer properly. If the new WMS was just set up, the board server may not be updated yet (deploy the new version).');
+        /* Server papan versi lama tidak mengenal aksi 'wms' dan menjawab tanpa 'pintu'.
+           Tanpa pemeriksaan ini jawabannya terbaca sebagai "kode salah". */
+        if (!h.pintu) throw new Error(bhs() === 'id' ? 'Server papan belum diperbarui untuk WMS baru. Minta deploy versi baru Apps Script dulu.' : 'The board server is not updated for the new WMS yet. Deploy the new Apps Script version first.');
         if (h.pintu === 'galat') throw new Error(h.pesan || 'Server error.');
         return h.hasil;
       }, function (e) { if (tm) clearTimeout(tm); throw new Error(e && e.name === 'AbortError' ? 'The server took too long. Try again.' : 'Connection lost. Try again when the signal is back.'); });
