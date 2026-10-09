@@ -146,7 +146,15 @@ function ambilBaru(ke) {
   if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
   var segar = /(^|[?&])segar=1(&|$)/.test(location.search.slice(1));
   var x = segar ? null : bacaSimpanan();
-  if (x) { tampilkan(x); return; }
+  /* Tunggu halaman pemuat selesai disusun. document.open() yang dipanggil
+     saat penyusunan masih jalan TIDAK mengganti halaman, isinya malah
+     disisipkan di bawah layar putar (kejadian 9 Okt: aplikasi sudah masuk
+     tapi terdorong ke bawah layar). */
+  if (x) {
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { tampilkan(x); });
+    else tampilkan(x);
+    return;
+  }
   ambilBaru(1);
 })();
 </script>
