@@ -1,4 +1,4 @@
-/* Uji WMS baru (wms/, 10 Okt 2026). Harapan: "31 pemeriksaan, SEMUA LULUS".
+/* Uji WMS baru (wms/, 10 Okt 2026). Harapan: "32 pemeriksaan, SEMUA LULUS".
  * Chromium sungguhan, halaman dilayani dari localhost, server Apps Script
  * palsu (aksi 'wms'), pustaka QR palsu, AudioContext palsu yang mencatat nada.
  *
@@ -17,7 +17,7 @@ const http = require('http'), fs = require('fs'), path = require('path');
 const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 31;
+const DIHARAPKAN = 32;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -148,6 +148,8 @@ const AUDIO_PALSU = () => {
     c('W4 kode akses tidak pernah ada di alamat, localStorage, atau sessionStorage', !/kode-palsu|KODE-PALSU/i.test(masuk.href + masuk.ls + masuk.ss), masuk.href);
     await tunggu(() => window.__wms && window.__wms.S.gudang && window.__wms.S.kiriman, null, 8000);
     const panggilData = S.badan.filter(x => x.fn !== 'masuk');
+    const simpanLokal = await p.evaluate(() => ({ ls: Object.keys(localStorage).filter(k => /^wms_simpan_/.test(k)).sort(), ss: Object.keys(sessionStorage).filter(k => /^wms_simpan_/.test(k)) }));
+    c('W32 angka terakhir disimpan di localStorage walau tidak "ingat", supaya bukaan berikutnya langsung tampil', JSON.stringify(simpanLokal.ls) === JSON.stringify(['wms_simpan_data', 'wms_simpan_gudang', 'wms_simpan_kiriman']) && simpanLokal.ss.length === 0, JSON.stringify(simpanLokal));
     c('W5 panggilan sesudah masuk membawa tiket, tidak membawa kode', panggilData.length >= 3 && panggilData.every(x => x.tiket === 'TIKET.SESI' && !('kode' in x)), JSON.stringify(panggilData.map(x => Object.keys(x).join('+'))));
 
     /* ---------- ringkasan ---------- */
