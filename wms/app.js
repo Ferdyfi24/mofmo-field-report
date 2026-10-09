@@ -14,7 +14,7 @@
   var API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
   var APP_LAPANGAN = 'https://mofmo-lapangan.pages.dev/lapangan/';
   var LAPORAN_LAPANGAN = 'https://mofmo-lapangan.pages.dev/';
-  var PAPAN_LAMA = 'https://script.google.com/a/onelogisticssolutions.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec?lihat=1';
+  var PAPAN_LAMA = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec?lihat=1';
   var QR_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
 
   /* ================= penyimpanan ================= */
