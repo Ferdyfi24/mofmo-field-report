@@ -119,87 +119,60 @@
   }
 
   /* ================= boneka mofmof =================
-     Beruang orisinal (bukan karakter resmi Mofmofriends). Garis luar selalu
-     hitam, bulu krem, telinga dalam oren. Ekspresi: diam (kedip), senang
-     (mata lengkung), sedih (mata > <). */
-  var BULU = '#F6E8D6', PIPI = '#F4B4A2';
-  function bonekaBesar(ekspresi) {
-    var mata = ekspresi === 'senang' ? '<path d="M38 66 Q45 56 52 66 M68 66 Q75 56 82 66" fill="none" stroke-width="3.5" stroke-linecap="round"></path>'
-      : ekspresi === 'sedih' ? '<path d="M39 58 L49 64 L39 70 M81 58 L71 64 L81 70" fill="none" stroke-width="3.5" stroke-linecap="round"></path>'
-      : '<circle class="kedip" cx="45" cy="64" r="5" fill="#121212" stroke="none"></circle><circle class="kedip" cx="75" cy="64" r="5" fill="#121212" stroke="none"></circle>';
-    return '<svg viewBox="0 0 120 124" stroke="#121212" stroke-width="3" stroke-linejoin="round" aria-hidden="true">' +
-      '<path class="telinga" d="M41.0 30.0Q43.3 35.6 38.1 38.8Q36.7 44.7 30.6 44.3Q26.0 48.2 21.4 44.3Q15.3 44.7 13.9 38.8Q8.7 35.6 11.0 30.0Q8.7 24.4 13.9 21.2Q15.3 15.3 21.4 15.7Q26.0 11.8 30.6 15.7Q36.7 15.3 38.1 21.2Q43.3 24.4 41.0 30.0Z" fill="' + BULU + '"></path>' +
-      '<path class="telinga" d="M109.0 30.0Q111.3 35.6 106.1 38.8Q104.7 44.7 98.6 44.3Q94.0 48.2 89.4 44.3Q83.3 44.7 81.9 38.8Q76.7 35.6 79.0 30.0Q76.7 24.4 81.9 21.2Q83.3 15.3 89.4 15.7Q94.0 11.8 98.6 15.7Q104.7 15.3 106.1 21.2Q111.3 24.4 109.0 30.0Z" fill="' + BULU + '"></path>' +
-      '<circle cx="26" cy="30" r="7" fill="#F26419" stroke="none"></circle><circle cx="94" cy="30" r="7" fill="#F26419" stroke="none"></circle>' +
-      '<path d="M102.0 66.0Q105.9 72.6 100.3 77.8Q102.2 85.3 95.3 88.7Q95.1 96.4 87.5 97.7Q85.1 105.0 77.4 104.2Q73.1 110.5 66.0 107.6Q60.0 112.4 54.0 107.6Q46.9 110.5 42.6 104.2Q34.9 105.0 32.5 97.7Q24.9 96.4 24.7 88.7Q17.8 85.3 19.7 77.8Q14.1 72.6 18.0 66.0Q14.1 59.4 19.7 54.2Q17.8 46.7 24.7 43.3Q24.9 35.6 32.5 34.3Q34.9 27.0 42.6 27.8Q46.9 21.5 54.0 24.4Q60.0 19.6 66.0 24.4Q73.1 21.5 77.4 27.8Q85.1 27.0 87.5 34.3Q95.1 35.6 95.3 43.3Q102.2 46.7 100.3 54.2Q105.9 59.4 102.0 66.0Z" fill="' + BULU + '"></path>' +
-      '<ellipse cx="60" cy="82" rx="17" ry="13" fill="#FFFFFF"></ellipse><ellipse cx="60" cy="76" rx="5.5" ry="4" fill="#121212" stroke="none"></ellipse>' +
-      '<path d="M60 80 Q60 88 53 88 M60 80 Q60 88 67 88" fill="none" stroke-width="2.5"></path>' +
-      '<circle cx="35" cy="80" r="7" fill="' + PIPI + '" stroke="none"></circle><circle cx="85" cy="80" r="7" fill="' + PIPI + '" stroke="none"></circle>' +
-      mata +
-      '<ellipse cx="40" cy="116" rx="13" ry="9" fill="' + BULU + '"></ellipse><ellipse cx="80" cy="116" rx="13" ry="9" fill="' + BULU + '"></ellipse></svg>';
-  }
-  function bonekaKecil(kelas, ekspresi) {
-    var mata = ekspresi === 'senang' ? '<path d="M27 43 Q31 37 35 43 M45 43 Q49 37 53 43" fill="none" stroke-width="2.5" stroke-linecap="round"></path>'
-      : ekspresi === 'tidur' ? '<path d="M27 42 Q31 45 35 42 M45 42 Q49 45 53 42" fill="none" stroke-width="2.5" stroke-linecap="round"></path>'
-      : ekspresi === 'sedih' ? '<path d="M27 38 L34 42 L27 46 M53 38 L46 42 L53 46" fill="none" stroke-width="2.5" stroke-linecap="round"></path>'
-      : '<circle class="kedip" cx="31" cy="42" r="3" fill="#121212" stroke="none"></circle><circle class="kedip" cx="49" cy="42" r="3" fill="#121212" stroke="none"></circle>';
-    return '<svg class="' + (kelas || '') + '" viewBox="0 0 80 74" stroke="#121212" stroke-width="2.5" stroke-linejoin="round" aria-hidden="true">' +
-      '<path class="telinga" d="M28.0 20.0Q29.5 24.7 25.1 27.1Q22.7 31.5 18.0 30.0Q13.3 31.5 10.9 27.1Q6.5 24.7 8.0 20.0Q6.5 15.3 10.9 12.9Q13.3 8.5 18.0 10.0Q22.7 8.5 25.1 12.9Q29.5 15.3 28.0 20.0Z" fill="' + BULU + '"></path>' +
-      '<path class="telinga" d="M72.0 20.0Q73.5 24.7 69.1 27.1Q66.7 31.5 62.0 30.0Q57.3 31.5 54.9 27.1Q50.5 24.7 52.0 20.0Q50.5 15.3 54.9 12.9Q57.3 8.5 62.0 10.0Q66.7 8.5 69.1 12.9Q73.5 15.3 72.0 20.0Z" fill="' + BULU + '"></path>' +
-      '<circle cx="18" cy="20" r="4.5" fill="#F26419" stroke="none"></circle><circle cx="62" cy="20" r="4.5" fill="#F26419" stroke="none"></circle>' +
-      '<path d="M66.0 44.0Q68.6 49.7 64.0 53.9Q64.3 60.2 58.4 62.4Q56.2 68.3 49.9 68.0Q45.7 72.6 40.0 70.0Q34.3 72.6 30.1 68.0Q23.8 68.3 21.6 62.4Q15.7 60.2 16.0 53.9Q11.4 49.7 14.0 44.0Q11.4 38.3 16.0 34.1Q15.7 27.8 21.6 25.6Q23.8 19.7 30.1 20.0Q34.3 15.4 40.0 18.0Q45.7 15.4 49.9 20.0Q56.2 19.7 58.4 25.6Q64.3 27.8 64.0 34.1Q68.6 38.3 66.0 44.0Z" fill="' + BULU + '"></path>' +
-      '<ellipse cx="40" cy="52" rx="9" ry="7" fill="#FFFFFF"></ellipse>' + mata +
-      '<ellipse cx="40" cy="49" rx="3.5" ry="2.5" fill="#121212" stroke="none"></ellipse>' +
-      '<circle cx="24" cy="50" r="4" fill="' + PIPI + '" stroke="none"></circle><circle cx="56" cy="50" r="4" fill="' + PIPI + '" stroke="none"></circle></svg>';
-  }
+     Foto boneka Mofmofriends asli (dipotong dari foto katalog), bukan
+     gambar karangan. Ferdy: "beruangnya kurang lucu", "pakai karakter asli
+     Mofmo". Peran: Shiba menyapa dan bersorak, Koala malu saat ada yang
+     salah, Bichon menunggu papan dimuat, Angora menemani pesan memuat. */
+  function img(n) { return 'img/' + n + '.webp'; }
+  function foto(n, kelas, alt) { return '<img class="' + (kelas || '') + '" src="' + img(n) + '" alt="' + esc(alt || '') + '" draggable="false">'; }
+  var WAJAH = { diam: 'shiba', cek: 'shiba', senang: 'shiba', sedih: 'koala', mikir: 'shiba' };
 
-  /* ================= halaman: masuk (L4) ================= */
+  /* ================= halaman: masuk (Mofmo Soft) ================= */
   var putarPapan = null, langkahPapan = 0;
-  function tahapGudang() { return bhs() === 'id' ? ['AMBIL', 'KEMAS', 'SIAP KIRIM', 'PERJALANAN', 'TERKIRIM'] : ['PICKING', 'PACKING', 'STAGING', 'IN TRANSIT', 'DELIVERED']; }
-  function barisKeping(teks, oren, mulai) {
-    var s = (String(teks) + '              ').slice(0, 14).split('');
-    return '<div class="papan-baris">' + s.map(function (h, i) { return '<span class="keping' + (oren ? ' oren' : '') + '" style="animation-delay:' + (mulai + i * 45) + 'ms">' + (h === ' ' ? '' : esc(h)) + '</span>'; }).join('') + '</div>';
-  }
+  function tahapGudang() { return bhs() === 'id' ? ['Ambil', 'Kemas', 'Siap kirim', 'Perjalanan', 'Terkirim'] : ['Picking', 'Packing', 'Staging', 'In transit', 'Delivered']; }
   function garisTahap(aktif) {
-    return tahapGudang().map(function (n, i) { return '<span class="' + (i <= aktif ? 'lewat' : '') + (i === aktif ? ' kini' : '') + '">' + esc(n) + '</span>'; }).join('');
+    return tahapGudang().map(function (n, i) { return '<span class="' + (i < aktif ? 'lewat' : '') + (i === aktif ? ' kini' : '') + '"><i></i>' + esc(n) + '</span>'; }).join('');
   }
   var KATA_BONEKA = {
-    en: { diam: 'MOF! CODE, PLEASE', cek: 'SNIFFING THE CODE…', senang: 'YAY! OPENING THE LEDGER', sedih: 'HMM. TRY THAT CODE AGAIN' },
-    id: { diam: 'MOF! KODENYA DONG', cek: 'LAGI DIENDUS…', senang: 'YAY! BUKU BESAR DIBUKA', sedih: 'HMM. COBA KODENYA LAGI' }
+    en: { diam: 'Mof! Code, please', cek: 'Sniffing the code…', senang: 'Yay! Opening the ledger', sedih: 'Hmm, try that code again' },
+    id: { diam: 'Mof! Kodenya dong', cek: 'Lagi diendus…', senang: 'Yay! Buku besar dibuka', sedih: 'Hmm, coba kodenya lagi' }
   };
+  var KARDUS = [['bear', 'DO-2610-01', 92], ['lamb', 'SHP-09', 84], ['kr_tiger', 'PO-8800', 96], ['redpanda', 'KIY-PIK', 88], ['mb_collie', 'TGI-305', 80], ['elephant', 'MAA-SGI', 90]];
   function halMasuk() {
     var id = bhs() === 'id', aktif = langkahPapan % 5, tahap = tahapGudang();
-    var kardus = [['DO-0101', 110, ''], ['SHP-9', 96, ' k2'], ['PO-77', 124, ' k3']];
-    var roda = ''; for (var i = 0; i < 12; i++) roda += '<g class="roda"><circle cx="' + (30 + i * 130) + '" cy="20" r="11"></circle><path d="M' + (30 + i * 130) + ' 9v22"></path></g>';
+    var dus = KARDUS.concat(KARDUS).map(function (k, i) {
+      return '<div class="kardus" style="animation-delay:' + (-(i * 0.4) % 2.4).toFixed(2) + 's">' + foto(k[0], 'boneka') + '<div class="badan-kardus" style="width:' + k[2] + 'px"><span class="kode-k">' + k[1] + '</span></div></div>';
+    }).join('');
     return '<div class="masuk"><div class="masuk-isi">' +
-      '<header class="masuk-atas"><div class="merek" style="padding:0"><div class="logo">M</div><div><b>Mofmofriends WMS</b><small>One Logistics Solutions</small></div></div>' +
+      '<header class="masuk-atas"><div class="merek"><div class="logo">' + foto('kc_shiba', '', 'Mofmofriends') + '</div><div><b>mofmofriends</b><small>WMS · One Logistics Solutions</small></div></div>' +
       '<div class="alat"><button type="button" class="saklar" data-aksi="tema" aria-label="' + esc(temaTerpakai() === 'dark' ? t('day') : t('night')) + '"><span class="rel"><span class="tombol-rel"></span></span>' + esc(temaTerpakai() === 'dark' ? t('night') : t('day')) + '</button>' +
       '<button type="button" class="saklar" data-aksi="bahasa" aria-label="Language">' + (id ? 'ID' : 'EN') + '</button></div></header>' +
       '<div class="masuk-tengah"><div class="masuk-kiri">' +
-      '<section class="papan" aria-label="' + (id ? 'Papan dok' : 'Dock board') + '"><div class="papan-kepala"><span>OUTBOUND · DOCK 01</span><span>HO HAERY · KEMANG SELATAN</span></div>' +
-      barisKeping('MOFMOFRIENDS', false, 0) + barisKeping('WMS HO HAERY', false, 300) + '<div id="barisTahap">' + barisKeping('> ' + tahap[aktif], true, 0) + '</div></section>' +
-      '<p class="slogan">' + (id ? 'Setiap boneka, setiap kardus, satu buku besar.' : 'Every plush, every box, one ledger.') + '</p>' +
-      '<div class="tahap-garis" id="garisTahap">' + garisTahap(aktif) + '</div></div>' +
+      '<span class="lbl">' + (id ? 'Keluar · Dok 01 · HO Haery, Kemang Selatan' : 'Outbound · Dock 01 · HO Haery, Kemang Selatan') + '</span>' +
+      '<p class="slogan">' + (id ? 'Setiap boneka, setiap kardus,<br>satu buku besar.' : 'Every plush, every box,<br>one ledger.') + '</p>' +
+      '<section class="papan" aria-label="' + (id ? 'Papan dok' : 'Dock board') + '"><div class="papan-kepala"><span class="lbl">' + (id ? 'Hari ini di dok' : 'Today at the dock') + '</span><span class="hidup"><i></i>Live</span></div>' +
+      '<div class="papan-kini"><span>' + (id ? 'Sekarang' : 'Now') + '</span><b id="barisTahap">' + esc(tahap[aktif]) + '</b></div>' +
+      '<div class="tahap-garis" id="garisTahap">' + garisTahap(aktif) + '</div></section>' +
+      '<div class="konveyor" aria-hidden="true"><div class="jalur">' + dus + '</div><div class="rak-kayu"></div></div>' +
+      '<span class="lbl">' + (id ? 'Dari HO Haery, Kemang · ke semua gerai dan saluran' : 'From HO Haery, Kemang · to every store and channel') + '</span></div>' +
       '<form class="label-masuk" id="formMasuk" autocomplete="on">' +
       '<div class="gelembung" id="gelembung" role="status">' + esc(KATA_BONEKA[bhs()].diam) + '</div>' +
-      '<div class="maskot" id="maskot">' + bonekaBesar('diam') + '</div>' +
-      '<div class="dari"><div><small>' + (id ? 'DARI' : 'FROM') + '</small>HO HAERY · KEMANG</div><div><small>' + (id ? 'KE' : 'TO') + '</small>MOFMOFRIENDS WMS</div></div>' +
+      '<div class="maskot" id="maskot" data-ekspresi="diam">' + foto(WAJAH.diam, '', '') + '</div>' +
       '<div class="badan"><h1>' + (id ? 'Masuk' : 'Sign in') + '</h1>' +
-      '<label for="kode" class="judul">' + (id ? 'KODE AKSES' : 'ACCESS CODE') + '</label>' +
-      '<input id="kode" name="kode" type="password" autocomplete="current-password" required>' +
-      '<label class="centang"><input type="checkbox" id="ingat">' + (id ? 'TETAP MASUK · 7 HARI' : 'KEEP ME SIGNED IN · 7 DAYS') + '</label>' +
+      '<p class="ket">' + (id ? 'Pakai kode akses dari atasanmu. Kodenya tidak pernah masuk ke alamat.' : 'Use the access code from your manager. It never goes into the address bar.') + '</p>' +
+      '<label for="kode" class="judul">' + (id ? 'Kode akses' : 'Access code') + '</label>' +
+      '<input id="kode" name="kode" type="password" autocomplete="current-password" placeholder="' + (id ? 'Ketik kodemu' : 'Type your code') + '" required>' +
+      '<label class="centang"><input type="checkbox" id="ingat">' + (id ? 'Tetap masuk 7 hari' : 'Keep me signed in for 7 days') + '</label>' +
       '<button type="submit" class="btn" id="tMasuk"><span id="tMasukTeks">' + (id ? 'Buka WMS' : 'Open the WMS') + '</span><span aria-hidden="true">→</span></button>' +
       '<div class="galat" id="galatMasuk" role="alert"></div><div id="capMasuk"></div></div>' +
-      '<div class="kaki"><span style="color:var(--mut)">' + (id ? 'PETUGAS FIELD OP' : 'FIELD OP STAFF') + '</span><a href="' + APP_LAPANGAN + '" style="font-weight:600">mofmo-lapangan.pages.dev/lapangan</a></div></form>' +
+      '<div class="kaki">' + foto('kr_bear', 'kaki-boneka', '') + '<span>' + (id ? 'Operational PIC? Buka aplikasi lapangan di ' : 'Operational PIC? Open the field app at ') + '<a href="' + APP_LAPANGAN + '">mofmo-lapangan.pages.dev/lapangan</a></span></div></form>' +
       '</div></div>' +
-      '<div class="konveyor" aria-hidden="true"><div class="tiang"></div><div class="kepala-scan"></div><div class="laser"></div><div class="kilat">SCANNED</div>' +
-      kardus.map(function (k) { return '<div class="kardus' + k[2] + '" style="width:' + k[1] + 'px">' + bonekaKecil('boneka') + '<div class="badan-kardus"><div class="tutup"></div><div class="label-k"><i style="width:2px"></i><i style="width:4px"></i><i style="width:1px"></i><i style="width:3px"></i><i style="width:2px"></i><i style="width:5px"></i><i style="width:1px"></i></div><div class="kode-k">' + k[0] + '</div></div></div>'; }).join('') +
-      '<div class="sabuk"></div><svg class="roda-roda" viewBox="0 0 1500 40" preserveAspectRatio="xMinYMid slice"><g fill="none" stroke="currentColor" stroke-width="3">' + roda + '</g></svg>' +
-      '<div class="hazard jalan"></div></div></div>';
+      '</div>';
   }
   function ekspresiBoneka(e) {
     var m = document.getElementById('maskot'), g = document.getElementById('gelembung'); if (!m) return;
-    m.innerHTML = bonekaBesar(e === 'cek' ? 'diam' : e);
+    var i = m.querySelector('img'); if (i) i.setAttribute('src', img(WAJAH[e] || 'shiba'));
+    m.setAttribute('data-ekspresi', e);
     m.classList.remove('lompat', 'gelengKepala'); void m.offsetWidth;
     if (e === 'senang') m.classList.add('lompat'); if (e === 'sedih') m.classList.add('gelengKepala');
     if (g) { g.textContent = KATA_BONEKA[bhs()][e] || ''; g.style.animation = 'none'; void g.offsetWidth; g.style.animation = ''; }
@@ -228,7 +201,7 @@
       var b = document.getElementById('barisTahap'), gt = document.getElementById('garisTahap');
       if (!b) { clearInterval(putarPapan); putarPapan = null; return; }
       langkahPapan++; var a = langkahPapan % 5;
-      b.innerHTML = barisKeping('> ' + tahapGudang()[a], true, 0); if (gt) gt.innerHTML = garisTahap(a);
+      b.textContent = tahapGudang()[a]; b.classList.remove('balik'); void b.offsetWidth; b.classList.add('balik'); if (gt) gt.innerHTML = garisTahap(a);
     }, 2600);
     var inp = document.getElementById('kode');
     inp.addEventListener('input', function () { var g = document.getElementById('galatMasuk'); if (g && g.classList.contains('tolak')) { g.classList.remove('tolak'); g.textContent = ''; ekspresiBoneka('diam'); } });
@@ -236,22 +209,22 @@
       ev.preventDefault();
       var id = bhs() === 'id', kode = inp.value, ingat = document.getElementById('ingat').checked;
       var tb = document.getElementById('tMasuk'), tt = document.getElementById('tMasukTeks'), g = document.getElementById('galatMasuk');
-      if (!String(kode).trim()) { Suara.scanTolak(); g.className = 'galat tolak'; g.textContent = id ? 'DITOLAK · KODE AKSES KOSONG' : 'REJECTED · ACCESS CODE IS EMPTY'; ekspresiBoneka('sedih'); inp.focus(); return; }
+      if (!String(kode).trim()) { Suara.scanTolak(); g.className = 'galat tolak'; g.textContent = id ? 'Kode aksesnya masih kosong.' : 'The access code is empty.'; ekspresiBoneka('sedih'); inp.focus(); return; }
       tb.disabled = true; tt.textContent = t('checking'); g.className = 'galat'; g.textContent = ''; ekspresiBoneka('cek'); Suara.klik();
       masukServer(kode, ingat).then(function (h) {
         buang('wms_tiket'); buang('wms_ingat');
         taruh('wms_tiket', h.tiket, ingat); if (ingat) taruh('wms_ingat', '1', true);
         Suara.scanOk(); setTimeout(Suara.sukses, 120); getar(30);
-        ekspresiBoneka('senang'); g.textContent = id ? 'KODE DITERIMA · MEMUAT BUKU BESAR' : 'CODE ACCEPTED · LOADING LEDGER';
+        ekspresiBoneka('senang'); g.className = 'galat ok'; g.textContent = id ? 'Kode diterima. Memuat buku besar.' : 'Code accepted. Loading the ledger.';
         tt.textContent = id ? 'Membuka…' : 'Opening…';
-        document.getElementById('capMasuk').innerHTML = '<div class="cap">' + (id ? 'LOLOS' : 'CHECKED') + '</div>';
+        document.getElementById('capMasuk').innerHTML = '<div class="cap">' + (id ? 'Lolos' : 'Checked') + '</div>' + hujanTapak();
         setTimeout(function () {
           S.tiket = h.tiket;
           gambar();
         }, gerakBoleh() ? 900 : 0);
       }).catch(function (e) {
         Suara.scanTolak(); getar([60, 60, 60]); ekspresiBoneka('sedih');
-        g.className = 'galat tolak'; g.textContent = (id ? 'DITOLAK · ' : 'REJECTED · ') + String(e.message || '');
+        g.className = 'galat tolak'; g.textContent = String(e.message || '');
         tb.disabled = false; tt.textContent = id ? 'Buka WMS' : 'Open the WMS';
         inp.style.animation = 'none'; void inp.offsetWidth; inp.style.animation = 'geleng .45s ease'; inp.focus(); inp.select();
       });
@@ -462,9 +435,53 @@
       if (mataTunda) return; mataTunda = true;
       requestAnimationFrame(function () { mataTunda = false; try { H.mata(e.clientX, e.clientY, true); } catch (er) {} });
     }, { passive: true });
+    /* Foto produk di depan nama SKU (Ferdy: "foto skunya dimasukin jg dong"):
+       sel tabel yang isinya nama produk, dan sel peta gudang (data-sku). */
+    var K = P.KulitPapan || {};
+    function pasangSku(n) {
+      if (!K.fotoSku || !n.querySelectorAll) return;
+      var el = n.matches && n.matches('td,.c[data-sku]') ? [n] : [];
+      el = el.concat(Array.prototype.slice.call(n.querySelectorAll('td,.c[data-sku]')));
+      el.forEach(function (e) {
+        if (e.__l4sku) return; e.__l4sku = 1;
+        if (e.querySelector('img.l4-sku')) return;
+        var f = K.fotoSku(e.getAttribute('data-sku') || (e.querySelector('table') ? '' : e.textContent));
+        if (!f) return;
+        var nama = (e.getAttribute('data-sku') || e.textContent || '').trim(), bc = e.getAttribute('data-bc') || '';
+        var im = document.createElement('img'); im.className = 'l4-sku'; im.alt = ''; im.loading = 'lazy'; im.setAttribute('src', K.dasar + 'sku/' + f + '.webp');
+        /* Paspor SKU (Ferdy: "klik satu SKU, kelihatan perjalanannya"): klik fotonya,
+           bukan selnya, supaya klik sel papan yang sudah ada tetap jalan seperti biasa */
+        im.title = C.teks.paspor; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', C.teks.paspor + ': ' + nama);
+        var bukaPaspor = function (ev) { ev.preventDefault(); ev.stopPropagation(); H.paspor({ nama: nama, bc: bc }); };
+        im.addEventListener('click', bukaPaspor);
+        im.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') bukaPaspor(ev); });
+        e.insertBefore(im, e.firstChild);
+      });
+    }
+    /* Ferdy: "ganti field op dg Operational PIC". Cuma teks menu, judul,
+       tombol, dan kepala tabel; isi data tidak disentuh. */
+    var RE_FO = /\bField Op\b/g, RE_FOB = /\bFIELD OP\b/g;
+    function gantiNama(n) {
+      if (!n) return;
+      var tn = [];
+      if (n.nodeType === 3) tn = [n];
+      else if (n.nodeType === 1) { var w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT, null); var x; while ((x = w.nextNode())) tn.push(x); }
+      tn.forEach(function (t) {
+        var v = t.nodeValue, p = t.parentElement; if (!p) return;
+        /* papan asli menamai menunya "Lapangan" (EN "Field"); dua duanya jadi "Operational PIC" seperti istilah Ferdy di halaman masuk. Diganti hanya kalau itu seluruh isi teks di menu atau judul, bukan kata "Field" di sel tabel */
+        var utuh = v.trim();
+        if ((utuh === 'Field' || utuh === 'Lapangan') && p.closest('nav,h1,h2,h3,h4,.h3,header,[role=tab],summary')) { t.nodeValue = v.replace(utuh, 'Operational PIC'); return; }
+        if (!/Field Op|FIELD OP/.test(v)) return;
+        if (!p.closest('nav,h1,h2,h3,h4,.h3,button,th,header,[role=tab],summary,label')) return;
+        t.nodeValue = v.replace(RE_FO, 'Operational PIC').replace(RE_FOB, 'OPERATIONAL PIC');
+      });
+    }
     function periksaBaru(akar, n) {
+      if (n && n.nodeType === 3) { gantiNama(n); return; }
       if (!n || n.nodeType !== 1) return;
       cariFoto(n);
+      pasangSku(n);
+      gantiNama(n);
       if (n.matches && n.matches('.nil,.stokangka')) hitungNaik(n);
       if (n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('.nil,.stokangka'), hitungNaik);
       /* pesan memuat papan lama: teks pendek tanpa boneka -> diberi boneka */
@@ -509,7 +526,7 @@
     setInterval(function () {
       var isi = document.getElementById('layarIsi');
       var tampil = !!(isi && isi.getBoundingClientRect().height > 50 && getComputedStyle(isi).display !== 'none');
-      if (tampil && !pernahTampil) { pernahTampil = true; H.siap(); pasangAlat(); }
+      if (tampil && !pernahTampil) { pernahTampil = true; H.siap(); pasangAlat(); gantiNama(document.body); }
       /* Papan lama keluar sendiri (tombol keluarnya, atau kodenya ditolak):
          layar kodenya muncul lagi. Layar kode itu kita sembunyikan, jadi
          halaman masuk WMS yang ambil alih. */
@@ -517,25 +534,49 @@
       hilang = pernahTampil && !tampil && lk && lk.style.display !== 'none' ? hilang + 1 : 0;
       if (hilang >= 3) H.keluar();
     }, 400);
-    function tombol(teks, label, fn) {
-      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-wms', '1'); b.setAttribute('aria-label', label); b.textContent = teks;
-      b.style.cssText = 'font:600 12px/1 "IBM Plex Mono",monospace;text-transform:uppercase;padding:0 10px;margin-left:6px;height:40px;cursor:pointer';
+    var IKON = {
+      bulan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+      matahari: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+      scan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16.5 8v8"/></svg>',
+      menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg>'
+    };
+    function tombol(teks, label, fn, jenis) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-wms', jenis || '1'); b.setAttribute('aria-label', label); b.title = label; b.textContent = teks;
+      b.style.cssText = 'font:800 14px/1 Nunito,"Helvetica Neue",Arial,sans-serif;padding:0 ' + (teks ? 16 : 11) + 'px;margin-left:6px;height:42px;cursor:pointer;display:inline-flex;align-items:center;gap:7px';
       b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); fn(); });
       return b;
     }
     function pasangAlat() {
       var kanan = document.getElementById('kopKanan'); if (!kanan || kanan.querySelector('[data-wms]')) return;
-      kanan.appendChild(tombol(C.gelap ? C.teks.malam : C.teks.siang, C.teks.tema, function () { H.tema(); }));
-      kanan.appendChild(tombol(C.teks.keluar, C.teks.keluar, function () { H.keluarAkun(); }));
+      var sc = tombol('', C.teks.scan, function () { H.alat('scan'); }, 'scan'); sc.innerHTML = IKON.scan + '<span>' + C.teks.scanPendek + '</span>'; sc.style.paddingRight = '15px';
+      kanan.appendChild(sc);
+      /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
+      var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
+      kanan.appendChild(tm);
+      kanan.appendChild(tombol(C.teks.keluar, C.teks.keluar, function () { H.keluarAkun(); }, 'keluar'));
+      pasangLaci();
+    }
+    /* Laci menu di HP (aturan HP papan asli memindah menu ke pita atas) */
+    function pasangLaci() {
+      var nav = document.getElementById('panel'), kepala = document.querySelector('header .bungkus') || document.querySelector('header');
+      if (!nav || !kepala || document.querySelector('.l4-burger')) return;
+      var bg = document.createElement('button'); bg.type = 'button'; bg.className = 'l4-burger'; bg.setAttribute('data-wms', 'menu'); bg.setAttribute('aria-label', C.teks.menu); bg.setAttribute('aria-expanded', 'false'); bg.setAttribute('aria-controls', 'panel'); bg.innerHTML = IKON.menu;
+      kepala.insertBefore(bg, kepala.firstChild);
+      var tirai = document.createElement('div'); tirai.className = 'l4-tirai-laci'; document.body.appendChild(tirai);
+      var setel = function (b) { document.body.classList.toggle('l4-laci', b); bg.setAttribute('aria-expanded', b ? 'true' : 'false'); };
+      bg.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); H.klik(); setel(!document.body.classList.contains('l4-laci')); });
+      tirai.addEventListener('click', function () { setel(false); });
+      nav.addEventListener('click', function (e) { var a = e.target && e.target.closest ? e.target.closest('a') : null; if (a && document.body.classList.contains('l4-laci')) setTimeout(function () { setel(false); }, 120); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setel(false); });
     }
   }
 
   /* ================= boneka pojok =================
-     Ferdy: "sekalian ui ux dibkin lebih lucu jga, ini kaku bgt". Boneka kecil
-     di pojok kanan bawah: matanya mengikuti kursor, mikir saat menunggu
-     server, sedih saat gagal, melompat dan menebar konfeti kotak saat
-     tersimpan, bicara kalau diklik. Tombol x menyembunyikannya sampai tab
-     ditutup. Tanpa gerak kalau perangkat minta gerak dikurangi. */
+     Ferdy: "sekalian ui ux dibkin lebih lucu jga", lalu Mofmo Soft: Shiba asli
+     di pojok kanan bawah. Bernapas, menoleh ke arah kursor, mikir saat
+     menunggu server, Koala yang malu saat gagal, melompat dan menebar cap
+     tapak saat tersimpan, bicara kalau diklik. Tombol x menyembunyikannya
+     sampai tab ditutup. Tanpa gerak kalau perangkat minta gerak dikurangi. */
   var MK = { catat: [], konfeti: 0, ekspresi: 'diam', waktu: null, waktuKata: null };
   var KATA_POJOK = {
     id: { mikir: ['Sebentar, lagi ngambil data…', 'Lagi ngitung kardus…', 'Hmm, sabar ya…'], senang: ['Tersimpan! Mantap.', 'Beres, sudah dicatat!', 'Yay! Masuk buku besar.'], sedih: ['Yah, gagal. Cek pesannya ya.', 'Hmm, server nolak. Baca pesannya dulu.'],
@@ -544,18 +585,14 @@
       klik: ['Mof!', 'Hi! I am on warehouse duty.', 'Good luck with the count today!', 'Remember to drink some water.', 'Use the menu on the left to switch pages.', 'Mof mof!'] }
   };
   function pilihKata(e) { var d = (KATA_POJOK[bhs()] || KATA_POJOK.en)[e] || []; return d.length ? d[Math.floor(Math.random() * d.length)] : ''; }
-  function bonekaPojok(e) {
-    var s = bonekaKecil('', e === 'mikir' ? 'diam' : e);
-    return s.replace(/(<circle class="kedip"[^>]*><\/circle>){2}/, '<g class="mata-ikut" transform="translate(0 0)">$&</g>');
-  }
   function htmlMaskot() {
     var mati = false; try { mati = !!(ss() && ss().getItem('wms_maskot') === 'off'); } catch (e) {}
     if (mati) return '';
     var id = bhs() === 'id';
     return '<div class="maskot-pojok" id="maskotPojok" data-ekspresi="diam">' +
       '<div class="gelembung-pojok" role="status" aria-live="polite"></div>' +
-      '<button type="button" class="badan-pojok" data-aksi="sapaMaskot" data-wms="1" aria-label="' + (id ? 'Sapa boneka' : 'Say hi to the bear') + '">' + bonekaPojok('diam') + '</button>' +
-      '<button type="button" class="tutup-pojok" data-aksi="sembunyiMaskot" data-wms="1" aria-label="' + (id ? 'Sembunyikan boneka' : 'Hide the bear') + '">×</button>' +
+      '<button type="button" class="badan-pojok" data-aksi="sapaMaskot" data-wms="1" aria-label="' + (id ? 'Sapa Shiba' : 'Say hi to Shiba') + '">' + foto('shiba', '', '') + '</button>' +
+      '<button type="button" class="tutup-pojok" data-aksi="sembunyiMaskot" data-wms="1" aria-label="' + (id ? 'Sembunyikan boneka' : 'Hide the plush') + '">×</button>' +
       '<div class="konfeti-wadah" aria-hidden="true"></div></div>';
   }
   function bicara(kata) {
@@ -569,7 +606,7 @@
     MK.catat.push(e); if (MK.catat.length > 60) MK.catat.shift();
     var el = document.getElementById('maskotPojok');
     if (el) {
-      if (MK.ekspresi !== e) el.querySelector('.badan-pojok').innerHTML = bonekaPojok(e);
+      var i = el.querySelector('.badan-pojok img'); if (i) i.setAttribute('src', img(WAJAH[e] || 'shiba'));
       el.setAttribute('data-ekspresi', e);
       el.classList.remove('lompat', 'geleng'); void el.offsetWidth;
       if (e === 'senang') el.classList.add('lompat'); if (e === 'sedih') el.classList.add('geleng');
@@ -579,12 +616,15 @@
     clearTimeout(MK.waktu);
     if (e !== 'diam') MK.waktu = setTimeout(function () { maskot('diam', ''); }, e === 'mikir' ? 9000 : 2600);
   }
+  /* cap tapak berwarna lembut menyembur dari boneka saat tersimpan */
+  var TAPAK = '<svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="15.5" rx="5" ry="4.2"></ellipse><circle cx="5.5" cy="9.5" r="2.2"></circle><circle cx="9.5" cy="5.5" r="2.2"></circle><circle cx="14.5" cy="5.5" r="2.2"></circle><circle cx="18.5" cy="9.5" r="2.2"></circle></svg>';
   function konfeti() {
     var el = document.getElementById('maskotPojok'); if (!el || !gerakBoleh()) return;
-    var w = el.querySelector('.konfeti-wadah'), warna = ['oren', 'hitam', 'putih', 'abu'];
+    var w = el.querySelector('.konfeti-wadah'), warna = ['peach', 'karamel', 'pink', 'mint'];
     for (var i = 0; i < 18; i++) {
       var k = document.createElement('i');
       k.className = 'konfeti ' + warna[i % 4];
+      k.innerHTML = TAPAK;
       k.style.setProperty('--dx', Math.round(-150 + Math.random() * 170) + 'px');
       k.style.setProperty('--dy', Math.round(-170 + Math.random() * 90) + 'px');
       k.style.setProperty('--r', Math.round(Math.random() * 720 - 360) + 'deg');
@@ -594,27 +634,35 @@
     MK.konfeti += 18;
     setTimeout(function () { w.innerHTML = ''; }, 1400);
   }
+  /* hujan cap tapak di halaman masuk saat kode diterima */
+  function hujanTapak() {
+    if (!gerakBoleh()) return '';
+    var warna = ['peach', 'karamel', 'pink', 'mint'], s = '';
+    for (var i = 0; i < 16; i++) s += '<i class="tapak ' + warna[i % 4] + '" style="left:' + Math.round(4 + Math.random() * 90) + '%;animation-delay:' + Math.round(Math.random() * 500) + 'ms;width:' + Math.round(18 + Math.random() * 14) + 'px">' + TAPAK + '</i>';
+    return '<div class="hujan-tapak" aria-hidden="true">' + s + '</div>';
+  }
+  /* Shiba menoleh ke arah kursor: miring paling banyak 8 derajat. */
   function mataMaskot(x, y, dariBingkai) {
     if (MK.ekspresi !== 'diam' && MK.ekspresi !== 'mikir') return;
     var el = document.getElementById('maskotPojok'); if (!el) return;
-    var g = el.querySelector('.mata-ikut'), b = el.querySelector('.badan-pojok'); if (!g || !b) return;
+    var b = el.querySelector('.badan-pojok'), i = b && b.querySelector('img'); if (!i) return;
     if (dariBingkai && PAPAN.bingkai) { var rb = PAPAN.bingkai.getBoundingClientRect(); x += rb.left; y += rb.top; }
-    var r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * 0.55;
-    var dx = Math.max(-1, Math.min(1, (x - cx) / 220)) * 3, dy = Math.max(-1, Math.min(1, (y - cy) / 220)) * 2.2;
-    g.setAttribute('transform', 'translate(' + dx.toFixed(2) + ' ' + dy.toFixed(2) + ')');
+    var r = b.getBoundingClientRect(), cx = r.left + r.width / 2;
+    var d = Math.max(-1, Math.min(1, (x - cx) / 420)) * 8;
+    i.style.transform = 'rotate(' + d.toFixed(2) + 'deg)';
   }
 
   function tirai(isi) { return '<div class="tirai-papan" id="tiraiPapan" role="status">' + isi + '</div>'; }
   function tiraiMuat() {
     var id = bhs() === 'id';
-    return tirai('<div class="maskot-muat">' + bonekaBesar('diam') + '</div>' +
-      '<div class="papan papan-kecil">' + barisKeping(id ? 'MEMUAT' : 'LOADING', false, 0) + barisKeping('> ' + (id ? 'BUKU BESAR' : 'THE LEDGER'), true, 200) + '</div>' +
+    return tirai('<div class="maskot-muat">' + foto('kr_bichon', '', '') + '</div>' +
+      '<h2 class="muat-judul">' + (id ? 'Memuat buku besar' : 'Loading the ledger') + '</h2>' +
       '<div class="lbl">' + (id ? 'Papan yang sama persis dengan papan lama, cuma lebih cepat.' : 'The exact same board as before, just faster.') + '</div>' +
-      '<div class="garis-muat hazard jalan"></div>');
+      '<div class="garis-muat"><i></i></div>');
   }
   function tiraiGagal(teks) {
     var id = bhs() === 'id';
-    return tirai('<div class="maskot-muat gelengKepala">' + bonekaBesar('sedih') + '</div><p class="galat tolak">' + esc(teks) + '</p>' +
+    return tirai('<div class="maskot-muat gelengKepala">' + foto('koala', '', '') + '</div><p class="galat tolak">' + esc(teks) + '</p>' +
       '<div class="alat"><button type="button" class="btn" data-aksi="ulangPapan">' + (id ? 'Coba lagi' : 'Try again') + '</button>' +
       '<a class="btn dua" href="' + PAPAN_LAMA + '" rel="noopener">' + (id ? 'Buka papan lama' : 'Open the old board') + '</a>' +
       '<button type="button" class="btn dua" data-aksi="keluar">' + esc(t('logout')) + '</button></div>');
@@ -637,11 +685,12 @@
       if (!PAPAN.bingkai || halamanSekarang !== 'papan') return;
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
-      var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: bonekaKecil('l4-boneka', 'diam'), teks: { siang: id ? 'Siang' : 'Day', malam: id ? 'Malam' : 'Night', tema: id ? 'Ganti siang atau malam' : 'Switch day or night', keluar: t('logout') } };
+      var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
-      var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">' +
+      var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
-      var gaya = '<style id="kulitL4">' + K.css(gelap) + '</style>';
+      var gaya = '<style id="kulitL4">' + K.css(gelap, K.dasar) + '</style>';
       var i = html.search(/<head[^>]*>/i);
       if (i > -1) { var j = html.indexOf('>', i) + 1; html = html.slice(0, j) + kepala + html.slice(j); } else html = kepala + html;
       var a = html.search(/<\/head>/i);
@@ -668,7 +717,9 @@
     keluarAkun: function () { keluarAkun(false); },
     mata: function (x, y, dariBingkai) { mataMaskot(x, y, dariBingkai); },
     bukaTab: function (u) { if (/^https?:/i.test(String(u))) window.open(String(u), '_blank', 'noopener'); },
-    tema: function () { var baru = temaTerpakai() === 'dark' ? 'light' : 'dark'; setelan('wms_tema', baru); pasangTema(baru); Suara.klik(); gambar(); }
+    tema: function () { var baru = temaTerpakai() === 'dark' ? 'light' : 'dark'; setelan('wms_tema', baru); pasangTema(baru); Suara.klik(); gambar(); },
+    alat: function (mode, arg) { if (window.WmsAlat) window.WmsAlat.buka(mode, arg); },
+    paspor: function (info) { if (window.WmsAlat) window.WmsAlat.paspor(info); }
   };
 
   /* ================= gambar dan kejadian ================= */
@@ -696,6 +747,8 @@
      berarti papan dimuat ulang, jadi cuma dikerjakan di halaman masuk. */
   setInterval(function () { if ((setelan('wms_tema') || 'auto') === 'auto' && halamanSekarang === 'masuk') { var j = new Date().getHours(), mau = j >= 6 && j < 18 ? 'light' : 'dark'; if (mau !== temaTerpakai()) { pasangTema('auto'); gambar(); } } }, 300000);
 
-  window.__wms = { S: S, Suara: Suara, PAPAN: PAPAN, maskot: MK };
+  window.__wms = { S: S, Suara: Suara, PAPAN: PAPAN, maskot: MK, bhs: bhs, esc: esc, getar: getar, gerakBoleh: gerakBoleh, jalan: jalanPapan,
+    /* potret Supabase apa adanya (tanpa jatuh ke Apps Script), untuk alat.js */
+    potret: function (kunci) { return kirimSupa({ fn: 'ambil', tiket: S.tiket, kunci: kunci }).then(function (h) { return h && h.ok && h.isi ? h.isi : {}; }); } };
   gambar();
 })();
