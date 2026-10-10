@@ -1,5 +1,5 @@
 /* Uji alat WMS (wms/alat.js + rapihan papan), 10 Okt 2026 malam.
- * Harapan: "18 pemeriksaan, SEMUA LULUS".
+ * Harapan: "19 pemeriksaan, SEMUA LULUS".
  *
  * KENAPA UJI INI ADA. Sesudah Mofmo Soft disetujui, Ferdy minta empat
  * rapihan dan dua alat baru ("gass", "gaskeun"):
@@ -29,7 +29,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 18;
+const DIHARAPKAN = 19;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -81,10 +81,12 @@ const PAPAN_PALSU = '<!doctype html><html lang="id"><head><meta charset="utf-8">
   '<div class="anak"><a class="on" id="navOffline">Offline</a><a id="navShopee" onclick="window.__shopee=1">Shopee</a></div>' +
   '<a id="navRingkas"><span class="pnlNama">Summary</span></a></nav>' +
   '<div class="utama"><div class="isiRail" id="rail"><div id="isi"></div></div></div></div></div>' +
+  /* kaki papan asli (jaringBadge_): JJ_.ms diisi doGet, tapi salinan untuk WMS tidak lewat doGet */
+  '<script>var BHS="en";var JJ_={jejak:"",versi:"1p0-2vdfh",ms:"__MS_SUSUN__"};function jaringBadge_(){var v=document.createElement("div");v.id="jaringVersi";var enV=(typeof BHS!=="undefined"&&BHS==="en");v.textContent=(enV?"BOARD ":"PAPAN ")+JJ_.versi+" \\u00b7 "+(enV?"built ":"disusun ")+JJ_.ms+" ms";document.body.appendChild(v);}<\/script>' +
   '<script>var KODE="";' +
   'function buka(){KODE=document.getElementById("kode").value;google.script.run.withSuccessHandler(function(r){document.getElementById("layarKode").style.display="none";document.getElementById("layarIsi").style.display="block";muat();window.__siap=1;}).dataPapan(KODE);}' +
   /* isi dokumen (bukan shadow root) seperti halaman papan asli: kepala halaman, pesan memuat, pengambil berkas Dokumen mitra */
-  'function muat(){var I=document.getElementById("isi");I.insertAdjacentHTML("beforeend",' + JSON.stringify('<div class="halKepala" id="kepalaUji"><h1>Data quality</h1><div class="cap">Findings that could mislead</div></div><div class="k s12"><p id="pesanMuat">Loading partner receivables…</p></div><div class="k"><div class="dokAmbil" id="dokAmbilUji"><label class="dokBerkas" for="dokFile">Choose file</label><input id="dokFile" type="file" style="display:none"><span id="dokNama">No file chosen yet</span></div></div>') + ');document.getElementById("dokFile").addEventListener("change",function(e){window.__dokDiganti=e.target.files[0]&&e.target.files[0].name;});var w=document.createElement("div");w.id="halKotak";document.getElementById("isi").appendChild(w);w.attachShadow({mode:"open"}).innerHTML=' + JSON.stringify(HAL) + ';window.__hal=1;}' +
+  'function muat(){jaringBadge_();var I=document.getElementById("isi");I.insertAdjacentHTML("beforeend",' + JSON.stringify('<div class="halKepala" id="kepalaUji"><h1>Data quality</h1><div class="cap">Findings that could mislead</div></div><div class="k s12"><p id="pesanMuat">Loading partner receivables…</p></div><div class="k"><div class="dokAmbil" id="dokAmbilUji"><label class="dokBerkas" for="dokFile">Choose file</label><input id="dokFile" type="file" style="display:none"><span id="dokNama">No file chosen yet</span></div></div>') + ');document.getElementById("dokFile").addEventListener("change",function(e){window.__dokDiganti=e.target.files[0]&&e.target.files[0].name;});var w=document.createElement("div");w.id="halKotak";document.getElementById("isi").appendChild(w);w.attachShadow({mode:"open"}).innerHTML=' + JSON.stringify(HAL) + ';window.__hal=1;}' +
   '<\/script></body></html>';
 
 const AUDIO_PALSU = () => {
@@ -204,6 +206,10 @@ const KAMERA_PALSU = () => {
     });
     c('W63 Dokumen mitra: kotak ambil berkas bergaris putus, berkas yang ditarik ke kotak masuk ke input file papan (event change jalan)',
       ambil && ambil.garis === 'dashed' && ambil.sorot && ambil.nama === 'LP-PIK-Sep.xls', JSON.stringify(ambil));
+
+    const versi = await diBingkai(p, () => { const v = document.getElementById('jaringVersi'); return v ? v.textContent : null; });
+    c('W64 kaki papan di WMS menyebut sidik deploy tanpa placeholder mentah "__MS_SUSUN__" (salinan WMS tidak lewat doGet yang mengisinya)',
+      versi === 'BOARD 1p0-2vdfh \u00b7 WMS copy', JSON.stringify(versi));
 
     /* ---- scan rak ---- */
     await bingkai(p).click('#kopKanan [data-wms=scan]');
