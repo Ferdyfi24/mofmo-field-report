@@ -1,4 +1,10 @@
-/* Uji WMS (wms/, 10 Okt 2026 siang). Harapan: "26 pemeriksaan, SEMUA LULUS".
+/* Uji WMS (wms/, 10 Okt 2026 malam, kulit Mofmo Soft). Harapan: "41 pemeriksaan, SEMUA LULUS".
+ *
+ * MOFMO SOFT (10 Okt malam). Ferdy menolak kulit L4 ("masih kaku", "beruangnya
+ * kurang lucu", "pakai karakter asli Mofmo"), lalu menyetujui mockup Mofmo Soft
+ * ("gas bangun, bagus soalnya"). Pemeriksaan kulit dan boneka di bawah sudah
+ * ditulis ulang untuk Mofmo Soft: krem dan coklat, sudut bulat, foto boneka
+ * asli, foto produk di nama SKU, menu "Operational PIC". W40 sampai W45 baru.
  * Chromium sungguhan, halaman dilayani dari localhost, Apps Script palsu
  * (aksi 'wms'), Supabase palsu (mati, kosong, hidup), AudioContext palsu.
  *
@@ -24,8 +30,8 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 26;
-const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
+const DIHARAPKAN = 45;
+const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
   const f = path.join(AKAR, p);
@@ -38,11 +44,13 @@ const srv = http.createServer((q, s) => {
    #FBF8F0 kertas (jadi putih), #b3261e merah (jadi oren). */
 const PAPAN_PALSU = '<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Papan</title>' +
   '<style>:root{--coklat:#945200;--kertas:#FBF8F0}body{background:var(--kertas);font-family:ISans,Arial,sans-serif}#layarIsi{display:none}' +
-  '.judulCoklat{color:#945200}.kartuMerah{background:#b3261e;color:#fff}h1{font-family:Gloock,Georgia,serif}</style></head><body>' +
+  '.judulCoklat{color:#945200}.kartuMerah{background:#b3261e;color:#fff}h1{font-family:Gloock,Georgia,serif}' +
+  /* bayangan gulir tabel papan lama (.gulung) dan tirai putih tembus */
+  '.gulung{overflow-x:auto;background:linear-gradient(90deg,#fff 40%,rgba(255,255,255,0)) left center/22px 100% no-repeat,radial-gradient(farthest-side at 0 50%,rgba(60,40,10,.22),rgba(60,40,10,0)) left center/14px 100% no-repeat}.kabut{background:rgba(255,255,255,.8)}</style></head><body>' +
   '<div id="layarKode"><input id="kode"><button onclick="buka()">Masuk</button></div>' +
   '<div id="layarIsi"><header><div class="gbrLogo"><img alt=""></div><div><h1>Papan Data</h1><p id="subJudul">12 bulan</p></div><div id="kopKanan"></div></header>' +
-  '<nav id="panel"><a class="on" href="#" id="navRingkas">Ringkasan</a><a href="' + API.replace('AKfycbzslW9', 'AKfycbLAMA') + '?harian=1" id="navLuar">Ringkasan Harian</a><a href="' + API + '?lihat=1" id="navDiri">Papan</a></nav>' +
-  '<div class="isiRail" id="rail"><div class="judulCoklat" id="judulCoklat">Ringkasan</div><div class="kartuMerah" id="kartuMerah">Belum kirim</div><div id="isi"></div></div><div id="hasil"></div><button id="keluarPapan" onclick="keluarPapan()">Keluar papan</button></div>' +
+  '<nav id="panel"><a class="on" href="#" id="navRingkas">Ringkasan</a><a href="' + API.replace('AKfycbzslW9', 'AKfycbLAMA') + '?harian=1" id="navLuar">Ringkasan Harian</a><a href="' + API + '?lihat=1" id="navDiri">Papan</a><a href="#" id="navField"><span class="iknKotak"></span>Field Op <span class="pnlLcn">1</span></a><a href="#" id="navLap"><span class="iknKotak"><svg class="ikn" viewBox="0 0 24 24"><path d="M4 4h16"/></svg></span><span class="pnlNama">Field</span></a><a href="#" id="navLapId"><span class="pnlNama">Lapangan</span></a><a href="#" id="navGudang"><span class="iknKotak"><svg class="ikn" id="iknKosong" viewBox="0 0 24 24" fill="none" stroke="currentColor"></svg></span><span class="pnlNama">Warehouse</span></a></nav><table><tr><td id="tdField">Field</td></tr></table>' +
+  '<div class="isiRail" id="rail"><div class="judulCoklat" id="judulCoklat">Ringkasan</div><div class="kartuMerah" id="kartuMerah">Belum kirim</div><div class="gulung" id="gulung">tabel surat jalan</div><div class="kabut" id="kabut">kabut</div><div id="isi"></div></div><div id="hasil"></div><button id="keluarPapan" onclick="keluarPapan()">Keluar papan</button></div>' +
   '<script>var KODE="";' +
   /* sebelum masuk selesai papan lama sudah meminta Ringkasan dengan kode kosong */
   'google.script.run.withSuccessHandler(function(r){window.__awal=r;}).papanSummary("","12b");' +
@@ -50,12 +58,18 @@ const PAPAN_PALSU = '<!doctype html><html lang="id"><head><meta charset="utf-8">
   'google.script.run.withSuccessHandler(function(r){document.getElementById("layarKode").style.display="none";document.getElementById("layarIsi").style.display="block";document.getElementById("hasil").textContent="MASUK "+r.prod.length;window.__siap=1;muatHalaman();}).withFailureHandler(function(e){window.__gagal=e.message;}).dataPapan(k);}' +
   'function muatHalaman(){var w=document.createElement("div");w.id="smrKotak";document.getElementById("isi").appendChild(w);var akar=w.attachShadow({mode:"open"});' +
   'google.script.run.withSuccessHandler(function(h){akar.innerHTML=h.html;window.__smr=1;}).papanSummary(KODE,"12b");' +
-  'google.script.run.withSuccessHandler(function(s){window.__skrip=s;}).pdgSkripTunda("gudang");}' +
+  'google.script.run.withSuccessHandler(function(s){window.__skrip=s;}).pdgSkripTunda("gudang");' +
+  /* pesan memuat papan lama ("The page is not frozen") di shadow root sendiri, dibiarkan tampil */
+  'var t=document.createElement("div");t.id="tungguKotak";document.getElementById("isi").appendChild(t);t.attachShadow({mode:"open"}).innerHTML="<p id=\\"pesanMuat\\">Loading the Summary. The page is not frozen.</p>";}' +
+  'function gambarUlang(){var akar=document.getElementById("smrKotak").shadowRoot;akar.innerHTML="";google.script.run.withSuccessHandler(function(h){akar.innerHTML=h.html;window.__smr2=1;}).papanSummary(KODE,"12b");}' +
+  'function tulisGagal(){google.script.run.withSuccessHandler(function(r){if(r&&r.ok===false)window.__gagal2=r.pesan;}).withFailureHandler(function(e){window.__gagal2=e.message;}).simpanRusak(KODE,{});}' +
+  'function bacaLambat(){google.script.run.withSuccessHandler(function(r){window.__lambat=r;}).daftarLambat(KODE);}' +
   'function tulis(){google.script.run.withSuccessHandler(function(r){window.__tulis=r;google.script.run.withSuccessHandler(function(x){window.__baca2=x;}).papanInventory(KODE,"12b");}).withFailureHandler(function(e){window.__gagal=e.message;}).simpanOpname(KODE,{lok:"A-01-1",qty:3});}' +
   'function keluarPapan(){KODE="";document.getElementById("layarIsi").style.display="none";document.getElementById("layarKode").style.display="block";}' +
   '<\/script></body></html>';
 const DATA = { ok: true, lok: [{ k: 'HO' }], prod: [{ b: '1' }, { b: '2' }, { b: '3' }], baris: [] };
-const SUMMARY = { ok: true, html: '<style>.angkaMerah{color:#b3261e}.kartu{border:1px solid var(--garis);font-size:13px}.cap{font-size:12px}</style><div class="kartu" id="kartuSmr"><div class="cap" id="capSmr">Nilai penjualan</div></div><h2 id="judulSmr">Ringkasan</h2><b class="angkaMerah" id="angkaMerah">Rp16.700.902</b> <span>PO #123</span>' };
+const SUMMARY = { ok: true, html: '<style>.angkaMerah{color:#b3261e}.kartu{border:1px solid var(--garis);font-size:13px;container-type:inline-size}.cap{font-size:12px}.u b.nil{display:block;font-size:min(28px,2.55cqi)}.c.res{background:repeating-linear-gradient(135deg,#fff 0 6px,#F7F2EE 6px 12px)}.c{border:1px solid #fff}</style><div class="c res" id="selRes">S1-5A</div><div class="kartu" id="kartuSmr"><div class="cap" id="capSmr">Nilai penjualan</div><div class="u"><b class="nil" id="nilSmr">Rp16,700,902</b><b class="nil" id="nilKecil">Rp4.58M</b></div></div><div class="ubin" id="ubinSmr" style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="u" id="uSmr1">Nilai penjualan</div><div class="u">Pcs terjual</div></div><div class="pita"><button class="tp" id="tpUji"><span>PICKING</span><b id="tpAngka">0</b><small>menunggu</small></button></div><div class="daftar" id="daftarUji"><div class="brs">RK-1</div></div><h2 id="judulSmr">Ringkasan</h2><b class="angkaMerah" id="angkaMerah">Rp16.700.902</b> <span>PO #123</span><table><tr><td id="tdSku1">MofmoFriends S - Reindeer</td><td>2</td></tr><tr><td id="tdSku2">MofmoFriends S - netherland dwarf</td><td>1</td></tr><tr><td id="tdBukan">TK Alam Sutera</td><td>3</td></tr></table><div class="c" data-sku="KC Bear" id="selSku"><b>R1-4A</b><span class="s">KC Bear</span></div><img id="fotoRak" alt="rak" src="https://drive.google.com/thumbnail?id=FOTOaaaaaaaaaaaaaaaaaaaaaaaa&sz=w400">' };
+const GIF1 = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 const AUDIO_PALSU = () => {
   window.__nada = []; window.__getar = []; window.__buka = [];
@@ -78,6 +92,7 @@ const AUDIO_PALSU = () => {
   const ctx = await b.newContext({ viewport: { width: 1360, height: 900 } });
   await ctx.addInitScript(AUDIO_PALSU);
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
+  await ctx.route(/drive\.google\.com/, r => { S.drive = (S.drive || 0) + 1; r.abort(); });
   await ctx.route(API + '**', async r => {
     let m = {}; try { m = JSON.parse(r.request().postData() || '{}'); } catch (e) {}
     S.badan.push(m);
@@ -92,6 +107,10 @@ const AUDIO_PALSU = () => {
       : m.nama === 'papanSummary' ? { pintu: 'ok', hasil: SUMMARY }
       : m.nama === 'pdgSkripTunda' ? { pintu: 'ok', hasil: 'skrip-dari-gas' }
       : m.nama === 'daftarSuratJalan' ? { pintu: 'ok', hasil: { ok: true, daftar: [] } }
+      : m.nama === 'daftarLambat' ? (await new Promise(x => setTimeout(x, 1500)), { pintu: 'ok', hasil: { ok: true, lambat: 1 } })
+      : m.nama === 'simpanRusak' ? { pintu: 'ok', hasil: { ok: false, pesan: 'Baris PO tidak ketemu.' } }
+      : m.nama === 'wmsFotoRak' ? { pintu: 'ok', hasil: { ok: true, foto: Object.fromEntries((m.args[1] || []).map(i => [i, GIF1])), gagal: [] } }
+      : m.nama === 'fungsiBaru' ? { pintu: 'galat', pesan: 'Fungsi "fungsiBaru" tidak ada.' }
       : { pintu: 'galat', pesan: 'Fungsi "' + m.nama + '" tidak dibuka untuk WMS.' };
     else h = { pintu: 'galat', pesan: 'Fungsi "' + m.fn + '" tidak dibuka untuk WMS.' };
     await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(h) });
@@ -99,7 +118,7 @@ const AUDIO_PALSU = () => {
   const POTRET = () => {
     const w = new Date(Date.now() - 3 * 60000).toISOString();
     const o = { 'dataPapan|["K"]': DATA, 'papanSummary|["K","12b"]': SUMMARY, 'papanInventory|["K","12b"]': { ok: true, dari: 'supa' }, 'pdgSkripTunda|["gudang"]': 'skrip-dari-supa' };
-    if (S.papanAda) o['klien|papan'] = { ok: true, versi: 'uji', html: PAPAN_PALSU };
+    if (S.papanAda) { o['klien|papan'] = { ok: true, versi: S.versi || 'uji', html: PAPAN_PALSU }; o['klien|versi'] = { ok: true, versi: S.versi || 'uji' }; }
     const r = {}; Object.keys(o).forEach(k => { r[k] = { waktu: w, data: o[k] }; }); return r;
   };
   await ctx.route(SUPA, async r => {
@@ -135,12 +154,14 @@ const AUDIO_PALSU = () => {
     await p.reload();
     await tunggu(() => document.getElementById('formMasuk'));
     c('W1 tanpa tiket yang tampil halaman masuk, dan belum ada bacaan apa pun', await p.$('#formMasuk') && !S.supaBadan.some(x => x.fn === 'ambil') && !S.badan.some(x => x.fn === 'panggil'), JSON.stringify(S.badan.map(x => x.fn)));
-    const papan1 = await p.evaluate(() => ({ baris: Array.prototype.map.call(document.querySelectorAll('.papan .papan-baris'), b => ({ n: b.querySelectorAll('.keping').length, t: b.innerText.replace(/\s+/g, '') })),
-      gel: document.getElementById('gelembung').textContent, kardus: document.querySelectorAll('.konveyor .kardus svg.boneka').length, maskot: !!document.querySelector('#maskot svg .kedip') }));
+    const papan1 = await p.evaluate(() => ({ tahap: document.getElementById('barisTahap').textContent.trim(), gel: document.getElementById('gelembung').textContent,
+      kardus: Array.prototype.filter.call(document.querySelectorAll('.konveyor .kardus img.boneka'), i => /img\/[a-z_]+\.webp$/.test(i.getAttribute('src'))).length,
+      maskot: (document.querySelector('#maskot img') || {}).getAttribute ? document.querySelector('#maskot img').getAttribute('src') : '',
+      bg: getComputedStyle(document.body).backgroundColor, sudut: getComputedStyle(document.getElementById('formMasuk')).borderTopLeftRadius }));
     await jeda(2750);
-    const papan2 = await p.evaluate(() => document.querySelector('#barisTahap').innerText.replace(/\s+/g, ''));
-    c('W2 papan dok 3 x 14 keping berputar PICKING -> PACKING, boneka berkedip menyapa, 3 kardus berboneka',
-      papan1.baris.length === 3 && papan1.baris.every(x => x.n === 14) && papan1.baris[2].t === '>PICKING' && papan2 === '>PACKING' && papan1.gel === 'MOF! CODE, PLEASE' && papan1.maskot && papan1.kardus === 3, JSON.stringify([papan1, papan2]));
+    const papan2 = await p.evaluate(() => document.getElementById('barisTahap').textContent.trim());
+    c('W2 masuk Mofmo Soft: latar krem, kartu bersudut bulat, tahap dok berputar Picking -> Packing, Shiba asli menyapa, kardus berisi boneka asli',
+      papan1.tahap === 'Picking' && papan2 === 'Packing' && papan1.gel === 'Mof! Code, please' && /img\/shiba\.webp$/.test(papan1.maskot) && papan1.kardus >= 3 && papan1.bg === 'rgb(255, 248, 239)' && parseFloat(papan1.sudut) >= 20, JSON.stringify([papan1, papan2]));
     await foto('01-masuk');
     S.serverLama = true;
     await p.fill('#kode', 'apa-saja'); await p.click('#tMasuk');
@@ -150,17 +171,17 @@ const AUDIO_PALSU = () => {
     S.serverLama = false;
     await p.fill('#kode', 'salah'); await nada(); await p.click('#tMasuk');
     await tunggu(() => /not right/.test(document.getElementById('galatMasuk').textContent));
-    const salah = await p.evaluate(() => ({ g: document.getElementById('galatMasuk').textContent, ls: JSON.stringify(localStorage), ss: JSON.stringify(sessionStorage), k: document.getElementById('maskot').className, mata: !!document.querySelector('#maskot path[d^="M39 58"]') }));
+    const salah = await p.evaluate(() => ({ g: document.getElementById('galatMasuk').textContent, ls: JSON.stringify(localStorage), ss: JSON.stringify(sessionStorage), k: document.getElementById('maskot').className, mata: (document.querySelector('#maskot img') || { getAttribute() { return ''; } }).getAttribute('src') }));
     const nSalah = await nada();
-    c('W4 kode salah: pesan tampil, boneka geleng dengan mata > <, bunyi tolak 220 lalu 185 Hz, tidak ada tiket', /not right/.test(salah.g) && /gelengKepala/.test(salah.k) && salah.mata && nSalah.indexOf(185) > nSalah.indexOf(220) && nSalah.indexOf(220) > -1 && !/wms_tiket/.test(salah.ls + salah.ss), JSON.stringify(salah) + nSalah);
+    c('W4 kode salah: pesan tampil, Koala malu menggantikan Shiba dan menggeleng, bunyi tolak 220 lalu 185 Hz, tidak ada tiket', /not right/.test(salah.g) && /gelengKepala/.test(salah.k) && /img\/koala\.webp$/.test(salah.mata) && nSalah.indexOf(185) > nSalah.indexOf(220) && nSalah.indexOf(220) > -1 && !/wms_tiket/.test(salah.ls + salah.ss), JSON.stringify(salah) + nSalah);
     S.supa = 'hidup';
     await p.fill('#kode', ' kode-palsu-uji '); await p.click('#tMasuk');
     await tunggu(() => document.querySelector('#capMasuk .cap'));
     const senang = await p.evaluate(() => ({ cap: (document.querySelector('#capMasuk .cap') || {}).textContent, k: (document.getElementById('maskot') || {}).className }));
-    c('W5 kode benar: cap CHECKED dan boneka melompat', senang.cap === 'CHECKED' && /lompat/.test(senang.k), JSON.stringify(senang));
+    c('W5 kode benar: cap Checked dan boneka melompat', senang.cap === 'Checked' && /lompat/.test(senang.k), JSON.stringify(senang));
     await tunggu(() => document.getElementById('tiraiPapan'), null, 4000);
-    const tirai = await p.evaluate(() => ({ ada: !!document.getElementById('tiraiPapan'), boneka: !!document.querySelector('#tiraiPapan .maskot-muat svg'), teks: (document.getElementById('tiraiPapan') || {}).innerText }));
-    c('W6 sesudah masuk: tirai muat L4 (boneka + papan dok kecil) tampil sambil papan dimuat', tirai.ada && tirai.boneka && /LOADING>THELEDGER/.test(String(tirai.teks || '').replace(/\s+/g, '')), JSON.stringify(tirai));
+    const tirai = await p.evaluate(() => ({ ada: !!document.getElementById('tiraiPapan'), boneka: !!document.querySelector('#tiraiPapan .maskot-muat img[src$=".webp"]'), teks: (document.getElementById('tiraiPapan') || {}).innerText }));
+    c('W6 sesudah masuk: tirai muat Mofmo Soft (boneka asli + "Loading the ledger") tampil sambil papan dimuat', tirai.ada && tirai.boneka && /Loading the ledger/.test(String(tirai.teks || '')), JSON.stringify(tirai));
     await foto('02-tirai-muat');
     const masukOk = await tungguBingkai(() => window.__siap === 1 && window.__smr === 1, 8000);
     await tunggu(() => !document.getElementById('tiraiPapan'), null, 4000);
@@ -172,10 +193,19 @@ const AUDIO_PALSU = () => {
     const pg = S.badan.filter(x => x.fn === 'panggil');
     const awal = await diBingkai(() => window.__awal && window.__awal.html ? 'ada' : String(window.__awal));
     c('W9 bacaan dari potret Supabase (dataPapan, papanSummary, pdgSkripTunda), termasuk Ringkasan yang diminta dengan kode kosong; nol panggilan Apps Script',
-      pg.length === 0 && awal === 'ada' && (await diBingkai(() => window.__skrip)) === 'skrip-dari-supa' &&
+      /* foto rak (wmsFotoRak) memang lewat Apps Script, lihat W35 */
+      pg.filter(x => x.nama !== 'wmsFotoRak').length === 0 && awal === 'ada' && (await diBingkai(() => window.__skrip)) === 'skrip-dari-supa' &&
       S.supaBadan.some(x => x.fn === 'ambil' && (x.kunci || [])[0] === 'papanSummary|["K","12b"]'),
       JSON.stringify({ pg: pg.map(x => x.nama), awal, ambil: S.supaBadan.filter(x => x.fn === 'ambil').map(x => x.kunci[0]) }));
     await foto('03-papan');
+    /* Ferdy 10 Okt: "ini mana fotonya". Thumbnail Drive butuh login Google
+       yang tidak terbawa ke pages.dev; fotonya diambil lewat server. */
+    await tungguBingkai(() => { const i = document.getElementById('smrKotak').shadowRoot.getElementById('fotoRak'); return i && /^data:/.test(i.src); }, 6000);
+    const fr = await diBingkai(() => document.getElementById('smrKotak').shadowRoot.getElementById('fotoRak').src.slice(0, 30));
+    const pFoto = S.badan.filter(x => x.nama === 'wmsFotoRak');
+    const kotorFoto = await p.evaluate(() => sessionStorage.getItem('wms_kotor'));
+    c('W35 foto rak dari Drive diganti foto lewat server (wmsFotoRak dengan WMS-TIKET, satu panggilan berkelompok), tanpa menandai kotor',
+      /^data:image\//.test(fr) && pFoto.length === 1 && pFoto[0].args[0] === 'WMS-TIKET' && JSON.stringify(pFoto[0].args[1]) === '["FOTOaaaaaaaaaaaaaaaaaaaaaaaa"]' && !kotorFoto, JSON.stringify({ fr, pFoto, kotorFoto }));
 
     /* ---------- kulit ---------- */
     const kulit = await diBingkai(() => {
@@ -183,17 +213,72 @@ const AUDIO_PALSU = () => {
       const akar = document.getElementById('smrKotak').shadowRoot;
       return { body: gs(document.body).backgroundColor, coklat: gs(document.getElementById('judulCoklat')).color, merah: gs(document.getElementById('kartuMerah')).backgroundColor,
         angka: gs(akar.getElementById('angkaMerah')).color, po: akar.innerHTML.indexOf('PO #123') > -1, adopsi: akar.adoptedStyleSheets.length,
-        h1: gs(document.querySelector('h1')).fontFamily, nav: gs(document.getElementById('navRingkas')).backgroundColor, logo: getComputedStyle(document.querySelector('.gbrLogo'), '::after').content };
+        h1: gs(document.querySelector('h1')).fontFamily, nav: gs(document.getElementById('navRingkas')).backgroundColor, logo: getComputedStyle(document.querySelector('.gbrLogo'), '::after').backgroundImage, navSudut: gs(document.getElementById('navRingkas')).borderTopLeftRadius };
     });
-    c('W10 kulit L4: coklat jadi hitam, kertas jadi putih, merah jadi oren, menu aktif oren, logo M', kulit.coklat === 'rgb(18, 18, 18)' && kulit.body === 'rgb(255, 255, 255)' && kulit.merah === 'rgb(242, 100, 25)' && kulit.nav === 'rgb(242, 100, 25)' && kulit.logo === '"M"', JSON.stringify(kulit));
-    c('W11 HTML kiriman server di dalam shadow root ikut diwarnai ulang dan dapat lembar kulit; "PO #123" tidak tersentuh', kulit.angka === 'rgb(242, 100, 25)' && kulit.adopsi === 1 && kulit.po, JSON.stringify(kulit));
-    c('W12 huruf judul Archivo, bukan Gloock', /Archivo/.test(kulit.h1) && !/Gloock/.test(kulit.h1), kulit.h1);
+    c('W10 kulit Mofmo Soft: coklat jadi coklat tinta #4A3426, kertas jadi krem #FFF8EF, merah jadi terakota #B4532A, menu aktif peach lembut berbentuk pil, logo foto Shiba', kulit.coklat === 'rgb(74, 52, 38)' && kulit.body === 'rgb(255, 248, 239)' && kulit.merah === 'rgb(180, 83, 42)' && kulit.nav === 'rgb(255, 227, 204)' && parseFloat(kulit.navSudut) >= 20 && /img\/kc_shiba\.webp/.test(kulit.logo), JSON.stringify(kulit));
+    c('W11 HTML kiriman server di dalam shadow root ikut diwarnai ulang dan dapat lembar kulit; "PO #123" tidak tersentuh', kulit.angka === 'rgb(180, 83, 42)' && kulit.adopsi === 1 && kulit.po, JSON.stringify(kulit));
+    c('W12 huruf judul Baloo 2, bukan Gloock atau Archivo', /Baloo 2/.test(kulit.h1) && !/Gloock|Archivo/.test(kulit.h1), kulit.h1);
     /* Ferdy 10 Okt: "fontnya masih kecil". Isi papan lama memakai px tetap
        (11 sampai 13 px) di dalam shadow root, jadi bidang isi diperbesar
        utuh (zoom), dan kartunya diberi garis tebal L4. */
     const isi = await diBingkai(() => { const akar = document.getElementById('smrKotak').shadowRoot; const k = getComputedStyle(akar.getElementById('kartuSmr')); const cp = getComputedStyle(akar.getElementById('capSmr'));
-      return { zoom: getComputedStyle(document.getElementById('rail')).zoom, garis: k.borderTopWidth + ' ' + k.borderTopColor, cap: cp.textTransform + ' ' + cp.fontFamily }; });
-    c('W26 bidang isi diperbesar (zoom 1.16 di layar lebar), kartu bergaris 2 px hitam di layar (nilai hitungnya 2/1,16 karena zoom)', isi.zoom === '1.16' && Math.round(parseFloat(isi.garis) * 1.16) === 2 && / rgb\(18, 18, 18\)$/.test(isi.garis), JSON.stringify(isi));
+      return { zoom: getComputedStyle(document.getElementById('rail')).zoom, sudut: k.borderTopLeftRadius, jahit: k.outlineStyle, latar: k.backgroundColor }; });
+    /* Papan asli: .ubin ringkasan adalah grid empat sel .u bercelah 12 px. Jahitan di .ubin tertutup sel putih dan cuma
+       muncul sepotong-sepotong di celahnya (Ferdy melihat garis putus-putus patah di antara angka). Jahitannya pindah ke tiap sel. */
+    const ub = await diBingkai(() => { const akar = document.getElementById('smrKotak').shadowRoot; const g = getComputedStyle(akar.getElementById('ubinSmr')); const u = getComputedStyle(akar.getElementById('uSmr1'));
+      return { ubinJahit: g.outlineStyle, ubinLatar: g.backgroundColor, uJahit: u.outlineStyle, uSudut: u.borderTopLeftRadius, uLatar: u.backgroundColor }; });
+    c('W44 ubin ringkasan bersel: jahitan dan latar putih pindah ke tiap sel, ubinnya sendiri polos (tanpa potongan jahitan di celah)', ub.ubinJahit === 'none' && /rgba\(0, 0, 0, 0\)|transparent/.test(ub.ubinLatar) && ub.uJahit === 'dashed' && parseFloat(ub.uSudut) >= 14 && ub.uLatar === 'rgb(255, 255, 255)', JSON.stringify(ub));
+    /* Papan asli, Gudang Outbound: ubin tahap (.pita .tp) dan daftar kiriman (.daftar) memakai kelas sendiri, jadi tadinya tetap kotak polos berangka kecil. */
+    const ob = await diBingkai(() => { const akar = document.getElementById('smrKotak').shadowRoot; const t = getComputedStyle(akar.getElementById('tpUji')); const a = getComputedStyle(akar.getElementById('tpAngka')); const dft = getComputedStyle(akar.getElementById('daftarUji'));
+      return { tpJahit: t.outlineStyle, tpSudut: t.borderTopLeftRadius, angka: a.fontFamily.slice(0, 12), angkaUkuran: a.fontSize, daftarSudut: dft.borderTopLeftRadius }; });
+    c('W45 Gudang Outbound: ubin tahap berjahit dan bersudut bulat, angkanya Baloo 2 besar, daftar kiriman bersudut bulat', ob.tpJahit === 'dashed' && parseFloat(ob.tpSudut) >= 14 && /Baloo 2/.test(ob.angka) && parseFloat(ob.angkaUkuran) >= 28 && parseFloat(ob.daftarSudut) >= 14, JSON.stringify(ob));
+    c('W26 bidang isi diperbesar lagi (zoom 1.22 di layar lebar, Ferdy: "gedein fontnya"), kartu putih bersudut bulat dengan jahitan putus-putus', isi.zoom === '1.22' && parseFloat(isi.sudut) >= 14 && isi.jahit === 'dashed' && isi.latar === 'rgb(255, 255, 255)', JSON.stringify(isi));
+    /* Ferdy 10 Okt: "foto skunya dimasukin jg dong". Nama SKU di tabel dan di
+       sel peta gudang diberi foto produk; nama yang belum punya foto dan teks
+       yang bukan nama produk dibiarkan. */
+    await tungguBingkai(() => !!document.getElementById('smrKotak').shadowRoot.querySelector('#tdSku1 img.l4-sku'), 4000);
+    const sku = await diBingkai(() => { const r = document.getElementById('smrKotak').shadowRoot; const s = id => { const i = r.querySelector('#' + id + ' img.l4-sku'); return i ? i.getAttribute('src') : ''; };
+      return { reindeer: s('tdSku1'), dwarf: s('tdSku2'), bukan: s('tdBukan'), sel: s('selSku'), teks: r.getElementById('tdSku1').textContent }; });
+    c('W40 foto produk di nama SKU: tabel (S - Reindeer) dan sel peta gudang (KC Bear) berfoto, Netherland Dwarf yang belum punya foto dan nama gerai tidak, teks nama tetap',
+      /img\/sku\/reindeer\.webp$/.test(sku.reindeer) && /img\/sku\/kc_bear\.webp$/.test(sku.sel) && !sku.dwarf && !sku.bukan && sku.teks === 'MofmoFriends S - Reindeer', JSON.stringify(sku));
+    /* Ferdy 10 Okt: "ganti field op dg Operational PIC". */
+    const fieldOp = await diBingkai(() => ({ t: document.getElementById('navField').textContent.replace(/\s+/g, ' ').trim(), lencana: !!document.querySelector('#navField .pnlLcn') }));
+    c('W41 menu "Field Op" di papan tampil sebagai "Operational PIC", lencananya tetap', fieldOp.t === 'Operational PIC 1' && fieldOp.lencana, JSON.stringify(fieldOp));
+    /* Papan asli menulis menunya "Lapangan" (EN: "Field"), bukan "Field Op". Kata "Field" di sel tabel bukan nama menu, jadi tidak boleh ikut berganti. */
+    const lap = await diBingkai(() => ({ nav: document.querySelector('#navLap .pnlNama').textContent.trim(), navId: document.querySelector('#navLapId .pnlNama').textContent.trim(), td: document.getElementById('tdField').textContent.trim() }));
+    c('W42 menu "Field" dan "Lapangan" (teks mentah sebelum diterjemahkan papan) jadi "Operational PIC", kata "Field" di sel tabel tetap', lap.nav === 'Operational PIC' && lap.navId === 'Operational PIC' && lap.td === 'Field', JSON.stringify(lap));
+    /* Papan asli tidak punya ikon untuk Warehouse (svg kosong). Kulit lama tak terlihat bolongnya, kulit lembut memberi lingkaran peach, jadi bolongnya kelihatan. */
+    const ikn = await diBingkai(() => { const g = getComputedStyle(document.getElementById('iknKosong')); const m = g.webkitMaskImage || g.maskImage || 'none'; return { mask: m.slice(0, 30), bg: g.backgroundColor, w: document.getElementById('iknKosong').getBoundingClientRect().width }; });
+    c('W43 ikon Warehouse yang kosong di papan asli diisi gambar gudang (mask berwarna, tidak bolong)', /url\(/.test(ikn.mask) && !/rgba\(0, 0, 0, 0\)|transparent/.test(ikn.bg) && ikn.w >= 12, JSON.stringify(ikn));
+
+    /* ---------- gerak dan suara di dalam papan ---------- */
+    const contoh = [];
+    await diBingkai(() => { window.__teks = []; const iv = setInterval(() => { const a = document.getElementById('smrKotak').shadowRoot.getElementById('nilSmr'); if (a) window.__teks.push(a.textContent); }, 40); setTimeout(() => clearInterval(iv), 1500); gambarUlang(); });
+    await jeda(1700);
+    const hitung = await diBingkai(() => ({ teks: window.__teks, kecil: document.getElementById('smrKotak').shadowRoot.getElementById('nilKecil').textContent }));
+    const angkaAntara = hitung.teks.filter(t => /^Rp[\d,]+$/.test(t)).map(t => Number(t.replace(/\D/g, '')));
+    c('W27 angka besar menghitung naik dengan format yang sama (Rp16,700,902), berhenti tepat di angka asli; angka berdesimal (Rp4.58M) tidak disentuh',
+      angkaAntara.some(v => v > 0 && v < 16700902) && hitung.teks[hitung.teks.length - 1] === 'Rp16,700,902' && hitung.kecil === 'Rp4.58M', JSON.stringify(hitung.teks.slice(0, 6).concat(['...', hitung.teks[hitung.teks.length - 1]])));
+    const boneka = await diBingkai(() => { const r = document.getElementById('tungguKotak').shadowRoot; const p = r.getElementById('pesanMuat'); return { svg: !!r.querySelector('img.l4-boneka'), teks: p ? p.textContent : '' }; });
+    c('W28 pesan memuat papan lama ("The page is not frozen") ditemani foto boneka asli yang bergoyang', boneka.svg && /not frozen/.test(boneka.teks), JSON.stringify(boneka));
+    await diBingkai(() => bacaLambat());
+    await jeda(500);
+    const garis = await p.evaluate(() => { const g = document.getElementById('garisMuatAtas'); return g ? getComputedStyle(g).opacity : 'tidak ada'; });
+    await jeda(1600);
+    const garis2 = await p.evaluate(() => { const g = document.getElementById('garisMuatAtas'); return g ? getComputedStyle(g).opacity : 'tidak ada'; });
+    const catatW29 = await p.evaluate(() => window.__wms.PAPAN.catat.slice(-4).map(c => c.n + ':' + c.dari + (c.galat || '')));
+    c('W29 garis muat oren di atas papan tampil selama ada panggilan yang belum kembali, lalu hilang', garis === '1' && garis2 === '0', JSON.stringify([garis, garis2, catatW29]));
+    await nada();
+    await diBingkai(() => tulisGagal());
+    await tungguBingkai(() => !!window.__gagal2, 4000);
+    const nGagal = await nada();
+    c('W30 tulisan yang ditolak server ({ok:false}) berbunyi gagal (330 Hz) dan pesannya sampai ke papan', nGagal.indexOf(330) > -1 && /PO tidak ketemu/.test(await diBingkai(() => window.__gagal2)), JSON.stringify(nGagal));
+    /* Pesan galat jujur: "tidak dibuka" bukan soal deploy; "tidak ada" baru soal deploy. */
+    const pesanDok = await diBingkai(() => new Promise(r => google.script.run.withSuccessHandler(() => r('ok')).withFailureHandler(e => r(e.message)).bukaDokumenGudang(KODE, 'x')));
+    const pesanBaru = await diBingkai(() => new Promise(r => google.script.run.withSuccessHandler(() => r('ok')).withFailureHandler(e => r(e.message)).fungsiBaru(KODE)));
+    c('W36 pesan galat jujur: fungsi yang belum masuk izin disebut namanya (bukan "deploy"), fungsi yang belum ada di server baru disebut butuh deploy',
+      /bukaDokumenGudang/.test(pesanDok) && !/deploy/i.test(pesanDok) && /fungsiBaru/.test(pesanBaru) && /deploy/i.test(pesanBaru), JSON.stringify([pesanDok, pesanBaru]));
+    await p.evaluate(() => sessionStorage.removeItem('wms_kotor'));
 
     /* ---------- bacaan yang tidak dicerminkan tidak menandai kotor ---------- */
     await diBingkai(() => new Promise(r => google.script.run.withSuccessHandler(r).daftarSuratJalan(KODE)));
@@ -205,9 +290,19 @@ const AUDIO_PALSU = () => {
 
     /* ---------- tulis ---------- */
     const nSebelumTulis = S.badan.filter(x => x.fn === 'panggil').length;
+    await nada();
     await diBingkai(() => tulis());
     await tungguBingkai(() => !!window.__baca2, 6000);
     const tl = await diBingkai(() => ({ tulis: window.__tulis, baca2: window.__baca2 }));
+    const nTulis = await nada();
+    c('W31 tulisan yang berhasil berbunyi sukses (784 Hz)', nTulis.indexOf(784) > -1, JSON.stringify(nTulis));
+    /* Ferdy: "sekalian ui ux dibkin lebih lucu jga, ini kaku bgt". Boneka di
+       pojok ikut bereaksi: mikir saat menunggu, sedih saat gagal, senang +
+       konfeti saat tersimpan. */
+    const mk = await p.evaluate(() => ({ ada: !!document.querySelector('#maskotPojok .badan-pojok img[src$=".webp"]'), catat: (window.__wms.maskot || {}).catat || [], konfeti: (window.__wms.maskot || {}).konfeti || 0 }));
+    const iMikir = mk.catat.indexOf('mikir'), iSedih = mk.catat.indexOf('sedih'), iSenang = mk.catat.lastIndexOf('senang');
+    c('W37 boneka pojok bereaksi: mikir saat panggilan lama, sedih saat tulisan ditolak, senang + konfeti saat tersimpan',
+      mk.ada && iMikir > -1 && iSedih > iMikir && iSenang > iSedih && mk.konfeti > 0, JSON.stringify(mk));
     const pTulis = S.badan.filter(x => x.fn === 'panggil').slice(nSebelumTulis);
     c('W13 tulisan lewat Apps Script dengan tiket + WMS-TIKET (bukan kode), dan bacaan sesudahnya dari Apps Script, bukan potret lama',
       tl.tulis && tl.tulis.tersimpan === 1 && tl.baca2 && tl.baca2.dari === 'gas' && pTulis.length === 2 && pTulis[0].nama === 'simpanOpname' && pTulis[0].args[0] === 'WMS-TIKET' && pTulis[0].tiket === 'TIKET.SUPA' && !('kode' in pTulis[0]),
@@ -229,10 +324,36 @@ const AUDIO_PALSU = () => {
     await tungguBingkai(() => window.__siap === 1 && window.__smr === 1 && !!document.querySelector('#kopKanan [data-wms]'), 8000);
     const malam = await diBingkai(() => ({ body: getComputedStyle(document.body).backgroundColor, coklat: getComputedStyle(document.getElementById('judulCoklat')).color, tombol: document.querySelector('#kopKanan [data-wms]').textContent }));
     const temaInduk = await p.evaluate(() => ({ t: document.documentElement.getAttribute('data-theme'), s: localStorage.getItem('wms_tema') }));
-    c('W15 tombol siang/malam di kepala papan: papan dimuat ulang gelap (latar #121212, teks coklat jadi terang), pilihan diingat',
-      malam.body === 'rgb(18, 18, 18)' && malam.coklat === 'rgb(242, 242, 242)' && malam.tombol === 'Night' && temaInduk.t === 'dark' && temaInduk.s === 'dark', JSON.stringify([malam, temaInduk]));
+    c('W15 tombol siang/malam di kepala papan: papan dimuat ulang gelap coklat hangat (latar #2B221C, teks coklat jadi krem #F8ECDF), pilihan diingat',
+      malam.body === 'rgb(43, 34, 28)' && malam.coklat === 'rgb(248, 236, 223)' && malam.tombol === 'Night' && temaInduk.t === 'dark' && temaInduk.s === 'dark', JSON.stringify([malam, temaInduk]));
     await foto('04-papan-malam');
+    /* Ferdy 10 Okt (peta gudang malam): sel cadangan berarsir hitam-putih
+       menutupi tulisannya. Penyebabnya "#fff" sesudah koma di dalam gradasi
+       tidak ikut dipetakan, cuma pasangannya yang jadi hitam. */
+    const arsir = await diBingkai(() => { const r = document.getElementById('smrKotak').shadowRoot; const e = r.getElementById('selRes'); const cs = getComputedStyle(e); return { bg: cs.backgroundImage, garis: cs.borderTopColor, po: r.innerHTML.indexOf('PO #123') > -1 }; });
+    c('W34 malam: arsir sel cadangan gudang lembut (tanpa putih), garis #fff ikut jadi gelap, "PO #123" tetap',
+      !/255, 255, 255/.test(arsir.bg) && /repeating-linear-gradient/.test(arsir.bg) && arsir.garis !== 'rgb(255, 255, 255)' && arsir.po, JSON.stringify(arsir));
     c('W16 klik di dalam papan berbunyi klik (1900 Hz)', (await nada()).indexOf(1900) > -1);
+    const tepi = await diBingkai(() => ({ gulung: getComputedStyle(document.getElementById('gulung')).backgroundImage, kabut: getComputedStyle(document.getElementById('kabut')).backgroundColor }));
+    await bingkai().hover('#kartuSmr'); await jeda(350);
+    const timbul = await diBingkai(() => getComputedStyle(document.getElementById('smrKotak').shadowRoot.getElementById('kartuSmr')).boxShadow);
+    c('W39 malam: tepi pudar putih tabel (.gulung) hilang, putih tembus jadi coklat gelap tembus, kartu tersorot terangkat dengan bayangan lembut (berblur, bukan kotak)',
+      tepi.gulung === 'none' && tepi.kabut === 'rgba(43, 34, 28, 0.8)' && /\d+px \d+px [1-9]\d*px/.test(timbul) && !/4px 4px 0px/.test(timbul), JSON.stringify([tepi, timbul]));
+    /* mata boneka mengikuti kursor, juga saat kursor di atas papan */
+    await p.mouse.move(40, 450); await jeda(200);
+    const mataKiri = await p.evaluate(() => (document.querySelector('#maskotPojok .badan-pojok img') || { style: {} }).style.transform);
+    await p.mouse.move(1358, 120); await jeda(200);
+    const mataKanan = await p.evaluate(() => (document.querySelector('#maskotPojok .badan-pojok img') || { style: {} }).style.transform);
+    const dx = t => Number((String(t).match(/rotate\(([-\d.]+)deg/) || [])[1]);
+    await nada();
+    await p.click('#maskotPojok .badan-pojok', { force: true }); /* boneka bernapas terus: tidak pernah "stabil" */
+    const gel = await p.evaluate(() => (document.querySelector('#maskotPojok .gelembung-pojok') || {}).textContent || '');
+    await foto('08-maskot-bicara-malam');
+    const nKlik = await nada();
+    await p.click('#maskotPojok [data-aksi=sembunyiMaskot]', { force: true });
+    const hilangMk = await p.evaluate(() => ({ ada: !!document.querySelector('#maskotPojok'), s: sessionStorage.getItem('wms_maskot') }));
+    c('W38 Shiba di pojok menoleh ke arah kursor (miring kiri lalu kanan, juga di atas papan), diklik bicara dan berbunyi, tombol x menyembunyikannya selama sesi',
+      dx(mataKiri) < 0 && dx(mataKanan) > 0 && gel.length > 2 && nKlik.indexOf(1900) > -1 && !hilangMk.ada && hilangMk.s === 'off', JSON.stringify({ mataKiri, mataKanan, gel, nKlik, hilangMk }));
 
     /* ---------- keluar dari papan ---------- */
     await diBingkai(() => keluarPapan());
@@ -243,10 +364,14 @@ const AUDIO_PALSU = () => {
     /* ---------- keluar dari tombol WMS ---------- */
     await p.evaluate(() => localStorage.setItem('wms_tema', 'light'));
     await p.evaluate(() => { document.documentElement.setAttribute('data-theme', 'light'); });
+    const nAmbilSebelum = S.supaBadan.length;
     await p.fill('#kode', 'kode-palsu-uji'); await p.check('#ingat'); await p.click('#tMasuk');
     await tungguBingkai(() => window.__siap === 1 && !!document.querySelector('#kopKanan [data-wms]'), 8000);
     const ingat = await p.evaluate(() => ({ ls: localStorage.getItem('wms_tiket'), ss: sessionStorage.getItem('wms_tiket') }));
     c('W18 "tetap masuk": tiket di localStorage', ingat.ls === 'TIKET.SUPA', JSON.stringify(ingat));
+    const ambilUlang = S.supaBadan.slice(nAmbilSebelum).filter(x => x.fn === 'ambil').map(x => (x.kunci || []).join(','));
+    c('W32 bukaan kedua memakai papan yang tersimpan di perangkat: cuma versi kecil (klien|versi) yang ditanya, papan 1,3 MB tidak diunduh ulang',
+      ambilUlang.some(k => k === 'klien|versi') && !ambilUlang.some(k => /klien\|papan/.test(k)), JSON.stringify(ambilUlang));
     await bingkai().click('#kopKanan [data-wms]:nth-of-type(2)');
     await tunggu(() => document.getElementById('formMasuk'), null, 5000);
     const habis2 = await p.evaluate(() => ({ form: !!document.getElementById('formMasuk'), ls: JSON.stringify(localStorage), ss: JSON.stringify(sessionStorage) }));
@@ -264,6 +389,7 @@ const AUDIO_PALSU = () => {
 
     /* ---------- salinan papan belum ada ---------- */
     S.papanAda = false;
+    await p.evaluate(() => caches.delete('wms-papan'));
     await p.fill('#kode', 'kode-palsu-uji'); await p.click('#tMasuk');
     await tunggu(() => /not sent the board copy/.test((document.getElementById('tiraiPapan') || {}).innerText || ''), null, 6000);
     const blm = await p.evaluate(() => ({ t: (document.getElementById('tiraiPapan') || {}).innerText || '', lama: !!document.querySelector('#tiraiPapan a[href$="?lihat=1"]'), ulang: !!document.querySelector('[data-aksi=ulangPapan]') }));
@@ -281,6 +407,14 @@ const AUDIO_PALSU = () => {
     await foto('06-hp-masuk');
     const lebar = await p.evaluate(() => document.documentElement.scrollWidth);
     c('W23 lebar HP 390: halaman masuk tanpa geser samping', lebar <= 392, String(lebar));
+    await p.fill('#kode', 'kode-palsu-uji'); await p.click('#tMasuk');
+    await tungguBingkai(() => window.__smr === 1 && !!document.querySelector('#kopKanan [data-wms]'), 8000);
+    await jeda(900);
+    await foto('07-hp-papan');
+    const hp = await diBingkai(() => { const h1 = document.querySelector('header h1'); const nil = document.getElementById('smrKotak').shadowRoot.getElementById('nilSmr');
+      return { h1: getComputedStyle(h1).whiteSpace, tinggiKepala: Math.round(document.querySelector('header').getBoundingClientRect().height), nil: getComputedStyle(nil).fontSize, lebar: document.documentElement.scrollWidth, zoom: getComputedStyle(document.getElementById('rail')).zoom }; });
+    c('W33 papan di HP 390: judul satu baris, kepala ringkas (di bawah 140 px), angka besar tetap 28 px (bukan mengecil ikut cqi), tanpa geser samping',
+      hp.h1 === 'nowrap' && hp.tinggiKepala < 140 && hp.nil === '28px' && hp.lebar <= 392 && hp.zoom === '1', JSON.stringify(hp));
   } catch (e) {
     c('MATI di tengah jalan', false, e.stack);
   }
