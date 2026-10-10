@@ -478,3 +478,67 @@ body.alat-terbuka{overflow:hidden}
   #lembarCetak svg.kode128{height:20mm}
 }
 @media (prefers-reduced-motion:reduce){.alat-latar.buka,.alat-latar .lembar{animation:none}}
+
+/* ---------- Kitabku (kitabku.js): event, hadiah, kartu QR, klaim struk ----------
+   Lembarnya memakai .alat-latar milik alat.js; di sini cuma isinya. */
+.kb-lencana{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--acc);color:var(--accInk);font-size:12px}
+.kb-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kb-kpi{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:18px;background:var(--peach)}
+.kb-kpi span{font-size:12.5px;font-weight:800;color:var(--accText)}
+.kb-kpi b{font-family:'Baloo 2',Nunito,sans-serif;font-size:30px;line-height:1.1;color:var(--ink)}
+.kb-kpi small{font-size:12px;font-weight:700;color:var(--mut)}
+.kb-kotak{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border:1.5px solid var(--line);border-radius:20px}
+.kb-kotak h3{margin:0;font-family:'Baloo 2',Nunito,sans-serif;font-size:19px;display:flex;align-items:center;gap:8px}
+.kb-acara{margin:0;font-size:15px}
+.kb-cap{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:var(--acc);color:var(--accInk);font-size:12px;font-weight:900;transform:rotate(-3deg)}
+.kb-det summary{cursor:pointer;font-weight:800;font-size:14.5px;padding:6px 0}
+.kb-det[open]>summary{color:var(--accText)}
+.kb-form4{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:6px 0}
+.kb-form4 label,.kb-hgrid label,.kb-id{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:800;color:var(--mut)}
+.kb-form4 .lebar{grid-column:1/-1}
+.kitabku-latar input:not([type=checkbox]),.kitabku-latar select{height:42px;padding:0 12px;border:1.5px solid var(--line2);border-radius:14px;background:var(--card);color:var(--ink);font:700 15px Nunito,sans-serif;min-width:0}
+.kitabku-latar input:focus,.kitabku-latar select:focus{outline:2px solid var(--acc);outline-offset:1px}
+.kb-hadiah{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1.5px dashed var(--jahit);border-radius:18px}
+.kb-hadiah.nyala{border-style:solid;border-color:var(--acc);background:var(--accSoft)}
+.kb-hkepala{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kb-hkepala b{font-size:16px}
+.kb-hkepala code{font-size:12px;color:var(--mut)}
+.kb-saklar{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:14px;cursor:pointer}
+.kb-saklar input{width:20px;height:20px;accent-color:var(--acc)}
+.kb-hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.kb-hgrid small{font-weight:700;color:var(--mut)}
+.kb-hbawah{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.kb-mut{margin-right:auto;color:var(--wInk);font-weight:700}
+.kb-qty{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;padding:4px 0 8px}
+.kb-qty label{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.kb-qty label span{flex:1;min-width:0}
+.kb-qty input{width:84px;flex:none;text-align:right}
+.kb-total{margin:0;font-weight:800}
+.kb-total b{font-family:'Baloo 2',Nunito,sans-serif;font-size:24px;color:var(--accText)}
+.kb-total small{color:var(--mut)}
+.kb-hasil{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 14px;border-radius:16px;background:var(--okBg);color:var(--okInk);font-weight:800}
+.kb-hasil .btn{margin-left:auto}
+.kb-struk{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1.5px solid var(--line);border-radius:18px}
+.kb-skepala{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.kb-skepala span{color:var(--mut);font-weight:700}
+.kb-skepala small{margin-left:auto;color:var(--mut)}
+.kb-foto{max-width:100%;max-height:420px;object-fit:contain;align-self:flex-start;border-radius:12px;border:1.5px solid var(--line)}
+.kb-pilih{display:flex;flex-wrap:wrap}
+.kb-pilih input{accent-color:var(--acc)}
+#lembarKitab{display:none}
+@media print{
+  @page{size:A4;margin:10mm}
+  body.cetak-kitab{background:#fff !important}
+  body.cetak-kitab>*:not(#lembarKitab){display:none !important}
+  body.cetak-kitab #lembarKitab{display:grid !important;grid-template-columns:85mm 85mm;grid-auto-rows:55mm;gap:0;justify-content:center}
+  #lembarKitab .kartu-kitab{box-sizing:border-box;width:85mm;height:55mm;display:flex;align-items:center;gap:3mm;padding:3.5mm 4mm;border:.3mm dashed #999;break-inside:avoid;color:#2B221C;background:#FFF8EF;font-family:Nunito,Arial,sans-serif}
+  #lembarKitab .kk-qr{width:33mm;height:33mm;flex:none}
+  #lembarKitab .kk-qr svg{width:33mm;height:33mm;display:block}
+  #lembarKitab .kk-teks{display:flex;flex-direction:column;gap:1mm;min-width:0}
+  #lembarKitab small{font-size:6.5pt;font-weight:900;letter-spacing:.4pt;color:#A9501C}
+  #lembarKitab .kk-untuk{font-size:7pt;color:#6B5A4E}
+  #lembarKitab .kk-produk{font-size:11pt;line-height:1.1;font-weight:900}
+  #lembarKitab .kk-kode{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12pt;font-weight:700;letter-spacing:.6pt}
+  #lembarKitab .kk-ajak{font-size:7pt;line-height:1.2;font-weight:800}
+  #lembarKitab .kk-situs{font-size:6pt;line-height:1.2;color:#6B5A4E}
+}

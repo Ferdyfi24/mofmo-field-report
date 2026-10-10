@@ -538,7 +538,8 @@
       bulan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
       matahari: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
       scan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16.5 8v8"/></svg>',
-      menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg>'
+      menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg>',
+      buku: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.2 5 7.6 4.5 4 4.8v13c3.6-.3 6.2.2 8 1.7 1.8-1.5 4.4-2 8-1.7v-13c-3.6-.3-6.2.2-8 1.7z"/><path d="M12 6.5v13"/></svg>'
     };
     function tombol(teks, label, fn, jenis) {
       var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-wms', jenis || '1'); b.setAttribute('aria-label', label); b.title = label; b.textContent = teks;
@@ -550,6 +551,9 @@
       var kanan = document.getElementById('kopKanan'); if (!kanan || kanan.querySelector('[data-wms]')) return;
       var sc = tombol('', C.teks.scan, function () { H.alat('scan'); }, 'scan'); sc.innerHTML = IKON.scan + '<span>' + C.teks.scanPendek + '</span>'; sc.style.paddingRight = '15px';
       kanan.appendChild(sc);
+      /* Kitabku (10 Okt): event, hadiah, cetak kartu QR paket Shopee, klaim struk gerai */
+      var kb = tombol('', C.teks.kitabku, function () { H.kitabku(); }, 'kitabku'); kb.innerHTML = IKON.buku + '<span>Kitabku</span>'; kb.style.paddingRight = '15px';
+      kanan.appendChild(kb);
       /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
       var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
       kanan.appendChild(tm);
@@ -686,7 +690,7 @@
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
       var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
-        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
@@ -719,7 +723,8 @@
     bukaTab: function (u) { if (/^https?:/i.test(String(u))) window.open(String(u), '_blank', 'noopener'); },
     tema: function () { var baru = temaTerpakai() === 'dark' ? 'light' : 'dark'; setelan('wms_tema', baru); pasangTema(baru); Suara.klik(); gambar(); },
     alat: function (mode, arg) { if (window.WmsAlat) window.WmsAlat.buka(mode, arg); },
-    paspor: function (info) { if (window.WmsAlat) window.WmsAlat.paspor(info); }
+    paspor: function (info) { if (window.WmsAlat) window.WmsAlat.paspor(info); },
+    kitabku: function (tab) { if (window.WmsKitabku) window.WmsKitabku.buka(tab); }
   };
 
   /* ================= gambar dan kejadian ================= */
