@@ -1,4 +1,4 @@
-/* Uji WMS (wms/, 10 Okt 2026 siang). Harapan: "25 pemeriksaan, SEMUA LULUS".
+/* Uji WMS (wms/, 10 Okt 2026 siang). Harapan: "26 pemeriksaan, SEMUA LULUS".
  * Chromium sungguhan, halaman dilayani dari localhost, Apps Script palsu
  * (aksi 'wms'), Supabase palsu (mati, kosong, hidup), AudioContext palsu.
  *
@@ -24,7 +24,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 25;
+const DIHARAPKAN = 26;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -42,7 +42,7 @@ const PAPAN_PALSU = '<!doctype html><html lang="id"><head><meta charset="utf-8">
   '<div id="layarKode"><input id="kode"><button onclick="buka()">Masuk</button></div>' +
   '<div id="layarIsi"><header><div class="gbrLogo"><img alt=""></div><div><h1>Papan Data</h1><p id="subJudul">12 bulan</p></div><div id="kopKanan"></div></header>' +
   '<nav id="panel"><a class="on" href="#" id="navRingkas">Ringkasan</a><a href="' + API.replace('AKfycbzslW9', 'AKfycbLAMA') + '?harian=1" id="navLuar">Ringkasan Harian</a><a href="' + API + '?lihat=1" id="navDiri">Papan</a></nav>' +
-  '<div class="judulCoklat" id="judulCoklat">Ringkasan</div><div class="kartuMerah" id="kartuMerah">Belum kirim</div><div id="isi"></div><div id="hasil"></div><button id="keluarPapan" onclick="keluarPapan()">Keluar papan</button></div>' +
+  '<div class="isiRail" id="rail"><div class="judulCoklat" id="judulCoklat">Ringkasan</div><div class="kartuMerah" id="kartuMerah">Belum kirim</div><div id="isi"></div></div><div id="hasil"></div><button id="keluarPapan" onclick="keluarPapan()">Keluar papan</button></div>' +
   '<script>var KODE="";' +
   /* sebelum masuk selesai papan lama sudah meminta Ringkasan dengan kode kosong */
   'google.script.run.withSuccessHandler(function(r){window.__awal=r;}).papanSummary("","12b");' +
@@ -55,7 +55,7 @@ const PAPAN_PALSU = '<!doctype html><html lang="id"><head><meta charset="utf-8">
   'function keluarPapan(){KODE="";document.getElementById("layarIsi").style.display="none";document.getElementById("layarKode").style.display="block";}' +
   '<\/script></body></html>';
 const DATA = { ok: true, lok: [{ k: 'HO' }], prod: [{ b: '1' }, { b: '2' }, { b: '3' }], baris: [] };
-const SUMMARY = { ok: true, html: '<style>.angkaMerah{color:#b3261e}</style><h2 id="judulSmr">Ringkasan</h2><b class="angkaMerah" id="angkaMerah">Rp16.700.902</b> <span>PO #123</span>' };
+const SUMMARY = { ok: true, html: '<style>.angkaMerah{color:#b3261e}.kartu{border:1px solid var(--garis);font-size:13px}.cap{font-size:12px}</style><div class="kartu" id="kartuSmr"><div class="cap" id="capSmr">Nilai penjualan</div></div><h2 id="judulSmr">Ringkasan</h2><b class="angkaMerah" id="angkaMerah">Rp16.700.902</b> <span>PO #123</span>' };
 
 const AUDIO_PALSU = () => {
   window.__nada = []; window.__getar = []; window.__buka = [];
@@ -188,6 +188,12 @@ const AUDIO_PALSU = () => {
     c('W10 kulit L4: coklat jadi hitam, kertas jadi putih, merah jadi oren, menu aktif oren, logo M', kulit.coklat === 'rgb(18, 18, 18)' && kulit.body === 'rgb(255, 255, 255)' && kulit.merah === 'rgb(242, 100, 25)' && kulit.nav === 'rgb(242, 100, 25)' && kulit.logo === '"M"', JSON.stringify(kulit));
     c('W11 HTML kiriman server di dalam shadow root ikut diwarnai ulang dan dapat lembar kulit; "PO #123" tidak tersentuh', kulit.angka === 'rgb(242, 100, 25)' && kulit.adopsi === 1 && kulit.po, JSON.stringify(kulit));
     c('W12 huruf judul Archivo, bukan Gloock', /Archivo/.test(kulit.h1) && !/Gloock/.test(kulit.h1), kulit.h1);
+    /* Ferdy 10 Okt: "fontnya masih kecil". Isi papan lama memakai px tetap
+       (11 sampai 13 px) di dalam shadow root, jadi bidang isi diperbesar
+       utuh (zoom), dan kartunya diberi garis tebal L4. */
+    const isi = await diBingkai(() => { const akar = document.getElementById('smrKotak').shadowRoot; const k = getComputedStyle(akar.getElementById('kartuSmr')); const cp = getComputedStyle(akar.getElementById('capSmr'));
+      return { zoom: getComputedStyle(document.getElementById('rail')).zoom, garis: k.borderTopWidth + ' ' + k.borderTopColor, cap: cp.textTransform + ' ' + cp.fontFamily }; });
+    c('W26 bidang isi diperbesar (zoom 1.16 di layar lebar), kartu bergaris 2 px hitam di layar (nilai hitungnya 2/1,16 karena zoom)', isi.zoom === '1.16' && Math.round(parseFloat(isi.garis) * 1.16) === 2 && / rgb\(18, 18, 18\)$/.test(isi.garis), JSON.stringify(isi));
 
     /* ---------- bacaan yang tidak dicerminkan tidak menandai kotor ---------- */
     await diBingkai(() => new Promise(r => google.script.run.withSuccessHandler(r).daftarSuratJalan(KODE)));
