@@ -559,6 +559,21 @@
       kanan.appendChild(tm);
       kanan.appendChild(tombol(C.teks.keluar, C.teks.keluar, function () { H.keluarAkun(); }, 'keluar'));
       pasangLaci();
+      pasangSeret();
+    }
+    /* Dokumen mitra: berkas yang ditarik ke kotak .dokAmbil diteruskan ke input file papan, lalu event change papan sendiri yang membaca */
+    function pasangSeret() {
+      if (document.__l4Seret) return; document.__l4Seret = true;
+      var kotak = function (e) { return e.target && e.target.closest ? e.target.closest('.dokAmbil') : null; };
+      ['dragenter', 'dragover'].forEach(function (n) { document.addEventListener(n, function (e) { var z = kotak(e); if (!z) return; e.preventDefault(); z.classList.add('l4-seret'); }); });
+      document.addEventListener('dragleave', function (e) { var z = kotak(e); if (z && !z.contains(e.relatedTarget)) z.classList.remove('l4-seret'); });
+      document.addEventListener('drop', function (e) {
+        var z = kotak(e); if (!z) return; e.preventDefault(); z.classList.remove('l4-seret');
+        var inp = z.querySelector('input[type=file]'), f = e.dataTransfer && e.dataTransfer.files;
+        if (!inp || !f || !f.length) return;
+        try { inp.files = f; } catch (er) { return; }
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
+      });
     }
     /* Laci menu di HP (aturan HP papan asli memindah menu ke pita atas) */
     function pasangLaci() {

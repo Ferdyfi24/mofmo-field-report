@@ -169,6 +169,18 @@
         '#saring .sisa{width:100%;font-size:12px !important}' +
       '}',
       '.gulung{background:none !important}',
+      /* boneka di pesan memuat yang ada di dokumen (bukan shadow root): tanpa aturan ini fotonya selebar halaman (Orders & receivables) */
+      '.l4-boneka{display:inline-block;width:46px !important;max-width:46px;height:auto;vertical-align:middle;margin-right:10px;animation:l4intip 1.4s ease-in-out infinite}',
+      '@keyframes l4intip{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}',
+      /* kepala halaman seperti mockup P9 sampai P14: judul besar, keterangan di bawahnya */
+      '.halKepala{margin:6px 0 20px !important}',
+      '.halKepala h1{font-size:44px !important;line-height:1.05 !important;margin:0 !important;letter-spacing:-.01em !important}',
+      '.halKepala .cap{font-size:15px !important;font-weight:700;color:var(--l4-mut) !important;margin-top:8px !important}',
+      '@media (max-width:760px){.halKepala h1{font-size:30px !important}}',
+      /* Dokumen mitra: kotak ambil berkas bergaris putus, bisa ditarik-lepas (app.js meneruskan berkas ke input papan) */
+      '.dokAmbil{display:flex;align-items:center;flex-wrap:wrap;gap:14px;padding:22px 20px;margin:6px 0 12px;border:2.5px dashed var(--l4-jahit);border-radius:20px;background:var(--l4-lembut);transition:background-color .15s ease,border-color .15s ease}',
+      '.dokAmbil.l4-seret{border-color:var(--l4-aksen);background:var(--l4-kartu)}',
+      '.dokAmbil .dokBerkas{border-radius:999px !important}',
       '#kopKanan button,#saring button,#kopKanan a{transition:transform .15s ease,box-shadow .15s ease}',
       '#kopKanan button:hover,#saring button:hover,#kopKanan a:hover{transform:translateY(-2px);box-shadow:0 8px 20px var(--l4-bayang) !important}',
       'button{cursor:pointer}',
