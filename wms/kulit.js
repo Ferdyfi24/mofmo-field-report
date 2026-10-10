@@ -92,6 +92,11 @@
       'nav#panel a:hover{background:var(--l4-lembut) !important}',
       'nav#panel a.on{background:' + OREN + ' !important;color:#121212 !important}',
       'nav#panel a.on *{color:#121212 !important}',
+      /* lencana jumlah di menu: biasa hitam di atas abu, "awas" oren, di menu aktif hitam */
+      'nav#panel .pnlLcn{background:var(--l4-lembut) !important;color:var(--l4-ink) !important;font-family:"IBM Plex Mono",monospace !important;border:1.5px solid var(--l4-ink)}',
+      'nav#panel .pnlLcn.awas{background:' + OREN + ' !important;color:#121212 !important;border-color:' + OREN + '}',
+      'nav#panel a.on .pnlLcn{background:#121212 !important;color:#FFFFFF !important;border-color:#121212}',
+      'nav#panel a.on .iknKotak{background:rgba(18,18,18,.12) !important}',
       /* saringan periode */
       '#kotakSaring{background:var(--l4-bg) !important;border-bottom:2px solid var(--l4-ink)}',
       '#saring button,#saring a{font-family:"IBM Plex Mono",monospace !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase;border:2px solid var(--l4-ink) !important}',
@@ -121,7 +126,9 @@
   function ubahHasil(x, gelap, dl) {
     dl = dl || 0;
     if (dl > 6 || x == null) return x;
-    if (typeof x === 'string') return x.indexOf('<') > -1 || x.indexOf('#') > -1 && x.length < 40 ? ubahHuruf(ubahWarna(x, gelap)) : x;
+    /* Semua teks yang memuat warna tetap ikut dipetakan, termasuk skrip
+       halaman yang ditunda (pdgSkripTunda) yang tidak berisi tag HTML. */
+    if (typeof x === 'string') return x.indexOf('#') > -1 || x.indexOf('Gloock') > -1 || x.indexOf('ISans') > -1 ? ubahHuruf(ubahWarna(x, gelap)) : x;
     if (Array.isArray(x)) { for (var i = 0; i < x.length; i++) x[i] = ubahHasil(x[i], gelap, dl + 1); return x; }
     if (typeof x === 'object') { Object.keys(x).forEach(function (k) { x[k] = ubahHasil(x[k], gelap, dl + 1); }); return x; }
     return x;
