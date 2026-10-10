@@ -1,5 +1,5 @@
 /* Uji alat WMS (wms/alat.js + rapihan papan), 10 Okt 2026 malam.
- * Harapan: "14 pemeriksaan, SEMUA LULUS".
+ * Harapan: "15 pemeriksaan, SEMUA LULUS".
  *
  * KENAPA UJI INI ADA. Sesudah Mofmo Soft disetujui, Ferdy minta empat
  * rapihan dan dua alat baru ("gass", "gaskeun"):
@@ -29,7 +29,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 14;
+const DIHARAPKAN = 15;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -175,6 +175,17 @@ const KAMERA_PALSU = () => {
 
     const tema = await diBingkai(p, () => { const t = document.querySelector('#kopKanan [data-wms=tema]'); return t ? { svg: !!t.querySelector('svg'), teks: t.textContent.trim(), label: t.getAttribute('aria-label') } : null; });
     c('W48 tombol tema berupa ikon yang menunjuk mode tujuan: siang -> ikon bulan, label "Switch to night", tanpa tulisan Day', tema && tema.svg && tema.teks === '' && /night/i.test(tema.label), JSON.stringify(tema));
+
+    /* ---- Kitabku (10 Okt): tombol di kop papan membuka lembar admin dengan tiket WMS yang sama ---- */
+    const kitabBadan = [];
+    await p.route('**/functions/v1/kitab', (r) => { kitabBadan.push(JSON.parse(r.request().postData() || '{}')); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, acara: null, angka: { kartu: 4, pemain: 3, struk: 1, klaim: 0, kode: 0, dipakai: 0 }, hadiah: [] }) }); });
+    const kbTombol = await diBingkai(p, () => { const t = document.querySelector('#kopKanan [data-wms=kitabku]'); return t ? { svg: !!t.querySelector('svg'), teks: t.textContent.trim() } : null; });
+    await bingkai(p).click('#kopKanan [data-wms=kitabku]');
+    await tunggu(p, () => { const d = document.getElementById('kitabkuAdmin'); return d && d.classList.contains('buka') && /Collectors/.test(d.innerText); });
+    c('W60 tombol Kitabku di kop papan membuka lembar Kitabku; permintaannya membawa tiket WMS yang sama, bukan kode akses',
+      kbTombol && kbTombol.svg && kbTombol.teks === 'Kitabku' && kitabBadan.length === 1 && kitabBadan[0].fn === 'admin' && kitabBadan[0].aksi === 'ringkas' && kitabBadan[0].tiket === 'TIKET.SUPA' && !JSON.stringify(kitabBadan).includes(KODE_BENAR), JSON.stringify([kbTombol, kitabBadan]));
+    await p.keyboard.press('Escape');
+    await tunggu(p, () => !document.getElementById('kitabkuAdmin').classList.contains('buka'));
 
     /* ---- scan rak ---- */
     await bingkai(p).click('#kopKanan [data-wms=scan]');
