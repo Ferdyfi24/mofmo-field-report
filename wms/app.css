@@ -303,3 +303,19 @@ html[data-theme="dark"] .papan{border-color:#5F5F5F}
   .keping{width:auto;flex:1 1 0;min-width:0;height:36px;font-size:17px;border-radius:2px}
   .tahap-garis span{flex-basis:30%}
 }
+
+/* ---------- isi WMS: papan lama berkulit L4 ---------- */
+.wadah-papan{position:fixed;inset:0;background:var(--bg)}
+.bingkai-isi{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:var(--bg)}
+.tirai-papan{position:absolute;inset:0;z-index:5;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:24px;text-align:center;transition:opacity .4s ease,transform .4s ease}
+.tirai-papan.pergi{opacity:0;transform:translateY(-12px);pointer-events:none}
+.maskot-muat{width:132px;height:132px;transform-origin:50% 100%;animation:intip 1.6s ease-in-out infinite}
+.maskot-muat.gelengKepala{animation:gk .5s ease 1}
+.maskot-muat svg{width:100%;height:100%;overflow:visible}
+.papan-kecil{padding:12px 14px}
+.papan-kecil .papan-baris{min-width:0}
+.papan-kecil .keping{width:30px;height:42px;font-size:20px}
+.garis-muat{width:min(320px,80vw);height:14px}
+.tirai-papan .galat{max-width:520px;font-size:14px}
+.tirai-papan .alat{justify-content:center}
+@media (max-width:760px){.papan-kecil .keping{width:20px;height:30px;font-size:14px}}
