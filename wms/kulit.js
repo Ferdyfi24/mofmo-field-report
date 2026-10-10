@@ -101,6 +101,11 @@
       '#kotakSaring{background:var(--l4-bg) !important;border-bottom:2px solid var(--l4-ink)}',
       '#saring button,#saring a{font-family:"IBM Plex Mono",monospace !important;font-size:12px !important;font-weight:600 !important;text-transform:uppercase;border:2px solid var(--l4-ink) !important}',
       '#saring .on,#saring [aria-pressed="true"]{background:' + OREN + ' !important;color:#121212 !important;border-color:' + OREN + ' !important}',
+      /* bidang isi: papan lama menulis isinya dengan px tetap 11 sampai 13 px
+         di dalam shadow root ("fontnya masih kecil"), jadi bidangnya
+         diperbesar utuh; di HP sedikit saja supaya tidak meluber */
+      '.isiRail{zoom:1.16}',
+      '@media (max-width:760px){.isiRail{zoom:1.04}}',
       /* tombol umum */
       'button{cursor:pointer}',
       ':focus-visible{outline:3px solid ' + OREN + ' !important;outline-offset:2px}',
@@ -117,7 +122,12 @@
       'h1,h2,h3,h4{font-family:"Archivo",Arial,sans-serif !important;font-stretch:125%;font-weight:900 !important}',
       'h2{text-transform:uppercase}',
       'th{font-family:"IBM Plex Mono",monospace;font-size:11px !important;letter-spacing:.06em;text-transform:uppercase}',
-      'code,kbd,.num,.angka{font-family:"IBM Plex Mono",ui-monospace,monospace}'
+      'code,kbd,.num,.angka{font-family:"IBM Plex Mono",ui-monospace,monospace}',
+      /* kartu dan ubin ringkasan: garis tebal L4, angka besar lebar (label .cap
+         dibiarkan: kelasnya juga dipakai untuk catatan kaki yang panjang) */
+      '.kartu,.ubin{border:2px solid var(--teks) !important;background:var(--kertas)}',
+      '.nil,.stokangka{font-family:"Archivo",Arial,sans-serif !important;font-weight:900 !important;font-stretch:110%}',
+      '.h3{font-family:"Archivo",Arial,sans-serif !important;font-weight:900 !important;font-stretch:125%;text-transform:uppercase;letter-spacing:.01em}'
     ].join('\n');
   }
 
