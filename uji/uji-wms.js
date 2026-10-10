@@ -48,7 +48,8 @@ const PAPAN_PALSU = '<!doctype html><html lang="id"><head><meta charset="utf-8">
   /* bayangan gulir tabel papan lama (.gulung) dan tirai putih tembus */
   '.gulung{overflow-x:auto;background:linear-gradient(90deg,#fff 40%,rgba(255,255,255,0)) left center/22px 100% no-repeat,radial-gradient(farthest-side at 0 50%,rgba(60,40,10,.22),rgba(60,40,10,0)) left center/14px 100% no-repeat}.kabut{background:rgba(255,255,255,.8)}</style></head><body>' +
   '<div id="layarKode"><input id="kode"><button onclick="buka()">Masuk</button></div>' +
-  '<div id="layarIsi"><header><div class="gbrLogo"><img alt=""></div><div><h1>Papan Data</h1><p id="subJudul">12 bulan</p></div><div id="kopKanan"></div></header>' +
+  /* kepala sama bentuknya dengan papan asli (header > .bungkus), dicek dari klien|papan 10 Okt */
+  '<div id="layarIsi"><header><div class="bungkus"><div class="gbrLogo"><img alt=""></div><div style="flex:1;min-width:0"><h1>Papan Data</h1><p id="subJudul">12 bulan</p></div><div id="kopKanan"></div></div></header>' +
   '<nav id="panel"><a class="on" href="#" id="navRingkas">Ringkasan</a><a href="' + API.replace('AKfycbzslW9', 'AKfycbLAMA') + '?harian=1" id="navLuar">Ringkasan Harian</a><a href="' + API + '?lihat=1" id="navDiri">Papan</a><a href="#" id="navField"><span class="iknKotak"></span>Field Op <span class="pnlLcn">1</span></a><a href="#" id="navLap"><span class="iknKotak"><svg class="ikn" viewBox="0 0 24 24"><path d="M4 4h16"/></svg></span><span class="pnlNama">Field</span></a><a href="#" id="navLapId"><span class="pnlNama">Lapangan</span></a><a href="#" id="navGudang"><span class="iknKotak"><svg class="ikn" id="iknKosong" viewBox="0 0 24 24" fill="none" stroke="currentColor"></svg></span><span class="pnlNama">Warehouse</span></a></nav><table><tr><td id="tdField">Field</td></tr></table>' +
   '<div class="isiRail" id="rail"><div class="judulCoklat" id="judulCoklat">Ringkasan</div><div class="kartuMerah" id="kartuMerah">Belum kirim</div><div class="gulung" id="gulung">tabel surat jalan</div><div class="kabut" id="kabut">kabut</div><div id="isi"></div></div><div id="hasil"></div><button id="keluarPapan" onclick="keluarPapan()">Keluar papan</button></div>' +
   '<script>var KODE="";' +
@@ -319,13 +320,13 @@ const AUDIO_PALSU = () => {
 
     /* ---------- tema malam ---------- */
     await nada();
-    await f1.click('#kopKanan [data-wms]');
+    await f1.click('#kopKanan [data-wms=tema]');
     await jeda(300);
     await tungguBingkai(() => window.__siap === 1 && window.__smr === 1 && !!document.querySelector('#kopKanan [data-wms]'), 8000);
-    const malam = await diBingkai(() => ({ body: getComputedStyle(document.body).backgroundColor, coklat: getComputedStyle(document.getElementById('judulCoklat')).color, tombol: document.querySelector('#kopKanan [data-wms]').textContent }));
+    const malam = await diBingkai(() => ({ body: getComputedStyle(document.body).backgroundColor, coklat: getComputedStyle(document.getElementById('judulCoklat')).color, tombol: document.querySelector('#kopKanan [data-wms=tema]').getAttribute('aria-label') }));
     const temaInduk = await p.evaluate(() => ({ t: document.documentElement.getAttribute('data-theme'), s: localStorage.getItem('wms_tema') }));
     c('W15 tombol siang/malam di kepala papan: papan dimuat ulang gelap coklat hangat (latar #2B221C, teks coklat jadi krem #F8ECDF), pilihan diingat',
-      malam.body === 'rgb(43, 34, 28)' && malam.coklat === 'rgb(248, 236, 223)' && malam.tombol === 'Night' && temaInduk.t === 'dark' && temaInduk.s === 'dark', JSON.stringify([malam, temaInduk]));
+      malam.body === 'rgb(43, 34, 28)' && malam.coklat === 'rgb(248, 236, 223)' && malam.tombol === 'Switch to day' && temaInduk.t === 'dark' && temaInduk.s === 'dark', JSON.stringify([malam, temaInduk]));
     await foto('04-papan-malam');
     /* Ferdy 10 Okt (peta gudang malam): sel cadangan berarsir hitam-putih
        menutupi tulisannya. Penyebabnya "#fff" sesudah koma di dalam gradasi
@@ -372,7 +373,7 @@ const AUDIO_PALSU = () => {
     const ambilUlang = S.supaBadan.slice(nAmbilSebelum).filter(x => x.fn === 'ambil').map(x => (x.kunci || []).join(','));
     c('W32 bukaan kedua memakai papan yang tersimpan di perangkat: cuma versi kecil (klien|versi) yang ditanya, papan 1,3 MB tidak diunduh ulang',
       ambilUlang.some(k => k === 'klien|versi') && !ambilUlang.some(k => /klien\|papan/.test(k)), JSON.stringify(ambilUlang));
-    await bingkai().click('#kopKanan [data-wms]:nth-of-type(2)');
+    await bingkai().click('#kopKanan [data-wms=keluar]');
     await tunggu(() => document.getElementById('formMasuk'), null, 5000);
     const habis2 = await p.evaluate(() => ({ form: !!document.getElementById('formMasuk'), ls: JSON.stringify(localStorage), ss: JSON.stringify(sessionStorage) }));
     c('W19 tombol Keluar di kepala papan: kembali ke halaman masuk, tiket di mana pun dibuang', habis2.form && !/TIKET/.test(habis2.ls + habis2.ss), JSON.stringify(habis2).slice(0, 200));
