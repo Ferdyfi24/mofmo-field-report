@@ -281,15 +281,23 @@
      (daftarSuratJalan, pesananTerbuka, persediaanBulanan, ...) tidak boleh
      ikut menandai: pagi 10 Okt satu klik Persediaan membuat seluruh papan
      membaca dari Apps Script. */
-  var POLA_BACA = /^(papan|daftar|data|kesehatan|persediaan|permintaan|pesanan|rencana|obd(Daftar|SpData|IuData)$|fap|laporan|baca|ambil|cari|lihat|pdg|hitung|cek|ringkas|riwayat|status|info|muat)/;
+  var POLA_BACA = /^(papan|daftar|data|kesehatan|persediaan|permintaan|pesanan|rencana|obd(Daftar|SpData|IuData)$|fap|laporan|baca|ambil|cari|lihat|pdg|hitung|cek|ringkas|riwayat|status|info|muat|wmsFoto)/;
   var LAMA_KOTOR = 15 * 60 * 1000;
   var PAPAN = { mentah: null, tema: '', siap: false, mulai: 0, jaga: null, catat: [] };
   function kotor() { var w = 0; try { w = Number(ss() && ss().getItem('wms_kotor')) || 0; } catch (e) { w = 0; } return Date.now() - w < LAMA_KOTOR; }
   function tandaiKotor() { try { if (ss()) ss().setItem('wms_kotor', String(Date.now())); } catch (e) {} }
+  /* Pesan galat yang jujur. Dulu setiap "tidak dibuka untuk WMS" disebut
+     "menyala setelah deploy", padahal penyebabnya daftar izin (dokumen gudang
+     10 Okt). Sekarang: server lama = deploy; fungsi belum ada di versi yang
+     jalan = deploy; fungsi belum masuk izin = disebut namanya. */
   function pesanBelumDeploy(e) {
-    var s = String(e && e.message ? e.message : e);
-    if (/tidak dibuka untuk WMS|not updated for the new WMS|tidak menjawab dengan benar|did not answer properly/i.test(s))
-      return bhs() === 'id' ? 'Fitur ini menyala setelah Apps Script di-deploy versi baru.' : 'This feature turns on after the new Apps Script version is deployed.';
+    var s = String(e && e.message ? e.message : e), id = bhs() === 'id', m;
+    if (/not updated for the new WMS|tidak menjawab dengan benar|did not answer properly/i.test(s))
+      return id ? 'Fitur ini menyala setelah Apps Script di-deploy versi baru.' : 'This feature turns on after the new Apps Script version is deployed.';
+    if ((m = s.match(/Fungsi "(\w+)" tidak ada/)))
+      return id ? 'Fitur ini (' + m[1] + ') baru ada di kode Apps Script terbaru, jadi menyala setelah di-deploy versi baru.' : 'This feature (' + m[1] + ') is only in the newest Apps Script code, so it turns on after a new version is deployed.';
+    if ((m = s.match(/Fungsi "(\w+)" tidak dibuka untuk WMS/)))
+      return id ? 'Fungsi ' + m[1] + ' belum masuk daftar izin WMS. Daftarnya diperbarui otomatis tiap 10 menit; coba lagi sebentar lagi, atau pakai papan lama dulu.' : 'The function ' + m[1] + ' is not on the WMS allow list yet. The list refreshes itself every 10 minutes; try again shortly, or use the old board for now.';
     return s;
   }
   function jalanPapan(nama, args) {
@@ -301,6 +309,8 @@
     var bisaPotret = (BACA_PAPAN[nama] && pakaiKode || BACA_TANPA_KODE[nama]) && !kotor();
     var kunci = pakaiKode ? nama + '|' + JSON.stringify(['K'].concat(args.slice(1))) : nama + '|' + JSON.stringify(args);
     var cat = { n: nama, t: Date.now(), dari: '' }; PAPAN.catat.push(cat); if (PAPAN.catat.length > 200) PAPAN.catat.shift();
+    var tulisan = !BACA_PAPAN[nama] && !BACA_TANPA_KODE[nama] && !POLA_BACA.test(nama);
+    garisMuat(1);
     var potret = bisaPotret ? kirimSupa({ fn: 'ambil', tiket: S.tiket, kunci: [kunci] }).then(function (h) {
       var x = h && h.ok && h.isi ? h.isi[kunci] : null; return x ? x.data : undefined;
     }, function () { return undefined; }) : Promise.resolve(undefined);
@@ -312,15 +322,56 @@
         if (x && x.perluMasuk) { keluarAkun(true); throw new Error(x.pesan || 'Please sign in again.'); }
         return x;
       }, function (e) { cat.galat = String(e && e.message || e).slice(0, 80); throw new Error(pesanBelumDeploy(e)); });
-    }).then(function (x) { return window.KulitPapan ? window.KulitPapan.ubahHasil(x, gelap) : x; });
+    }).then(function (x) {
+      garisMuat(-1);
+      /* bunyi untuk tulisan saja: bacaan terjadi terus di latar dan akan berisik */
+      if (tulisan) { if (x && x.ok === false) { Suara.gagal(); maskot('sedih'); } else { Suara.sukses(); maskot('senang'); konfeti(); } }
+      return window.KulitPapan ? window.KulitPapan.ubahHasil(x, gelap) : x;
+    }, function (e) { garisMuat(-1); if (tulisan) { Suara.gagal(); maskot('sedih'); } throw e; });
   }
-  function ambilKlien() {
-    if (PAPAN.mentah) return Promise.resolve(PAPAN.mentah);
+  /* Garis muat oren di atas papan: tampil kalau ada panggilan yang belum
+     kembali lebih dari 150 ms (supaya bacaan cepat dari Supabase tidak
+     membuatnya berkedip). */
+  var tundaMuat = 0, waktuGaris = null;
+  function garisMuat(d) {
+    tundaMuat = Math.max(0, tundaMuat + d);
+    var el = document.getElementById('garisMuatAtas'); if (!el) return;
+    if (tundaMuat > 0) { if (!waktuGaris) waktuGaris = setTimeout(function () { if (tundaMuat > 0) { el.classList.add('nyala'); if (MK.ekspresi === 'diam') maskot('mikir'); } }, 150); }
+    else { clearTimeout(waktuGaris); waktuGaris = null; el.classList.remove('nyala'); if (MK.ekspresi === 'mikir') maskot('diam', ''); }
+  }
+  /* Papan lama 1,3 MB disimpan di perangkat (Cache Storage) bersama
+     versinya. Bukaan berikutnya cuma menanyakan versi (klien|versi, beberapa
+     byte); papan diunduh ulang hanya kalau versinya berubah. */
+  var SIMPAN_PAPAN = 'wms-papan', ALAMAT_SIMPAN = '/__wms/klien-papan';
+  function bacaSimpanPapan() {
+    try { if (!window.caches) return Promise.resolve(null); } catch (e) { return Promise.resolve(null); }
+    return caches.open(SIMPAN_PAPAN).then(function (c) { return c.match(ALAMAT_SIMPAN); })
+      .then(function (r) { return r ? r.json() : null; }).then(function (x) { return x && x.html ? x : null; }, function () { return null; });
+  }
+  function tulisSimpanPapan(versi, html) {
+    try { if (!window.caches) return; } catch (e) { return; }
+    caches.open(SIMPAN_PAPAN).then(function (c) { return c.put(ALAMAT_SIMPAN, new Response(JSON.stringify({ versi: versi, html: html, t: Date.now() }), { headers: { 'Content-Type': 'application/json' } })); }).catch(function () {});
+  }
+  function unduhKlien() {
     return kirimSupa({ fn: 'ambil', tiket: S.tiket, kunci: ['klien|papan'] }, 60000).then(function (h) {
       if (h && h.perluMasuk) throw new Error('tiket');
       var x = h && h.ok && h.isi ? h.isi['klien|papan'] : null;
       if (!x || !x.data || !x.data.html) throw new Error('kosong');
-      PAPAN.mentah = String(x.data.html); return PAPAN.mentah;
+      tulisSimpanPapan(x.data.versi || '', String(x.data.html));
+      return String(x.data.html);
+    });
+  }
+  function ambilKlien() {
+    if (PAPAN.mentah) return Promise.resolve(PAPAN.mentah);
+    return bacaSimpanPapan().then(function (lama) {
+      if (!lama) return unduhKlien().then(function (html) { PAPAN.mentah = html; return html; });
+      /* versi dicek dulu (cepat); kalau beda atau belum ada, unduh baru */
+      return kirimSupa({ fn: 'ambil', tiket: S.tiket, kunci: ['klien|versi'] }, 8000).then(function (h) {
+        if (h && h.perluMasuk) throw new Error('tiket');
+        var x = h && h.ok && h.isi ? h.isi['klien|versi'] : null;
+        if (x && x.data && x.data.versi && x.data.versi === lama.versi) return lama.html;
+        return unduhKlien().catch(function (e) { if (e && e.message === 'tiket') throw e; return lama.html; });
+      }, function () { return lama.html; }).then(function (html) { PAPAN.mentah = html; return html; });
     });
   }
 
@@ -339,7 +390,7 @@
         return function () {
           var args = Array.prototype.slice.call(arguments);
           H.jalan(nama, args).then(function (r) { if (sukses) sukses(r, obj); }, function (e) {
-            var er = e instanceof Error ? e : new Error(String(e)); if (gagal) gagal(er, obj); else console.error(er);
+            var er = e instanceof Error ? e : new Error(e && e.message ? e.message : String(e)); if (gagal) gagal(er, obj); else console.error(er);
           });
         };
       } });
@@ -352,11 +403,88 @@
     } };
     /* Halaman papan banyak digambar di shadow root: kulitnya ikut dipasang
        lewat adoptedStyleSheets supaya tidak hilang saat isinya diganti. */
+    var gerak = true; try { gerak = !matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    /* Angka besar menghitung naik dengan format aslinya ("Rp16,700,902",
+       "1,860", "93"); angka berdesimal ("Rp4.58M", "67.87") dibiarkan.
+       Teks aslinya dipasang lagi persis di akhir. */
+    function hitungNaik(el) {
+      if (!gerak || el.__l4) return; el.__l4 = 1;
+      var asli = el.textContent.trim(), m = asli.match(/^([^\d-]*)(\d[\d.,]*)([^\d]*)$/);
+      if (!m) return;
+      var a = m[2], ribu = /\d[.,]\d{3}(?:[.,]|$)/.test(a) ? a.match(/[.,]/)[0] : '';
+      if (/[.,]\d{1,2}$/.test(a) || (ribu && a.replace(new RegExp('\\' + ribu, 'g'), '').search(/[.,]/) > -1)) return;
+      var nilai = Number(a.replace(/[.,]/g, '')); if (!isFinite(nilai) || nilai < 10) return;
+      var bentuk = function (v) { var t = String(Math.round(v)); return ribu ? t.replace(/\B(?=(\d{3})+(?!\d))/g, ribu) : t; };
+      var mulai = performance.now(), lama = 750;
+      (function langkah(now) { var x = Math.min(1, (now - mulai) / lama), e = 1 - Math.pow(1 - x, 3); if (x < 1) { el.textContent = m[1] + bentuk(nilai * e) + m[3]; requestAnimationFrame(langkah); } else el.textContent = asli; })(mulai);
+    }
+    var POLA_MUAT = /(not frozen|belum beku|Memuat|Loading)/i;
+    /* Foto rak (Ferdy: "ini mana fotonya"). Thumbnail Drive cuma tampil kalau
+       login Google ikut terkirim, dan itu tidak terjadi dari pages.dev. Foto
+       yang alamatnya Drive diminta lewat server (wmsFotoRak), berkelompok,
+       paling banyak 24 sekali minta, dan diingat selama papan terbuka. */
+    var FOTO = {}, antreFoto = {}, waktuFoto = null;
+    var RE_FOTO = /^https:\/\/drive\.google\.com\/(?:thumbnail\?(?:[^#]*&)?id=|uc\?(?:[^#]*&)?id=|file\/d\/)([A-Za-z0-9_-]{20,80})/;
+    function pasangFoto(img, url) { img.setAttribute('data-l4foto', '1'); img.src = url; }
+    function cariFoto(n) {
+      if (!n || n.nodeType !== 1) return;
+      var imgs = n.tagName === 'IMG' ? [n] : Array.prototype.slice.call(n.querySelectorAll ? n.querySelectorAll('img') : []);
+      imgs.forEach(function (img) {
+        if (img.getAttribute('data-l4foto')) return;
+        var m = String(img.getAttribute('src') || '').match(RE_FOTO); if (!m) return;
+        if (FOTO[m[1]]) { pasangFoto(img, FOTO[m[1]]); return; }
+        img.setAttribute('data-l4foto', 'antre');
+        (antreFoto[m[1]] = antreFoto[m[1]] || []).push(img);
+      });
+      if (!waktuFoto && Object.keys(antreFoto).length) waktuFoto = setTimeout(kirimFoto, 120);
+    }
+    function kirimFoto() {
+      waktuFoto = null;
+      var ids = Object.keys(antreFoto).slice(0, 24), tunggu = {};
+      ids.forEach(function (id) { tunggu[id] = antreFoto[id]; delete antreFoto[id]; });
+      if (!ids.length) return;
+      var tandai = function (id, x) { tunggu[id].forEach(function (img) { if (x) pasangFoto(img, x); else img.setAttribute('data-l4foto', 'gagal'); }); };
+      H.jalan('wmsFotoRak', ['WMS-TIKET', ids]).then(function (h) {
+        var f = (h && h.foto) || {};
+        ids.forEach(function (id) { if (f[id]) FOTO[id] = f[id]; tandai(id, f[id]); });
+      }, function () { ids.forEach(function (id) { tandai(id, null); }); });
+      if (Object.keys(antreFoto).length) waktuFoto = setTimeout(kirimFoto, 120);
+    }
+    function amati(akar) {
+      try { new MutationObserver(function (ms) { ms.forEach(function (mu) {
+        if (mu.type === 'attributes') { cariFoto(mu.target); return; }
+        Array.prototype.forEach.call(mu.addedNodes, function (n) { periksaBaru(akar, n); });
+      }); }).observe(akar, { childList: true, subtree: true, attributes: true, attributeFilter: ['src'] }); } catch (e) {}
+    }
+    /* mata boneka di pojok WMS mengikuti kursor, juga saat kursor di atas papan */
+    var mataTunda = false;
+    document.addEventListener('mousemove', function (e) {
+      if (mataTunda) return; mataTunda = true;
+      requestAnimationFrame(function () { mataTunda = false; try { H.mata(e.clientX, e.clientY, true); } catch (er) {} });
+    }, { passive: true });
+    function periksaBaru(akar, n) {
+      if (!n || n.nodeType !== 1) return;
+      cariFoto(n);
+      if (n.matches && n.matches('.nil,.stokangka')) hitungNaik(n);
+      if (n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('.nil,.stokangka'), hitungNaik);
+      /* pesan memuat papan lama: teks pendek tanpa boneka -> diberi boneka */
+      var kandidat = [n].concat(Array.prototype.slice.call(n.querySelectorAll ? n.querySelectorAll('p,div') : []));
+      kandidat.forEach(function (el) {
+        if (el.querySelector('.l4-boneka') || el.children.length > 2) return;
+        var t = el.textContent || ''; if (t.length > 160 || !POLA_MUAT.test(t)) return;
+        el.insertAdjacentHTML('afterbegin', C.boneka);
+      });
+    }
     try {
       var lembar = new CSSStyleSheet(); lembar.replaceSync(C.cssBayang);
       var asli = Element.prototype.attachShadow;
-      Element.prototype.attachShadow = function (o) { var r = asli.call(this, o); try { r.adoptedStyleSheets = [lembar]; } catch (e) {} return r; };
+      Element.prototype.attachShadow = function (o) {
+        var r = asli.call(this, o); try { r.adoptedStyleSheets = [lembar]; } catch (e) {}
+        amati(r);
+        return r;
+      };
     } catch (e) {}
+    amati(document.documentElement);
     var coba = 0;
     (function masukOtomatis() {
       var k = document.getElementById('kode');
@@ -402,6 +530,80 @@
     }
   }
 
+  /* ================= boneka pojok =================
+     Ferdy: "sekalian ui ux dibkin lebih lucu jga, ini kaku bgt". Boneka kecil
+     di pojok kanan bawah: matanya mengikuti kursor, mikir saat menunggu
+     server, sedih saat gagal, melompat dan menebar konfeti kotak saat
+     tersimpan, bicara kalau diklik. Tombol x menyembunyikannya sampai tab
+     ditutup. Tanpa gerak kalau perangkat minta gerak dikurangi. */
+  var MK = { catat: [], konfeti: 0, ekspresi: 'diam', waktu: null, waktuKata: null };
+  var KATA_POJOK = {
+    id: { mikir: ['Sebentar, lagi ngambil data…', 'Lagi ngitung kardus…', 'Hmm, sabar ya…'], senang: ['Tersimpan! Mantap.', 'Beres, sudah dicatat!', 'Yay! Masuk buku besar.'], sedih: ['Yah, gagal. Cek pesannya ya.', 'Hmm, server nolak. Baca pesannya dulu.'],
+      klik: ['Mof!', 'Halo! Aku jaga gudang.', 'Semangat opname hari ini!', 'Jangan lupa minum ya.', 'Klik menu di kiri buat pindah halaman.', 'Mof mof!'] },
+    en: { mikir: ['One sec, fetching…', 'Counting boxes…', 'Hmm, hang on…'], senang: ['Saved! Nice.', 'Done, it is in the ledger!', 'Yay! Recorded.'], sedih: ['Oops, that failed. Check the message.', 'Hmm, the server said no. Read the message.'],
+      klik: ['Mof!', 'Hi! I am on warehouse duty.', 'Good luck with the count today!', 'Remember to drink some water.', 'Use the menu on the left to switch pages.', 'Mof mof!'] }
+  };
+  function pilihKata(e) { var d = (KATA_POJOK[bhs()] || KATA_POJOK.en)[e] || []; return d.length ? d[Math.floor(Math.random() * d.length)] : ''; }
+  function bonekaPojok(e) {
+    var s = bonekaKecil('', e === 'mikir' ? 'diam' : e);
+    return s.replace(/(<circle class="kedip"[^>]*><\/circle>){2}/, '<g class="mata-ikut" transform="translate(0 0)">$&</g>');
+  }
+  function htmlMaskot() {
+    var mati = false; try { mati = !!(ss() && ss().getItem('wms_maskot') === 'off'); } catch (e) {}
+    if (mati) return '';
+    var id = bhs() === 'id';
+    return '<div class="maskot-pojok" id="maskotPojok" data-ekspresi="diam">' +
+      '<div class="gelembung-pojok" role="status" aria-live="polite"></div>' +
+      '<button type="button" class="badan-pojok" data-aksi="sapaMaskot" data-wms="1" aria-label="' + (id ? 'Sapa boneka' : 'Say hi to the bear') + '">' + bonekaPojok('diam') + '</button>' +
+      '<button type="button" class="tutup-pojok" data-aksi="sembunyiMaskot" data-wms="1" aria-label="' + (id ? 'Sembunyikan boneka' : 'Hide the bear') + '">×</button>' +
+      '<div class="konfeti-wadah" aria-hidden="true"></div></div>';
+  }
+  function bicara(kata) {
+    var el = document.getElementById('maskotPojok'); if (!el) return;
+    var g = el.querySelector('.gelembung-pojok'); clearTimeout(MK.waktuKata);
+    if (!kata) { g.classList.remove('tampil'); return; }
+    g.textContent = kata; g.classList.remove('tampil'); void g.offsetWidth; g.classList.add('tampil');
+    MK.waktuKata = setTimeout(function () { g.classList.remove('tampil'); }, 2600);
+  }
+  function maskot(e, kata) {
+    MK.catat.push(e); if (MK.catat.length > 60) MK.catat.shift();
+    var el = document.getElementById('maskotPojok');
+    if (el) {
+      if (MK.ekspresi !== e) el.querySelector('.badan-pojok').innerHTML = bonekaPojok(e);
+      el.setAttribute('data-ekspresi', e);
+      el.classList.remove('lompat', 'geleng'); void el.offsetWidth;
+      if (e === 'senang') el.classList.add('lompat'); if (e === 'sedih') el.classList.add('geleng');
+      bicara(kata === undefined ? pilihKata(e) : kata);
+    }
+    MK.ekspresi = e;
+    clearTimeout(MK.waktu);
+    if (e !== 'diam') MK.waktu = setTimeout(function () { maskot('diam', ''); }, e === 'mikir' ? 9000 : 2600);
+  }
+  function konfeti() {
+    var el = document.getElementById('maskotPojok'); if (!el || !gerakBoleh()) return;
+    var w = el.querySelector('.konfeti-wadah'), warna = ['oren', 'hitam', 'putih', 'abu'];
+    for (var i = 0; i < 18; i++) {
+      var k = document.createElement('i');
+      k.className = 'konfeti ' + warna[i % 4];
+      k.style.setProperty('--dx', Math.round(-150 + Math.random() * 170) + 'px');
+      k.style.setProperty('--dy', Math.round(-170 + Math.random() * 90) + 'px');
+      k.style.setProperty('--r', Math.round(Math.random() * 720 - 360) + 'deg');
+      k.style.animationDelay = Math.round(Math.random() * 90) + 'ms';
+      w.appendChild(k);
+    }
+    MK.konfeti += 18;
+    setTimeout(function () { w.innerHTML = ''; }, 1400);
+  }
+  function mataMaskot(x, y, dariBingkai) {
+    if (MK.ekspresi !== 'diam' && MK.ekspresi !== 'mikir') return;
+    var el = document.getElementById('maskotPojok'); if (!el) return;
+    var g = el.querySelector('.mata-ikut'), b = el.querySelector('.badan-pojok'); if (!g || !b) return;
+    if (dariBingkai && PAPAN.bingkai) { var rb = PAPAN.bingkai.getBoundingClientRect(); x += rb.left; y += rb.top; }
+    var r = b.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * 0.55;
+    var dx = Math.max(-1, Math.min(1, (x - cx) / 220)) * 3, dy = Math.max(-1, Math.min(1, (y - cy) / 220)) * 2.2;
+    g.setAttribute('transform', 'translate(' + dx.toFixed(2) + ' ' + dy.toFixed(2) + ')');
+  }
+
   function tirai(isi) { return '<div class="tirai-papan" id="tiraiPapan" role="status">' + isi + '</div>'; }
   function tiraiMuat() {
     var id = bhs() === 'id';
@@ -423,7 +625,9 @@
     if (PAPAN.bingkai && document.body.contains(PAPAN.bingkai) && PAPAN.tema === temaKini) return;
     halamanSekarang = 'papan'; document.title = 'WMS Mofmofriends';
     PAPAN.siap = false; PAPAN.tema = temaKini; PAPAN.mulai = Date.now();
-    app.innerHTML = '<div class="wadah-papan">' + tiraiMuat() + '<iframe id="bingkaiPapan" title="WMS" class="bingkai-isi"></iframe></div>';
+    app.innerHTML = '<div class="wadah-papan">' + tiraiMuat() + '<iframe id="bingkaiPapan" title="WMS" class="bingkai-isi"></iframe><div id="garisMuatAtas" class="garis-muat-atas" aria-hidden="true"></div>' + htmlMaskot() + '</div>';
+    MK.ekspresi = 'diam';
+    tundaMuat = 0;
     PAPAN.bingkai = document.getElementById('bingkaiPapan');
     if (PAPAN.jaga) clearTimeout(PAPAN.jaga);
     PAPAN.jaga = setTimeout(function () {
@@ -433,7 +637,7 @@
       if (!PAPAN.bingkai || halamanSekarang !== 'papan') return;
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
-      var C = { cssBayang: K.cssBayang(), gelap: gelap, teks: { siang: id ? 'Siang' : 'Day', malam: id ? 'Malam' : 'Night', tema: id ? 'Ganti siang atau malam' : 'Switch day or night', keluar: t('logout') } };
+      var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: bonekaKecil('l4-boneka', 'diam'), teks: { siang: id ? 'Siang' : 'Day', malam: id ? 'Malam' : 'Night', tema: id ? 'Ganti siang atau malam' : 'Switch day or night', keluar: t('logout') } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
@@ -462,6 +666,7 @@
     },
     keluar: function () { if (S.tiket) keluarAkun(true); },
     keluarAkun: function () { keluarAkun(false); },
+    mata: function (x, y, dariBingkai) { mataMaskot(x, y, dariBingkai); },
     bukaTab: function (u) { if (/^https?:/i.test(String(u))) window.open(String(u), '_blank', 'noopener'); },
     tema: function () { var baru = temaTerpakai() === 'dark' ? 'light' : 'dark'; setelan('wms_tema', baru); pasangTema(baru); Suara.klik(); gambar(); }
   };
@@ -483,11 +688,14 @@
     if (a === 'bahasa') { setelan('wms_bhs', bhs() === 'id' ? 'en' : 'id'); Suara.klik(); gambar(); return; }
     if (a === 'keluar') { keluarAkun(false); return; }
     if (a === 'ulangPapan') { Suara.klik(); PAPAN.mentah = null; PAPAN.bingkai = null; gambar(); return; }
+    if (a === 'sembunyiMaskot') { Suara.klik(); try { if (ss()) ss().setItem('wms_maskot', 'off'); } catch (er) {} var m = document.getElementById('maskotPojok'); if (m) m.parentNode.removeChild(m); return; }
+    if (a === 'sapaMaskot') { Suara.klik(); maskot('senang', pilihKata('klik')); return; }
   });
+  document.addEventListener('mousemove', function (e) { mataMaskot(e.clientX, e.clientY, false); }, { passive: true });
   /* Tema otomatis ikut jam: dicek tiap 5 menit. Di papan, ganti tema
      berarti papan dimuat ulang, jadi cuma dikerjakan di halaman masuk. */
   setInterval(function () { if ((setelan('wms_tema') || 'auto') === 'auto' && halamanSekarang === 'masuk') { var j = new Date().getHours(), mau = j >= 6 && j < 18 ? 'light' : 'dark'; if (mau !== temaTerpakai()) { pasangTema('auto'); gambar(); } } }, 300000);
 
-  window.__wms = { S: S, Suara: Suara, PAPAN: PAPAN };
+  window.__wms = { S: S, Suara: Suara, PAPAN: PAPAN, maskot: MK };
   gambar();
 })();

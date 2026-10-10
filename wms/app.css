@@ -319,3 +319,36 @@ html[data-theme="dark"] .papan{border-color:#5F5F5F}
 .tirai-papan .galat{max-width:520px;font-size:14px}
 .tirai-papan .alat{justify-content:center}
 @media (max-width:760px){.papan-kecil .keping{width:20px;height:30px;font-size:14px}}
+.garis-muat-atas{position:absolute;left:0;right:0;top:0;height:4px;z-index:6;opacity:0;transition:opacity .25s ease;pointer-events:none;background-image:repeating-linear-gradient(-45deg,#121212 0 8px,#F26419 8px 16px);background-size:22px 22px;animation:hazard .8s linear infinite}
+.garis-muat-atas.nyala{opacity:1}
+
+/* ---------- boneka pojok (Ferdy: "ini kaku bgt") ----------
+   Kotak tegas L4, tanpa blur: gelembung bicara bergaris hitam dengan
+   bayangan kotak, konfeti persegi empat warna L4. */
+.maskot-pojok{position:absolute;right:18px;bottom:16px;z-index:7;width:72px;height:66px;pointer-events:none;animation:pojokMasuk .5s cubic-bezier(.3,1.6,.5,1) both}
+.tirai-papan:not(.pergi)~.maskot-pojok{display:none}
+.maskot-pojok .badan-pojok{pointer-events:auto;display:block;width:72px;height:66px;padding:0;border:0;background:transparent;cursor:pointer;transform-origin:50% 100%;animation:pojokNapas 3.2s ease-in-out infinite}
+.maskot-pojok .badan-pojok svg{width:100%;height:100%;display:block;overflow:visible}
+.maskot-pojok .badan-pojok:hover{animation:pojokGoyang .6s ease-in-out}
+.maskot-pojok .badan-pojok:active{transform:scale(.92)}
+.maskot-pojok .kedip{transform-box:fill-box;transform-origin:center;animation:kedip 4s infinite}
+.maskot-pojok .mata-ikut{transition:transform .12s linear}
+.maskot-pojok[data-ekspresi="mikir"] .badan-pojok{animation:pojokMikir .9s ease-in-out infinite}
+.maskot-pojok.lompat .badan-pojok{animation:lompat .6s cubic-bezier(.3,1.6,.5,1)}
+.maskot-pojok.geleng .badan-pojok{animation:geleng .5s ease}
+.maskot-pojok .tutup-pojok{pointer-events:auto;position:absolute;top:-8px;right:-8px;width:22px;height:22px;padding:0;border:2px solid var(--ink);background:var(--bg);color:var(--ink);font:700 14px/16px var(--mono);opacity:0;transition:opacity .15s ease}
+.maskot-pojok:hover .tutup-pojok,.maskot-pojok .tutup-pojok:focus-visible{opacity:1}
+.gelembung-pojok{position:absolute;right:58px;bottom:54px;width:max-content;max-width:220px;padding:8px 11px;background:var(--bg);color:var(--ink);border:2px solid var(--ink);box-shadow:4px 4px 0 var(--acc);font:600 12px/1.35 var(--mono);text-transform:uppercase;letter-spacing:.03em;opacity:0;transform:translateY(6px) scale(.9);transform-origin:100% 100%;transition:opacity .18s ease,transform .25s cubic-bezier(.3,1.6,.5,1);pointer-events:none}
+.gelembung-pojok.tampil{opacity:1;transform:none}
+.gelembung-pojok::after{content:"";position:absolute;right:-9px;bottom:-9px;width:12px;height:12px;background:var(--bg);border-right:2px solid var(--ink);border-bottom:2px solid var(--ink);transform:rotate(-45deg) skew(10deg,10deg)}
+.konfeti-wadah{position:absolute;left:36px;top:10px;width:0;height:0;pointer-events:none}
+.konfeti{position:absolute;left:0;top:0;width:8px;height:8px;animation:konfeti 1.1s cubic-bezier(.2,.7,.3,1) forwards}
+.konfeti.oren{background:#F26419}.konfeti.hitam{background:#121212}.konfeti.putih{background:#FFFFFF;outline:1.5px solid #121212}.konfeti.abu{background:#A8A8A8}
+html[data-theme="dark"] .konfeti.hitam{background:#F2F2F2}
+@keyframes konfeti{0%{transform:translate(0,0) rotate(0);opacity:1}70%{opacity:1}100%{transform:translate(var(--dx),calc(var(--dy) + 120px)) rotate(var(--r));opacity:0}}
+@keyframes pojokMasuk{from{transform:translateY(90px)}to{transform:none}}
+@keyframes pojokNapas{0%,100%{transform:scale(1,1)}50%{transform:scale(1.03,.97)}}
+@keyframes pojokGoyang{0%,100%{transform:rotate(0)}25%{transform:rotate(-10deg)}75%{transform:rotate(8deg)}}
+@keyframes pojokMikir{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-4px) rotate(3deg)}}
+@media (max-width:760px){.maskot-pojok{right:10px;bottom:10px;width:54px;height:50px}.maskot-pojok .badan-pojok{width:54px;height:50px}.gelembung-pojok{right:44px;bottom:42px;max-width:180px;font-size:11px}.maskot-pojok .tutup-pojok{opacity:1;width:20px;height:20px;font-size:12px;line-height:14px}}
+@media (prefers-reduced-motion: reduce){.maskot-pojok,.maskot-pojok *{animation:none !important;transition:none !important}}

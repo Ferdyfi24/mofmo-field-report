@@ -47,16 +47,25 @@
     if (c.l > 0.7) return gelap ? '#3A3A3A' : '#D6D6D6';
     return gelap ? '#F2F2F2' : '#121212';
   }
-  /* Warna 6 digit dikenali setelah tanda baca CSS/HTML; 3 digit cuma sesudah
-     titik dua atau tanda kutip, supaya nomor dokumen seperti "PO #123" tidak
-     ikut berubah warna. */
+  /* Warna 6 digit dikenali setelah tanda baca CSS/HTML. Warna 3 digit:
+     sesudah titik dua, kutip, koma, atau kurung buka (di dalam gradasi:
+     "135deg,#fff 0"); sesudah spasi ("solid #fff") hanya kalau memuat huruf
+     a-f atau angka kembar (#333), supaya nomor dokumen seperti "PO #123"
+     tidak ikut berubah warna. Dulu "#fff" sesudah koma terlewat: sel
+     cadangan di peta gudang malam jadi arsir hitam-putih. */
   var RE6 = /([:\s,("'=])#([0-9a-fA-F]{6})(?![0-9a-zA-Z])/g;
-  var RE3 = /([:"'])#([0-9a-fA-F]{3})(?![0-9a-zA-Z])/g;
+  var RE3 = /([:"',(])#([0-9a-fA-F]{3})(?![0-9a-zA-Z])/g;
+  var RE3S = /(\s)#([0-9a-fA-F]{3})(?![0-9a-zA-Z])/g;
   function ubahWarna(teks, gelap) {
     var memo = {};
     var ganti = function (m, pra, h) { var k = h.toLowerCase(); if (!memo[k]) memo[k] = petaWarna('#' + k, gelap); return pra + memo[k]; };
-    return String(teks).replace(RE6, ganti).replace(RE3, ganti);
+    var gantiSpasi = function (m, pra, h) { return /[a-fA-F]/.test(h) || /^(\d)\1\1$/.test(h) ? ganti(m, pra, h) : m; };
+    var hasil = String(teks).replace(RE6, ganti).replace(RE3, ganti).replace(RE3S, gantiSpasi);
+    /* putih tembus (rgba(255,255,255,a)) di tema malam jadi hitam tembus:
+       dulu tetap putih, jadi kabut dan tepi pudar putih di atas latar gelap */
+    return gelap ? hasil.replace(RE_PUTIH, 'rgba(18,18,18,') : hasil;
   }
+  var RE_PUTIH = /rgba\(\s*255\s*,\s*255\s*,\s*255\s*,/g;
   function ubahHuruf(teks) {
     return String(teks).replace(/Gloock,\s*Georgia,\s*serif/g, "'Archivo',Arial,sans-serif").replace(/ISans,/g, "'Archivo',");
   }
@@ -67,7 +76,7 @@
       : { bg: '#FFFFFF', kartu: '#FFFFFF', lembut: '#F4F4F4', ink: '#121212', mut: '#5F5F5F', garis: '#D6D6D6', kuat: '#121212', kuatInk: '#FFFFFF' };
     return [
       ':root{--coklat:' + t.kuat + ' !important;--gelap:' + t.kuat + ' !important;--kuning:' + OREN + ' !important;--krem:' + t.lembut + ' !important;--kertas:' + t.bg + ' !important;--garis:' + t.garis + ' !important;--teks:' + t.ink + ' !important;--redup:' + t.mut + ' !important;--sage:' + t.kuat + ' !important;--bata:' + OREN + ' !important;--rad:0px !important;' +
-        '--l4-bg:' + t.bg + ';--l4-kartu:' + t.kartu + ';--l4-lembut:' + t.lembut + ';--l4-ink:' + t.ink + ';--l4-mut:' + t.mut + ';--l4-garis:' + t.garis + ';--l4-kuat:' + t.kuat + ';--l4-kuatInk:' + t.kuatInk + ';color-scheme:' + (gelap ? 'dark' : 'light') + '}',
+        '--l4-bg:' + t.bg + ';--l4-kartu:' + t.kartu + ';--l4-lembut:' + t.lembut + ';--l4-ink:' + t.ink + ';--l4-mut:' + t.mut + ';--l4-garis:' + t.garis + ';--l4-kuat:' + t.kuat + ';--l4-kuatInk:' + t.kuatInk + ';--l4-arsir:' + (gelap ? '#2A2A2A' : '#ECECEC') + ';color-scheme:' + (gelap ? 'dark' : 'light') + '}',
       'html,body{background:var(--l4-bg) !important;color:var(--l4-ink)}',
       'body,button,input,select,textarea{font-family:"Archivo","Helvetica Neue",Arial,sans-serif !important}',
       '*,*::before,*::after{border-radius:0 !important;box-shadow:none !important;text-shadow:none !important}',
@@ -105,7 +114,39 @@
          di dalam shadow root ("fontnya masih kecil"), jadi bidangnya
          diperbesar utuh; di HP sedikit saja supaya tidak meluber */
       '.isiRail{zoom:1.16}',
-      '@media (max-width:760px){.isiRail{zoom:1.04}}',
+      /* gerak: menu memantul saat dipilih, isi baru naik pelan */
+      'nav#panel a{transition:background-color .2s ease,color .2s ease,transform .12s ease}',
+      'nav#panel a:active,#kopKanan button:active,#saring button:active{transform:scale(.96)}',
+      'nav#panel a.on .iknKotak{animation:l4pantul .55s cubic-bezier(.3,1.7,.5,1) both}',
+      '@keyframes l4pantul{0%{transform:scale(.6) rotate(-12deg)}60%{transform:scale(1.15) rotate(4deg)}100%{transform:none}}',
+      '.isiRail>*{animation:l4naik .45s cubic-bezier(.2,.8,.2,1) both}',
+      '@keyframes l4naik{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}',
+      /* HP: kepala ringkas (logo + judul satu baris, tombol di baris kedua),
+         menu dan saringan periode digeser ke samping tanpa batang gulir */
+      '@media (max-width:760px){' +
+        '.isiRail{zoom:1}' +
+        'header .bungkus{display:grid !important;grid-template-columns:36px minmax(0,1fr) !important;gap:4px 10px !important;align-items:center !important;padding:10px 12px !important}' +
+        'header .gbrLogo{width:36px !important;height:36px !important}header .gbrLogo::after{font-size:18px !important}' +
+        'header .bungkus>div:nth-child(2){min-width:0}' +
+        'header h1{font-size:20px !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 !important}' +
+        '#subJudul{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px !important;margin:2px 0 0 !important}' +
+        '#kopKanan{grid-column:1 / -1;display:flex !important;gap:6px !important;overflow-x:auto;justify-content:flex-start !important;margin:4px 0 0 !important;position:static !important;scrollbar-width:none}' +
+        '#kopKanan button,#kopKanan a{height:34px !important;min-width:34px !important;margin:0 !important;flex:none}' +
+        'nav#panel h3{display:none !important}' +
+        'nav#panel{scrollbar-width:none}nav#panel::-webkit-scrollbar,#saring .grup::-webkit-scrollbar,#kopKanan::-webkit-scrollbar{display:none}' +
+        '#saring{flex-wrap:wrap !important;gap:6px !important}' +
+        '#saring .grup{flex-wrap:nowrap !important;overflow-x:auto;scrollbar-width:none;max-width:100%}' +
+        '#saring .grup>*{flex:none}' +
+        '#saring .sisa{width:100%;font-size:12px !important}' +
+      '}',
+      /* tepi pudar tabel papan lama (.gulung: gradasi putih + bayangan coklat
+         di kiri kanan) melanggar L4 dan jadi kabut putih di tema malam */
+      '.gulung{background:none !important}',
+      /* lebih hidup: ikon menu bergoyang saat disorot, tombol timbul kotak */
+      'nav#panel a:hover .iknKotak{animation:l4goyang .5s ease}',
+      '@keyframes l4goyang{0%,100%{transform:none}25%{transform:rotate(-12deg) scale(1.08)}75%{transform:rotate(9deg) scale(1.08)}}',
+      '#kopKanan button,#saring button,#kopKanan a{transition:transform .12s ease,box-shadow .12s ease}',
+      '#kopKanan button:hover,#saring button:hover,#kopKanan a:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 ' + OREN + ' !important}',
       /* tombol umum */
       'button{cursor:pointer}',
       ':focus-visible{outline:3px solid ' + OREN + ' !important;outline-offset:2px}',
@@ -127,7 +168,32 @@
          dibiarkan: kelasnya juga dipakai untuk catatan kaki yang panjang) */
       '.kartu,.ubin{border:2px solid var(--teks) !important;background:var(--kertas)}',
       '.nil,.stokangka{font-family:"Archivo",Arial,sans-serif !important;font-weight:900 !important;font-stretch:110%}',
-      '.h3{font-family:"Archivo",Arial,sans-serif !important;font-weight:900 !important;font-stretch:125%;text-transform:uppercase;letter-spacing:.01em}'
+      '.h3{font-family:"Archivo",Arial,sans-serif !important;font-weight:900 !important;font-stretch:125%;text-transform:uppercase;letter-spacing:.01em}',
+      /* gerak: kartu, ubin, dan tabel naik bergantian saat halaman digambar;
+         kartu terangkat sedikit saat disorot */
+      '.kartu,.ubin,.u,table{animation:l4naik .45s cubic-bezier(.2,.8,.2,1) both}',
+      '.u:nth-child(2),.ubin:nth-child(2){animation-delay:60ms}.u:nth-child(3),.ubin:nth-child(3){animation-delay:120ms}.u:nth-child(4),.ubin:nth-child(4){animation-delay:180ms}.u:nth-child(5),.ubin:nth-child(5){animation-delay:240ms}',
+      '@keyframes l4naik{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}',
+      '.kartu,.ubin{transition:border-color .2s ease,transform .2s ease,box-shadow .2s ease}',
+      /* kartu tersorot timbul kotak: geser 2 px, bayangan 4 px tanpa blur */
+      '.kartu:hover,.ubin:hover{border-color:#F26419 !important;transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--l4-ink) !important}',
+      'button:not([disabled]){transition:transform .12s ease,box-shadow .12s ease}',
+      'button:not([disabled]):hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 #F26419 !important}',
+      'button:not([disabled]):active{transform:translate(1px,1px);box-shadow:none !important}',
+      '.gulung{background:none !important}',
+      'tbody tr{transition:background-color .15s ease}tbody tr:hover{background:var(--krem)}',
+      /* sel cadangan di peta gudang dan contohnya di keterangan: arsir lembut
+         L4, tulisan tetap terbaca (dua warna asli dipetakan ke warna yang sama) */
+      '.c.res{background:repeating-linear-gradient(135deg,var(--l4-kartu) 0 6px,var(--l4-arsir) 6px 12px) !important}',
+      '.key .sw[style*="dashed"]{background:repeating-linear-gradient(135deg,var(--l4-kartu) 0 3px,var(--l4-arsir) 3px 6px) !important}',
+      '.gbrKosong,.gdgIsiTanpaFoto{background:repeating-linear-gradient(45deg,var(--l4-kartu) 0 5px,var(--l4-arsir) 5px 10px) !important}',
+      /* boneka di pesan memuat papan lama */
+      '.l4-boneka{display:inline-block;width:46px;height:42px;vertical-align:middle;margin-right:10px;animation:l4intip 1.4s ease-in-out infinite}',
+      '@keyframes l4intip{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}',
+      /* HP: angka besar papan lama dihitung dari lebar wadah (cqi) dan jadi
+         sekecil 8 px; di HP dikunci 28 px */
+      '@media (max-width:760px){.u b.nil,.nil{font-size:28px !important}.stokangka{font-size:24px !important}}',
+      '@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none !important;transition:none !important}}'
     ].join('\n');
   }
 
