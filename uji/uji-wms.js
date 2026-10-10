@@ -1,4 +1,4 @@
-/* Uji WMS (wms/, 10 Okt 2026 siang). Harapan: "24 pemeriksaan, SEMUA LULUS".
+/* Uji WMS (wms/, 10 Okt 2026 siang). Harapan: "25 pemeriksaan, SEMUA LULUS".
  * Chromium sungguhan, halaman dilayani dari localhost, Apps Script palsu
  * (aksi 'wms'), Supabase palsu (mati, kosong, hidup), AudioContext palsu.
  *
@@ -24,7 +24,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 24;
+const DIHARAPKAN = 25;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -91,6 +91,7 @@ const AUDIO_PALSU = () => {
       : m.nama === 'dataPapan' ? { pintu: 'ok', hasil: DATA }
       : m.nama === 'papanSummary' ? { pintu: 'ok', hasil: SUMMARY }
       : m.nama === 'pdgSkripTunda' ? { pintu: 'ok', hasil: 'skrip-dari-gas' }
+      : m.nama === 'daftarSuratJalan' ? { pintu: 'ok', hasil: { ok: true, daftar: [] } }
       : { pintu: 'galat', pesan: 'Fungsi "' + m.nama + '" tidak dibuka untuk WMS.' };
     else h = { pintu: 'galat', pesan: 'Fungsi "' + m.fn + '" tidak dibuka untuk WMS.' };
     await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(h) });
@@ -188,11 +189,20 @@ const AUDIO_PALSU = () => {
     c('W11 HTML kiriman server di dalam shadow root ikut diwarnai ulang dan dapat lembar kulit; "PO #123" tidak tersentuh', kulit.angka === 'rgb(242, 100, 25)' && kulit.adopsi === 1 && kulit.po, JSON.stringify(kulit));
     c('W12 huruf judul Archivo, bukan Gloock', /Archivo/.test(kulit.h1) && !/Gloock/.test(kulit.h1), kulit.h1);
 
+    /* ---------- bacaan yang tidak dicerminkan tidak menandai kotor ---------- */
+    await diBingkai(() => new Promise(r => google.script.run.withSuccessHandler(r).daftarSuratJalan(KODE)));
+    const nSupa = S.supaBadan.length, nGas = S.badan.filter(x => x.fn === 'panggil').length;
+    await diBingkai(() => new Promise(r => google.script.run.withSuccessHandler(r).papanSummary(KODE, '12b')));
+    const kotorKah = await p.evaluate(() => sessionStorage.getItem('wms_kotor'));
+    c('W25 bacaan yang tidak dicerminkan (daftarSuratJalan) lewat Apps Script tanpa menandai kotor: Ringkasan berikutnya tetap dari Supabase',
+      !kotorKah && S.supaBadan.length > nSupa && S.badan.filter(x => x.fn === 'panggil').length === nGas && S.badan.some(x => x.nama === 'daftarSuratJalan'), JSON.stringify({ kotorKah, nGas }));
+
     /* ---------- tulis ---------- */
+    const nSebelumTulis = S.badan.filter(x => x.fn === 'panggil').length;
     await diBingkai(() => tulis());
     await tungguBingkai(() => !!window.__baca2, 6000);
     const tl = await diBingkai(() => ({ tulis: window.__tulis, baca2: window.__baca2 }));
-    const pTulis = S.badan.filter(x => x.fn === 'panggil');
+    const pTulis = S.badan.filter(x => x.fn === 'panggil').slice(nSebelumTulis);
     c('W13 tulisan lewat Apps Script dengan tiket + WMS-TIKET (bukan kode), dan bacaan sesudahnya dari Apps Script, bukan potret lama',
       tl.tulis && tl.tulis.tersimpan === 1 && tl.baca2 && tl.baca2.dari === 'gas' && pTulis.length === 2 && pTulis[0].nama === 'simpanOpname' && pTulis[0].args[0] === 'WMS-TIKET' && pTulis[0].tiket === 'TIKET.SUPA' && !('kode' in pTulis[0]),
       JSON.stringify({ tl, p: pTulis.map(x => x.nama) }));
