@@ -1,5 +1,5 @@
 /* Uji alat WMS (wms/alat.js + rapihan papan), 10 Okt 2026 malam.
- * Harapan: "15 pemeriksaan, SEMUA LULUS".
+ * Harapan: "18 pemeriksaan, SEMUA LULUS".
  *
  * KENAPA UJI INI ADA. Sesudah Mofmo Soft disetujui, Ferdy minta empat
  * rapihan dan dua alat baru ("gass", "gaskeun"):
@@ -29,7 +29,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 15;
+const DIHARAPKAN = 18;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -83,7 +83,8 @@ const PAPAN_PALSU = '<!doctype html><html lang="id"><head><meta charset="utf-8">
   '<div class="utama"><div class="isiRail" id="rail"><div id="isi"></div></div></div></div></div>' +
   '<script>var KODE="";' +
   'function buka(){KODE=document.getElementById("kode").value;google.script.run.withSuccessHandler(function(r){document.getElementById("layarKode").style.display="none";document.getElementById("layarIsi").style.display="block";muat();window.__siap=1;}).dataPapan(KODE);}' +
-  'function muat(){var w=document.createElement("div");w.id="halKotak";document.getElementById("isi").appendChild(w);w.attachShadow({mode:"open"}).innerHTML=' + JSON.stringify(HAL) + ';window.__hal=1;}' +
+  /* isi dokumen (bukan shadow root) seperti halaman papan asli: kepala halaman, pesan memuat, pengambil berkas Dokumen mitra */
+  'function muat(){var I=document.getElementById("isi");I.insertAdjacentHTML("beforeend",' + JSON.stringify('<div class="halKepala" id="kepalaUji"><h1>Data quality</h1><div class="cap">Findings that could mislead</div></div><div class="k s12"><p id="pesanMuat">Loading partner receivables…</p></div><div class="k"><div class="dokAmbil" id="dokAmbilUji"><label class="dokBerkas" for="dokFile">Choose file</label><input id="dokFile" type="file" style="display:none"><span id="dokNama">No file chosen yet</span></div></div>') + ');document.getElementById("dokFile").addEventListener("change",function(e){window.__dokDiganti=e.target.files[0]&&e.target.files[0].name;});var w=document.createElement("div");w.id="halKotak";document.getElementById("isi").appendChild(w);w.attachShadow({mode:"open"}).innerHTML=' + JSON.stringify(HAL) + ';window.__hal=1;}' +
   '<\/script></body></html>';
 
 const AUDIO_PALSU = () => {
@@ -186,6 +187,23 @@ const KAMERA_PALSU = () => {
       kbTombol && kbTombol.svg && kbTombol.teks === 'Kitabku' && kitabBadan.length === 1 && kitabBadan[0].fn === 'admin' && kitabBadan[0].aksi === 'ringkas' && kitabBadan[0].tiket === 'TIKET.SUPA' && !JSON.stringify(kitabBadan).includes(KODE_BENAR), JSON.stringify([kbTombol, kitabBadan]));
     await p.keyboard.press('Escape');
     await tunggu(p, () => !document.getElementById('kitabkuAdmin').classList.contains('buka'));
+
+    /* ---- rapihan UI 10 Okt malam: boneka raksasa, judul halaman, ambil berkas Dokumen ---- */
+    await tungguBingkai(p, () => !!document.querySelector('#pesanMuat .l4-boneka'), 6000);
+    const boneka = await diBingkai(p, () => { const i = document.querySelector('#pesanMuat .l4-boneka'); return i ? Math.round(i.getBoundingClientRect().width) : -1; });
+    c('W61 boneka di pesan memuat (di luar shadow root) tetap kecil, bukan foto selebar halaman seperti di Orders & receivables', boneka > 0 && boneka <= 60, boneka);
+    const judul = await diBingkai(p, () => { const h = document.querySelector('#kepalaUji h1'); const g = getComputedStyle(h); return { besar: parseFloat(g.fontSize), huruf: g.fontFamily }; });
+    c('W62 judul halaman papan (.halKepala h1) besar seperti mockup, huruf Baloo', judul && judul.besar >= 40 && /Baloo/.test(judul.huruf), JSON.stringify(judul));
+    const ambil = await diBingkai(p, () => {
+      const z = document.getElementById('dokAmbilUji'), g = getComputedStyle(z);
+      const dt = new DataTransfer(); dt.items.add(new File(['tanggal\tqty'], 'LP-PIK-Sep.xls', { type: 'text/plain' }));
+      z.dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true }));
+      const sorot = z.classList.contains('l4-seret');
+      z.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true }));
+      return { garis: g.borderTopStyle, sorot, nama: window.__dokDiganti || '', teks: document.getElementById('dokNama').textContent };
+    });
+    c('W63 Dokumen mitra: kotak ambil berkas bergaris putus, berkas yang ditarik ke kotak masuk ke input file papan (event change jalan)',
+      ambil && ambil.garis === 'dashed' && ambil.sorot && ambil.nama === 'LP-PIK-Sep.xls', JSON.stringify(ambil));
 
     /* ---- scan rak ---- */
     await bingkai(p).click('#kopKanan [data-wms=scan]');
