@@ -27,7 +27,7 @@
   function rpPendek(n) {
     n = Number(n || 0);
     if (Math.abs(n) < 1e6) return rp(n);
-    var v = (Math.round(n / 1e4) / 100).toFixed(2);
+    var j = n / 1e6, v = j.toFixed(Math.abs(j) >= 100 ? 0 : Math.abs(j) >= 10 ? 1 : 2);
     return id() ? 'Rp' + v.replace('.', ',') + ' jt' : 'Rp' + v + 'M';
   }
   function persen(x) { return Math.round((Number(x) || 0) * 100) + '%'; }
@@ -41,7 +41,7 @@
     en: {
       lama: 'Old view', baru: 'Back to the new view', muat: 'Reading the data…', gagal: 'The data could not be read right now. Check the signal and reload the page.',
       g_alis: function (n, p) { return 'Inventory · ' + n + ' stores · ' + p + ' pcs on shelves'; }, g_judul: 'Offline stores', g_semua: 'All retailers',
-      g_matriks: 'Stock on each shelf', g_matriksKet: 'Empty cell = SKU not on that shelf · orange = on shelf, never sold there', g_total: 'Total', g_kosong: 'No stock on any store shelf.',
+      g_matriks: 'Stock on each shelf', g_matriksKet: 'Empty cell = SKU not on that shelf · orange = on shelf, never sold there', g_total: 'Total', g_kosong: 'No stock on any store shelf.', g_semuaBaris: function (n) { return 'Show all ' + n + ' SKUs'; }, g_ringkas: 'Show fewer',
       g_diam: 'On shelf, not selling', g_diamKet: 'SKUs that reached the shelf more than 30 days ago with no sale at that store.', g_diamKosong: 'Every SKU on the shelves has sold at least once, or arrived less than 30 days ago.', hari: 'days',
       g_nilai: 'Shelf value vs cost', g_nilaiKet: 'What each retailer is holding, at cost and at shelf price (both incl. tax).', g_pcs: 'pcs on shelf', g_modal: 'at cost', g_rak: 'at shelf price', g_legend: 'Dark: cost · Accent: margin at shelf price',
       k_alis: function (b) { return 'Finance · ' + b; }, k_judul: 'Finance', k_bersih: 'Partner invoices, net', k_komisi: 'OLS commission', k_komisiKet: function (p) { return p + ' of the month\'s partner invoices'; },
@@ -63,7 +63,7 @@
     id: {
       lama: 'Tampilan lama', baru: 'Kembali ke tampilan baru', muat: 'Membaca data…', gagal: 'Data belum bisa dibaca sekarang. Cek sinyal lalu muat ulang halaman.',
       g_alis: function (n, p) { return 'Persediaan · ' + n + ' gerai · ' + p + ' pcs di rak'; }, g_judul: 'Gerai offline', g_semua: 'Semua retailer',
-      g_matriks: 'Stok di tiap rak', g_matriksKet: 'Sel kosong = SKU tidak ada di rak itu · oranye = ada di rak, belum pernah laku di gerai itu', g_total: 'Total', g_kosong: 'Tidak ada stok di rak gerai mana pun.',
+      g_matriks: 'Stok di tiap rak', g_matriksKet: 'Sel kosong = SKU tidak ada di rak itu · oranye = ada di rak, belum pernah laku di gerai itu', g_total: 'Total', g_kosong: 'Tidak ada stok di rak gerai mana pun.', g_semuaBaris: function (n) { return 'Tampilkan semua ' + n + ' SKU'; }, g_ringkas: 'Tampilkan lebih sedikit',
       g_diam: 'Di rak, belum laku', g_diamKet: 'SKU yang sudah sampai rak lebih dari 30 hari dan belum pernah laku di gerai itu.', g_diamKosong: 'Semua SKU di rak sudah pernah laku, atau baru tiba kurang dari 30 hari.', hari: 'hari',
       g_nilai: 'Nilai rak dibanding modal', g_nilaiKet: 'Yang dipegang tiap retailer, dengan harga modal dan harga rak (keduanya termasuk pajak).', g_pcs: 'pcs di rak', g_modal: 'harga modal', g_rak: 'harga rak', g_legend: 'Gelap: modal · Aksen: margin di harga rak',
       k_alis: function (b) { return 'Keuangan · ' + b; }, k_judul: 'Keuangan', k_bersih: 'Tagihan mitra bersih', k_komisi: 'Komisi OLS', k_komisiKet: function (p) { return p + ' dari tagihan mitra bulan itu'; },
@@ -86,6 +86,8 @@
   function t(k) { var d = TEKS[id() ? 'id' : 'en']; return d[k] != null ? d[k] : TEKS.en[k]; }
   var RETAILER = { TGI: 'Toys Kingdom', KIY: 'Kinokuniya', MAA: 'MAA', GMT: 'Gamotion' };
   function namaRetailer(r) { return RETAILER[r] || r || '?'; }
+  /* "MofmoFriends S - Border Collie" jadi "S Border Collie" seperti di mockup; foto SKU WMS tetap mengenalinya */
+  function namaPendek(n) { return String(n || '').replace(/\bmofmo ?friends\s+/gi, '').replace(/\s+-\s+/, ' ').trim() || String(n || ''); }
   function judulKata(s) { return String(s || '').toLowerCase().split(/\s+/).filter(Boolean).map(function (w) { return w.length <= 3 && /^(tk|maa|pik|gi|cp|pim|sgi)$/.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1); }).join(' '); }
   function pendekGerai(l) {
     var n = String((l && l.n) || (l && l.k) || '').toUpperCase().replace(/\s+-\s+.*$/, '');
@@ -174,16 +176,23 @@
     '.l4t-empat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}',
     '.l4t-gulir{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -6px;padding:0 6px}',
     '.l4t-tabel{width:100%;border-collapse:collapse;font-size:15px}',
+    /* aturan HP papan lama menumpuk semua tabel jadi kartu berlabel; tabel lapisan ini tetap tabel yang digeser di kartunya */
+    '.l4t .l4t-tabel{display:table !important}.l4t .l4t-tabel thead{display:table-header-group !important}.l4t .l4t-tabel tbody{display:table-row-group !important}',
+    '.l4t .l4t-tabel tr{display:table-row !important}.l4t .l4t-tabel th,.l4t .l4t-tabel td{display:table-cell !important}',
+    '.l4t .l4t-tabel td::before,.l4t .l4t-tabel th::before{content:none !important;display:none !important}',
     '.l4t-tabel th{font-size:13px;font-weight:800;color:var(--l4-mut);text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--l4-garis);white-space:nowrap}',
     '.l4t-tabel td{padding:9px 10px;border-bottom:1px solid var(--l4-garis);white-space:nowrap}',
     '.l4t-tabel .ka{text-align:right}.l4t-tabel .te{text-align:center}',
     '.l4t-tabel td.nm{font-weight:800;white-space:normal;min-width:150px}',
+    '.l4t-matriks th:first-child,.l4t-matriks td.nm{position:sticky;left:0;z-index:1;background:var(--l4-kartu)}',
     '.l4t-sel{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:32px;padding:0 8px;border-radius:12px;background:var(--l4-lembut);font-weight:800}',
     '.l4t-sel.oranye{background:var(--l4-peach);color:var(--l4-aksenTeks);box-shadow:inset 0 0 0 1.5px var(--l4-aksen)}',
     '.l4t-daftar{display:flex;flex-direction:column;gap:8px}',
     '.l4t-baris{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-radius:16px;background:var(--l4-lembut);font-size:15px}',
     '.l4t-baris b{font-weight:800}.l4t-baris small{color:var(--l4-mut);font-size:13px}',
     '.l4t-aksen{color:var(--l4-aksenTeks);font-weight:900;white-space:nowrap}',
+    '.l4t-dua-baris{display:flex;flex-direction:column;gap:1px;min-width:0}.l4t-kanan{display:flex;align-items:center;gap:8px;flex:none}',
+    '.l4t-semua{margin-top:12px}',
     '.l4t-batang{height:10px;border-radius:999px;background:var(--l4-garis);overflow:hidden;display:flex;margin:6px 0 2px}',
     '.l4t-batang i{display:block;height:100%}.l4t-batang .gelap{background:var(--l4-ink);opacity:.55}.l4t-batang .terang{background:var(--l4-aksen)}',
     '.l4t-ret{display:flex;flex-direction:column;gap:2px;margin-bottom:12px}',
@@ -229,11 +238,11 @@
     '#isi.l4t-po .poHasil .l4t-cip{margin:6px 0 10px}',
     '@media (max-width:980px){.l4t-tujuhlima{grid-template-columns:1fr}.l4t-empat{grid-template-columns:repeat(2,minmax(0,1fr))}#isi.l4t-po .k.s12:has(>.l4t-poKiri){display:block}}',
     '@media (max-width:720px){.l4t-dua,.l4t-tugas,.l4t-langkah{grid-template-columns:1fr}.l4t-hal h1{font-size:32px}.l4t-kartu{padding:16px 14px 18px;border-radius:22px}.l4t-kpi b{font-size:26px}}',
-    '@media (max-width:460px){.l4t-empat{grid-template-columns:1fr}}'
+    '@media (max-width:460px){.l4t-kpi{padding:14px}.l4t-kpi b{font-size:22px}.l4t-kpi small{font-size:12.5px}.l4t-tabel td.nm{min-width:118px}}'
   ].join('\n');
 
   /* ---------- P9 Gerai offline ---------- */
-  var A = { retailer: '' };
+  var A = { retailer: '', semuaBaris: false }, BATAS = { baris: 12 };
   function gambarGerai(sek) {
     var H = D.H, L = H.L, P = H.P;
     var semuaGerai = H.geraiIdx.filter(function (li) { return P.some(function (p, pi) { return stokDi(H, li, pi) > 0 || H.tiba[li + '|' + pi]; }); });
@@ -253,12 +262,13 @@
     var h = kepalaHal(t('g_alis')(nf(aktif.length), nf(pcs)), t('g_judul'), pilih + tombolLama());
     var mat = !baris.length ? '<p class="l4t-ket">' + esc(t('g_kosong')) + '</p>' :
       '<div class="l4t-gulir"><table class="l4t-tabel l4t-matriks"><thead><tr><th>SKU</th>' + gerai.map(function (li) { return '<th class="te" title="' + esc(L[li].n || L[li].k) + '">' + esc(L[li].k) + '</th>'; }).join('') + '<th class="ka">' + esc(t('g_total')) + '</th></tr></thead><tbody>' +
-      baris.map(function (b) {
-        return '<tr data-l4t-sku="' + esc(b.p.s || b.p.b) + '"><td class="nm">' + esc(b.p.n) + '</td>' + b.sel.map(function (q, j) {
+      baris.slice(0, A.semuaBaris ? baris.length : BATAS.baris).map(function (b) {
+        return '<tr data-l4t-sku="' + esc(b.p.s || b.p.b) + '"><td class="nm" title="' + esc(b.p.n) + '">' + esc(namaPendek(b.p.n)) + '</td>' + b.sel.map(function (q, j) {
           var li = gerai[j], belum = q > 0 && !H.laku[li + '|' + b.pi];
           return '<td class="te" data-l4t-gerai="' + esc(L[li].k) + '">' + (q > 0 ? '<span class="l4t-sel' + (belum ? ' oranye' : '') + '">' + nf(q) + '</span>' : '') + '</td>';
         }).join('') + '<td class="ka"><b>' + nf(b.total) + '</b></td></tr>';
-      }).join('') + '</tbody></table></div>';
+      }).join('') + '</tbody></table></div>' +
+      (baris.length > BATAS.baris ? '<button type="button" class="l4t-tombol dua l4t-semua" data-l4t-semua="1">' + esc(A.semuaBaris ? t('g_ringkas') : t('g_semuaBaris')(nf(baris.length))) + '</button>' : '');
     h += kartu(t('g_matriks'), 2, mat, esc(t('g_matriksKet')));
     var diam = [];
     gerai.forEach(function (li) { P.forEach(function (p, pi) {
@@ -267,7 +277,7 @@
     }); });
     diam.sort(function (a, b) { return b.d - a.d || (a.p.n < b.p.n ? -1 : 1); });
     var kiri = kartu(t('g_diam'), 0, '<p class="l4t-ket">' + esc(t('g_diamKet')) + '</p>' + (diam.length ? '<div class="l4t-daftar">' + diam.slice(0, 8).map(function (x) {
-      return '<div class="l4t-baris" data-l4t-diam="' + esc(x.p.s + '@' + L[x.li].k) + '"><span><b>' + esc(x.p.n) + '</b> <small>· ' + esc(pendekGerai(L[x.li])) + '</small></span><span class="l4t-aksen">' + nf(x.d) + ' ' + esc(t('hari')) + '</span></div>';
+      return '<div class="l4t-baris" data-l4t-diam="' + esc(x.p.s + '@' + L[x.li].k) + '"><span><b>' + esc(namaPendek(x.p.n)) + '</b> <small>· ' + esc(pendekGerai(L[x.li])) + '</small></span><span class="l4t-aksen">' + nf(x.d) + ' ' + esc(t('hari')) + '</span></div>';
     }).join('') + '</div>' : '<p class="l4t-ket">' + esc(t('g_diamKosong')) + '</p>'));
     var per = {};
     gerai.forEach(function (li) { var r = L[li].r || '?'; P.forEach(function (p, pi) { var q = Math.max(0, stokDi(H, li, pi)); if (!q) return; var x = per[r] = per[r] || { pcs: 0, modal: 0, rak: 0 }; x.pcs += q; x.modal += q * (p.h || p.hs || 0); x.rak += q * (p.r || 0); }); });
@@ -326,7 +336,7 @@
     var ps = Object.keys(pegang).filter(function (k) { return pegang[k].pcs > 0; }).sort(function (a, c) { return pegang[c].nilai - pegang[a].nilai; });
     var modal = kartu(t('k_modalJudul'), 5, '<p class="l4t-ket">' + esc(t('k_modalKet')) + '</p><div class="l4t-daftar">' + ps.map(function (k) {
       var x3 = pegang[k], rata = Math.round(x3.umur / x3.pcs);
-      return '<div class="l4t-baris" data-l4t-modal="' + esc(k) + '" data-persen="' + (semua > 0 ? Math.round(x3.nilai / semua * 100) : 0) + '" data-rata="' + rata + '"><span><b>' + esc(k === 'HO' ? t('k_gudang') : t('k_rak')(namaRetailer(k))) + '</b> <small>· ' + rpPendek(x3.nilai) + '</small></span><span>' + (semua > 0 ? persen(x3.nilai / semua) : '0%') + ' <span class="l4t-cip ' + (rata > 45 ? 'awas' : 'info') + '">' + esc(t('k_rata')(nf(rata))) + '</span></span></div>';
+      return '<div class="l4t-baris" data-l4t-modal="' + esc(k) + '" data-persen="' + (semua > 0 ? Math.round(x3.nilai / semua * 100) : 0) + '" data-rata="' + rata + '"><span class="l4t-dua-baris"><b>' + esc(k === 'HO' ? t('k_gudang') : t('k_rak')(namaRetailer(k))) + '</b><small>' + rpPendek(x3.nilai) + '</small></span><span class="l4t-kanan"><b>' + (semua > 0 ? persen(x3.nilai / semua) : '0%') + '</b><span class="l4t-cip ' + (rata > 45 ? 'awas' : 'info') + '">' + esc(t('k_rata')(nf(rata))) + '</span></span></div>';
     }).join('') + '</div>');
     h += '<div class="l4t-tujuhlima">' + kiri + '<div class="l4t">' + komisi + modal + '</div></div>';
     sek.innerHTML = h;
@@ -460,6 +470,13 @@
     var atas = fw.document.createElement('div'); atas.className = 'l4t'; atas.setAttribute('data-l4t-hal-ini', 'outbound');
     atas.innerHTML = kepalaHal(t('w_alis'), t('w_judul'), '');
     isi.insertBefore(atas, isi.firstChild);
+    var coba = 0, rapikan = function () {
+      var k = isi.querySelector('#obdKotak'), sr = k && k.shadowRoot;
+      if (!sr) { if (++coba < 20 && atas.isConnected) fw.setTimeout(rapikan, 300); return; }
+      if (sr.__l4t) return; sr.__l4t = true;
+      try { var lb = new fw.CSSStyleSheet(); lb.replaceSync('.kep>div:first-child>:first-child{display:none !important}'); sr.adoptedStyleSheets = sr.adoptedStyleSheets.concat([lb]); } catch (e) {}
+    };
+    rapikan();
   }
 
   /* ---------- pemasangan ---------- */
@@ -497,7 +514,7 @@
     new fw.MutationObserver(lihat).observe(isi, { childList: true, attributes: true, attributeFilter: ['class'] });
     /* poHasil muncul lewat gambar ulang seluruh #isi (gambarBacaPo), jadi childList cukup */
     isi.addEventListener('click', function (e) {
-      var x = e.target.closest ? e.target.closest('[data-l4t],[data-l4t-hal]') : null; if (!x) return;
+      var x = e.target.closest ? e.target.closest('[data-l4t],[data-l4t-hal],[data-l4t-semua]') : null; if (!x) return;
       e.preventDefault(); e.stopPropagation();
       if (x.getAttribute('data-l4t') === 'lama') {
         var buka = !isi.classList.contains('l4t-lihatlama');
@@ -508,6 +525,7 @@
         });
         return;
       }
+      if (x.hasAttribute('data-l4t-semua')) { A.semuaBaris = !A.semuaBaris; var sg = isi.querySelector(':scope > .l4t[data-l4t-hal-ini=stokgerai]'); if (sg && D.H) gambarGerai(sg); return; }
       var hal = x.getAttribute('data-l4t-hal');
       if (hal) { fw.HAL = hal; try { fw.gambar(); } catch (er) {} try { fw.scrollTo(0, 0); } catch (er) {} }
     });
@@ -518,5 +536,5 @@
     });
     terapkan(fw);
   }
-  W.WmsTata = { pasang: pasang, _hitung: hitung, _terapkan: terapkan };
+  W.WmsTata = { pasang: pasang, _hitung: hitung, _terapkan: terapkan, _rpPendek: rpPendek, _batas: BATAS };
 })();
