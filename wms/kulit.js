@@ -276,7 +276,16 @@
     return x;
   }
 
-  function ubahHtml(html, gelap) { return ubahHuruf(ubahWarna(html, gelap)); }
+  /* Kaki papan (jaringBadge_): JJ_.ms ("disusun N ms") cuma diisi doGet Apps Script.
+     Salinan untuk WMS dicerminkan tanpa doGet, jadi placeholder-nya tertulis mentah.
+     Di WMS kakinya menyebut sidik deploy lalu "salinan WMS"; papan lama tidak berubah. */
+  var RE_KAKI = /\(enV\?"built ":"disusun "\)\+JJ_\.ms\+" ms"/;
+  function ubahKaki(html) {
+    var s = String(html == null ? '' : html);
+    if (RE_KAKI.test(s)) return s.replace(RE_KAKI, '(JJ_.ms==="__MS_SUSUN__"?(enV?"WMS copy":"salinan WMS"):(enV?"built ":"disusun ")+JJ_.ms+" ms")');
+    return s.split('"__MS_SUSUN__"').join('"WMS"');
+  }
+  function ubahHtml(html, gelap) { return ubahHuruf(ubahWarna(ubahKaki(html), gelap)); }
 
   W.KulitPapan = { petaWarna: petaWarna, ubahWarna: ubahWarna, ubahHtml: ubahHtml, ubahHasil: ubahHasil, css: css, cssBayang: cssBayang, fotoSku: fotoSku, FOTO: FOTO, RE_PRODUK: RE_PRODUK.source, dasar: DASAR, warna: T };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -526,7 +526,7 @@
     setInterval(function () {
       var isi = document.getElementById('layarIsi');
       var tampil = !!(isi && isi.getBoundingClientRect().height > 50 && getComputedStyle(isi).display !== 'none');
-      if (tampil && !pernahTampil) { pernahTampil = true; H.siap(); pasangAlat(); gantiNama(document.body); }
+      if (tampil && !pernahTampil) { pernahTampil = true; H.siap(); pasangAlat(); gantiNama(document.body); if (H.tata) H.tata(window); }
       /* Papan lama keluar sendiri (tombol keluarnya, atau kodenya ditolak):
          layar kodenya muncul lagi. Layar kode itu kita sembunyikan, jadi
          halaman masuk WMS yang ambil alih. */
@@ -539,6 +539,7 @@
       matahari: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
       scan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16.5 8v8"/></svg>',
       menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg>',
+      katalog: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l8 8a1.4 1.4 0 0 1 0 2l-7.1 7.1a1.4 1.4 0 0 1-2 0z"/><circle cx="8.3" cy="8.3" r="1.6"/></svg>',
       buku: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.2 5 7.6 4.5 4 4.8v13c3.6-.3 6.2.2 8 1.7 1.8-1.5 4.4-2 8-1.7v-13c-3.6-.3-6.2.2-8 1.7z"/><path d="M12 6.5v13"/></svg>'
     };
     function tombol(teks, label, fn, jenis) {
@@ -554,6 +555,9 @@
       /* Kitabku (10 Okt): event, hadiah, cetak kartu QR paket Shopee, klaim struk gerai */
       var kb = tombol('', C.teks.kitabku, function () { H.kitabku(); }, 'kitabku'); kb.innerHTML = IKON.buku + '<span>Kitabku</span>'; kb.style.paddingRight = '15px';
       kanan.appendChild(kb);
+      /* Katalog (11 Okt): semua SKU dan harga jual putus termasuk pajak */
+      var kt = tombol('', C.teks.katalog, function () { H.katalog(); }, 'katalog'); kt.innerHTML = IKON.katalog + '<span>' + C.teks.katalogPendek + '</span>'; kt.style.paddingRight = '15px';
+      kanan.appendChild(kt);
       /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
       var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
       kanan.appendChild(tm);
@@ -705,7 +709,7 @@
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
       var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
-        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
@@ -739,7 +743,10 @@
     tema: function () { var baru = temaTerpakai() === 'dark' ? 'light' : 'dark'; setelan('wms_tema', baru); pasangTema(baru); Suara.klik(); gambar(); },
     alat: function (mode, arg) { if (window.WmsAlat) window.WmsAlat.buka(mode, arg); },
     paspor: function (info) { if (window.WmsAlat) window.WmsAlat.paspor(info); },
-    kitabku: function (tab) { if (window.WmsKitabku) window.WmsKitabku.buka(tab); }
+    kitabku: function (tab) { if (window.WmsKitabku) window.WmsKitabku.buka(tab); },
+    katalog: function () { if (window.WmsKatalog) window.WmsKatalog.buka(); },
+    /* Tata letak Mofmo Soft P9 sampai P14 (tata.js), dipasang ke bingkai papan */
+    tata: function (fw) { if (window.WmsTata) window.WmsTata.pasang(fw); }
   };
 
   /* ================= gambar dan kejadian ================= */
