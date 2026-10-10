@@ -275,6 +275,13 @@
   /* Bacaan yang argumen pertamanya bukan kode akses (dicerminkan dengan
      kunci nama|[argumen apa adanya]), misalnya skrip halaman yang ditunda. */
   var BACA_TANPA_KODE = { pdgSkripTunda: 1 };
+  /* Nama fungsi papan yang cuma membaca. Sesudah ada panggilan lain (yang
+     mungkin menulis), bacaan 15 menit ke depan diambil dari Apps Script
+     supaya tidak melihat potret lama. Bacaan yang tidak dicerminkan
+     (daftarSuratJalan, pesananTerbuka, persediaanBulanan, ...) tidak boleh
+     ikut menandai: pagi 10 Okt satu klik Persediaan membuat seluruh papan
+     membaca dari Apps Script. */
+  var POLA_BACA = /^(papan|daftar|data|kesehatan|persediaan|permintaan|pesanan|rencana|obd(Daftar|SpData|IuData)$|fap|laporan|baca|ambil|cari|lihat|pdg|hitung|cek|ringkas|riwayat|status|info|muat)/;
   var LAMA_KOTOR = 15 * 60 * 1000;
   var PAPAN = { mentah: null, tema: '', siap: false, mulai: 0, jaga: null, catat: [] };
   function kotor() { var w = 0; try { w = Number(ss() && ss().getItem('wms_kotor')) || 0; } catch (e) { w = 0; } return Date.now() - w < LAMA_KOTOR; }
@@ -300,7 +307,7 @@
     return potret.then(function (d) {
       if (d !== undefined) { cat.dari = 'supa'; return d; }
       cat.dari = 'gas';
-      if (!BACA_PAPAN[nama] && !BACA_TANPA_KODE[nama]) tandaiKotor();
+      if (!BACA_PAPAN[nama] && !BACA_TANPA_KODE[nama] && !POLA_BACA.test(nama)) tandaiKotor();
       return kirim({ aksi: 'wms', fn: 'panggil', tiket: S.tiket, nama: nama, args: args }).then(function (x) {
         if (x && x.perluMasuk) { keluarAkun(true); throw new Error(x.pesan || 'Please sign in again.'); }
         return x;
