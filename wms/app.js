@@ -447,7 +447,14 @@
         if (e.querySelector('img.l4-sku')) return;
         var f = K.fotoSku(e.getAttribute('data-sku') || (e.querySelector('table') ? '' : e.textContent));
         if (!f) return;
+        var nama = (e.getAttribute('data-sku') || e.textContent || '').trim(), bc = e.getAttribute('data-bc') || '';
         var im = document.createElement('img'); im.className = 'l4-sku'; im.alt = ''; im.loading = 'lazy'; im.setAttribute('src', K.dasar + 'sku/' + f + '.webp');
+        /* Paspor SKU (Ferdy: "klik satu SKU, kelihatan perjalanannya"): klik fotonya,
+           bukan selnya, supaya klik sel papan yang sudah ada tetap jalan seperti biasa */
+        im.title = C.teks.paspor; im.tabIndex = 0; im.setAttribute('role', 'button'); im.setAttribute('aria-label', C.teks.paspor + ': ' + nama);
+        var bukaPaspor = function (ev) { ev.preventDefault(); ev.stopPropagation(); H.paspor({ nama: nama, bc: bc }); };
+        im.addEventListener('click', bukaPaspor);
+        im.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') bukaPaspor(ev); });
         e.insertBefore(im, e.firstChild);
       });
     }
@@ -527,16 +534,40 @@
       hilang = pernahTampil && !tampil && lk && lk.style.display !== 'none' ? hilang + 1 : 0;
       if (hilang >= 3) H.keluar();
     }, 400);
-    function tombol(teks, label, fn) {
-      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-wms', '1'); b.setAttribute('aria-label', label); b.textContent = teks;
-      b.style.cssText = 'font:800 14px/1 Nunito,"Helvetica Neue",Arial,sans-serif;padding:0 16px;margin-left:6px;height:42px;cursor:pointer';
+    var IKON = {
+      bulan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>',
+      matahari: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
+      scan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M16.5 8v8"/></svg>',
+      menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg>'
+    };
+    function tombol(teks, label, fn, jenis) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-wms', jenis || '1'); b.setAttribute('aria-label', label); b.title = label; b.textContent = teks;
+      b.style.cssText = 'font:800 14px/1 Nunito,"Helvetica Neue",Arial,sans-serif;padding:0 ' + (teks ? 16 : 11) + 'px;margin-left:6px;height:42px;cursor:pointer;display:inline-flex;align-items:center;gap:7px';
       b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); fn(); });
       return b;
     }
     function pasangAlat() {
       var kanan = document.getElementById('kopKanan'); if (!kanan || kanan.querySelector('[data-wms]')) return;
-      kanan.appendChild(tombol(C.gelap ? C.teks.malam : C.teks.siang, C.teks.tema, function () { H.tema(); }));
-      kanan.appendChild(tombol(C.teks.keluar, C.teks.keluar, function () { H.keluarAkun(); }));
+      var sc = tombol('', C.teks.scan, function () { H.alat('scan'); }, 'scan'); sc.innerHTML = IKON.scan + '<span>' + C.teks.scanPendek + '</span>'; sc.style.paddingRight = '15px';
+      kanan.appendChild(sc);
+      /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
+      var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
+      kanan.appendChild(tm);
+      kanan.appendChild(tombol(C.teks.keluar, C.teks.keluar, function () { H.keluarAkun(); }, 'keluar'));
+      pasangLaci();
+    }
+    /* Laci menu di HP (aturan HP papan asli memindah menu ke pita atas) */
+    function pasangLaci() {
+      var nav = document.getElementById('panel'), kepala = document.querySelector('header .bungkus') || document.querySelector('header');
+      if (!nav || !kepala || document.querySelector('.l4-burger')) return;
+      var bg = document.createElement('button'); bg.type = 'button'; bg.className = 'l4-burger'; bg.setAttribute('data-wms', 'menu'); bg.setAttribute('aria-label', C.teks.menu); bg.setAttribute('aria-expanded', 'false'); bg.setAttribute('aria-controls', 'panel'); bg.innerHTML = IKON.menu;
+      kepala.insertBefore(bg, kepala.firstChild);
+      var tirai = document.createElement('div'); tirai.className = 'l4-tirai-laci'; document.body.appendChild(tirai);
+      var setel = function (b) { document.body.classList.toggle('l4-laci', b); bg.setAttribute('aria-expanded', b ? 'true' : 'false'); };
+      bg.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); H.klik(); setel(!document.body.classList.contains('l4-laci')); });
+      tirai.addEventListener('click', function () { setel(false); });
+      nav.addEventListener('click', function (e) { var a = e.target && e.target.closest ? e.target.closest('a') : null; if (a && document.body.classList.contains('l4-laci')) setTimeout(function () { setel(false); }, 120); });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setel(false); });
     }
   }
 
@@ -654,7 +685,8 @@
       if (!PAPAN.bingkai || halamanSekarang !== 'papan') return;
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
-      var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { siang: id ? 'Siang' : 'Day', malam: id ? 'Malam' : 'Night', tema: id ? 'Ganti siang atau malam' : 'Switch day or night', keluar: t('logout') } };
+      var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
@@ -685,7 +717,9 @@
     keluarAkun: function () { keluarAkun(false); },
     mata: function (x, y, dariBingkai) { mataMaskot(x, y, dariBingkai); },
     bukaTab: function (u) { if (/^https?:/i.test(String(u))) window.open(String(u), '_blank', 'noopener'); },
-    tema: function () { var baru = temaTerpakai() === 'dark' ? 'light' : 'dark'; setelan('wms_tema', baru); pasangTema(baru); Suara.klik(); gambar(); }
+    tema: function () { var baru = temaTerpakai() === 'dark' ? 'light' : 'dark'; setelan('wms_tema', baru); pasangTema(baru); Suara.klik(); gambar(); },
+    alat: function (mode, arg) { if (window.WmsAlat) window.WmsAlat.buka(mode, arg); },
+    paspor: function (info) { if (window.WmsAlat) window.WmsAlat.paspor(info); }
   };
 
   /* ================= gambar dan kejadian ================= */
@@ -713,6 +747,8 @@
      berarti papan dimuat ulang, jadi cuma dikerjakan di halaman masuk. */
   setInterval(function () { if ((setelan('wms_tema') || 'auto') === 'auto' && halamanSekarang === 'masuk') { var j = new Date().getHours(), mau = j >= 6 && j < 18 ? 'light' : 'dark'; if (mau !== temaTerpakai()) { pasangTema('auto'); gambar(); } } }, 300000);
 
-  window.__wms = { S: S, Suara: Suara, PAPAN: PAPAN, maskot: MK };
+  window.__wms = { S: S, Suara: Suara, PAPAN: PAPAN, maskot: MK, bhs: bhs, esc: esc, getar: getar, gerakBoleh: gerakBoleh, jalan: jalanPapan,
+    /* potret Supabase apa adanya (tanpa jatuh ke Apps Script), untuk alat.js */
+    potret: function (kunci) { return kirimSupa({ fn: 'ambil', tiket: S.tiket, kunci: kunci }).then(function (h) { return h && h.ok && h.isi ? h.isi : {}; }); } };
   gambar();
 })();

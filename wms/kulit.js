@@ -131,16 +131,36 @@
       '@keyframes l4goyang{0%,100%{transform:none}25%{transform:rotate(-12deg) scale(1.08)}75%{transform:rotate(9deg) scale(1.08)}}',
       '.isiRail>*{animation:l4naik .45s cubic-bezier(.2,.8,.2,1) both}',
       '@keyframes l4naik{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}',
+      /* bola Tiger cukup di submenu yang aktif; induknya ikut ber-kelas on di papan asli */
+      'nav#panel a.on:has(+ .anak a.on)::after{display:none !important}',
+      /* Ferdy: "menu task di kiri bukan di atas". Papan asli memindah menu ke pita atas di <= 900 px;
+         di sini jadi laci dari kiri yang dibuka tombol menu di kepala. */
+      '.l4-burger{display:none;width:40px;height:40px;border-radius:999px;align-items:center;justify-content:center;border:1.5px solid var(--l4-garis);background:var(--l4-kartu);color:var(--l4-ink);cursor:pointer;flex:none;padding:0;margin-right:4px}',
+      '.l4-burger svg{width:20px;height:20px}',
+      '.l4-tirai-laci{display:none}',
+      '@media (max-width:900px){' +
+        '.l4-burger{display:inline-flex !important}' +
+        '.rangka{display:block !important}' +
+        'nav#panel{position:fixed !important;top:0 !important;left:0 !important;bottom:0 !important;z-index:60 !important;width:min(84vw,300px) !important;min-height:0 !important;height:100% !important;display:block !important;overflow-x:hidden !important;overflow-y:auto !important;padding:18px 12px 24px !important;border-right:1.5px solid var(--l4-garis) !important;border-bottom:0 !important;border-radius:0 22px 22px 0;background:var(--l4-kartu) !important;transform:translateX(-105%);transition:transform .26s cubic-bezier(.2,.8,.2,1),box-shadow .26s ease;box-shadow:none}' +
+        'body.l4-laci nav#panel{transform:none;box-shadow:14px 0 40px var(--l4-bayang)}' +
+        'nav#panel a{display:flex !important;width:100%;box-sizing:border-box;white-space:normal !important;margin:0 0 3px !important;padding:11px 12px !important;font-size:16px !important}' +
+        'nav#panel .anak{display:block !important;margin:2px 0 8px 18px !important;padding-left:10px !important;border-left:2px dashed var(--l4-jahit) !important;border-top:0 !important}' +
+        'nav#panel .anak a{padding:9px 12px !important;font-size:15px !important}' +
+        'nav#panel h3{display:block !important;margin:4px 0 12px 6px !important}' +
+        'nav#panel .pisah,nav#panel p{display:block !important}' +
+        '.l4-tirai-laci{display:block;position:fixed;inset:0;z-index:59;background:rgba(43,34,28,.32);opacity:0;pointer-events:none;transition:opacity .22s ease}' +
+        'body.l4-laci .l4-tirai-laci{opacity:1;pointer-events:auto}' +
+        'body.l4-laci{overflow:hidden}' +
+      '}',
       '@media (max-width:760px){' +
         '.isiRail{zoom:1}' +
-        'header .bungkus{display:grid !important;grid-template-columns:40px minmax(0,1fr) !important;gap:4px 10px !important;align-items:center !important;padding:10px 12px !important}' +
+        'header .bungkus{display:grid !important;grid-template-columns:auto 40px minmax(0,1fr) !important;gap:4px 10px !important;align-items:center !important;padding:10px 12px !important}' +
         'header .gbrLogo{width:40px !important;height:40px !important}header .gbrLogo::after{width:34px;height:34px}' +
-        'header .bungkus>div:nth-child(2){min-width:0}' +
+        'header .bungkus>div:not(.gbrLogo):not(#kopKanan){min-width:0}' +
         'header h1{font-size:21px !important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 !important}' +
         '#subJudul{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px !important;margin:2px 0 0 !important}' +
         '#kopKanan{grid-column:1 / -1;display:flex !important;gap:6px !important;overflow-x:auto;justify-content:flex-start !important;margin:4px 0 0 !important;position:static !important;scrollbar-width:none}' +
         '#kopKanan button,#kopKanan a{height:36px !important;min-width:36px !important;margin:0 !important;flex:none;padding:0 12px !important}' +
-        'nav#panel h3{display:none !important}' +
         'nav#panel{scrollbar-width:none}nav#panel::-webkit-scrollbar,#saring .grup::-webkit-scrollbar,#kopKanan::-webkit-scrollbar{display:none}' +
         'nav#panel a.on::after{width:20px;height:20px}' +
         '#saring{flex-wrap:wrap !important;gap:6px !important}' +
@@ -160,7 +180,8 @@
   }
   /* Foto produk kecil di depan nama SKU (dipakai di dokumen dan shadow root). */
   function cssFotoSku() {
-    return 'img.l4-sku{width:30px;height:30px;object-fit:contain;vertical-align:middle;margin:-4px 8px -4px 0;border-radius:9px;background:var(--l4-lembut);padding:1px;transition:transform .2s ease;position:relative;z-index:1}' +
+    return 'img.l4-sku{width:30px;height:30px;object-fit:contain;vertical-align:middle;margin:-4px 8px -4px 0;border-radius:9px;background:var(--l4-lembut);padding:1px;transition:transform .2s ease;position:relative;z-index:1;cursor:zoom-in}' +
+      'img.l4-sku:focus-visible{outline:3px solid var(--l4-aksen);outline-offset:2px}' +
       'img.l4-sku:hover{transform:scale(2.2);z-index:5;box-shadow:0 8px 20px var(--l4-bayang)}' +
       '.c[data-sku] img.l4-sku{width:24px;height:24px;float:right;margin:0 0 0 4px;border-radius:7px}';
   }
@@ -177,7 +198,7 @@
       /* ubin ringkasan papan asli = grid sel .u bercelah: jahitan di ubin tertutup sel putih dan cuma tampak sepotong di celah, jadi jahitannya pindah ke tiap sel */
       '.ubin:has(>.u),.ubin:has(>.u):hover{background:transparent !important;border:0 !important;outline:none;box-shadow:none !important}',
       /* Gudang Outbound: ubin tahap dan daftar kiriman punya kelas sendiri */
-      '.pita .tp{border:1.5px solid var(--l4-garis) !important;border-radius:18px !important;outline:2px dashed var(--l4-jahit);outline-offset:-7px;box-shadow:0 6px 18px var(--l4-bayang);padding:14px 18px !important}',
+      '.pita .tp{color:var(--l4-ink) !important;border:1.5px solid var(--l4-garis) !important;border-radius:18px !important;outline:2px dashed var(--l4-jahit);outline-offset:-7px;box-shadow:0 6px 18px var(--l4-bayang);padding:14px 18px !important}',
       '.pita .tp b{font-family:' + JUDUL + ' !important;font-weight:800 !important;font-size:30px !important;line-height:1.1}',
       '.daftar{border:1.5px solid var(--l4-garis) !important;border-radius:18px !important;box-shadow:0 6px 18px var(--l4-bayang);overflow:hidden}',
       '.daftar .b{border-radius:999px !important;padding-left:16px;padding-right:16px}',
