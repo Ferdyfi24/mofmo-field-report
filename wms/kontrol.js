@@ -20,10 +20,12 @@
  *    menyimpang". Pajak dibaca per SKU (h / hs), bukan 1,11 rata.
  *    Patokan per retailer = MEDIAN rasio bulan-gerai yang unitnya sama, supaya
  *    satu invoice yang menyimpang tidak ikut menggeser patokannya.
- *  - Margin = (uang masuk per unit - wholesale hs) / uang masuk per unit, sama
- *    dengan katalog yang menyebut hs sebagai modal. Konsinyasi: dasar retailer
- *    (retail tanpa pajak atau wholesale) x patokan retailer. Jual putus: hs / (1 - margin). Shopee: retail
- *    tanpa pajak x (1 - biaya Shopee), biaya bawaan 25% dan bisa diubah.
+ *  - Margin saluran (Ferdy 11 Okt) = margin mitra, semua rupiah termasuk PPN.
+ *    Konsinyasi: harga rak = retail r, bersih ke principal = r x (1 - margin
+ *    mitra): Toys Kingdom 35%, Kinokuniya 35%, MAA 45%. Gamotion 20%: harga =
+ *    wholesale termasuk PPN / 0,8. Jual putus perorangan 10% seperti direct
+ *    sales: harga sama dengan aturan Katalog (hs / (1 - margin) lalu pajak per
+ *    SKU). Shopee: harga r, biaya 25% (perkiraan). Semua persen bisa diubah.
  *  - SLA kiriman dari pasangan HO ke TRANSIT lalu TRANSIT ke gerai (FIFO per
  *    SKU). TRANSIT yang kembali ke HO bukan kiriman.
  */
@@ -68,7 +70,11 @@
   function pajakR(p) { return p && p.hs > 0 && p.h > 0 ? p.h / p.hs : 1; }
   function retailExcl(p) { return p && p.r > 0 ? p.r / pajakR(p) : 0; }
 
-  var OPSI_BAWAAN = { feeShopee: 0.25, marginPutus: 0.10, slaKirim: 3, slaRetur: 3, ambangNilai: 0.015, invoicePpn: false, hariMati: 30, batasAdjust: 10, batasOpname: 30 };
+  var OPSI_BAWAAN = { feeShopee: 0.25, marginPutus: 0.10, slaKirim: 3, slaRetur: 3, ambangNilai: 0.015, hariMati: 30, batasAdjust: 10, batasOpname: 30 };
+  /* Margin mitra (tier), dikonfirmasi Ferdy 11 Okt 2026. */
+  var MARGIN_MITRA = { TGI: 0.35, KIY: 0.35, MAA: 0.45, gamotion: 0.20 };
+  function persenSah(x, cadangan) { var n = Number(x); return n >= 0 && n < 0.95 ? n : cadangan; }
+  function tarifPajak(p) { return p && p.hs > 0 && p.h > 0 ? Math.round((p.h / p.hs - 1) * 1000) / 1000 : 0; }
 
   /* ================= hitungan ================= */
   function hitung(dp, ext) {
@@ -150,24 +156,26 @@
       r.status = Math.abs(r.deviasi) > o.ambangNilai ? 'nilaiMenyimpang' : 'cocok';
     });
 
-    /* ---------- margin per saluran ---------- */
+    /* ---------- margin per saluran (margin mitra, termasuk PPN) ---------- */
     var retailers = []; L.forEach(function (l) { if (toko(l) && l.r && retailers.indexOf(l.r) < 0) retailers.push(l.r); });
+    var mm = o.marginMitra || {}, saluran = [];
+    retailers.forEach(function (r) { if (r !== 'GMT' && MARGIN_MITRA[r] != null) saluran.push({ k: r, jenis: 'konsinyasi', m: persenSah(mm[r], MARGIN_MITRA[r]) }); });
+    saluran.push({ k: 'gamotion', jenis: 'grosir', m: persenSah(mm.gamotion, MARGIN_MITRA.gamotion) });
+    saluran.push({ k: 'putus', jenis: 'putus', m: persenSah(o.marginPutus, OPSI_BAWAAN.marginPutus) });
+    saluran.push({ k: 'shopee', jenis: 'shopee', m: persenSah(o.feeShopee, OPSI_BAWAAN.feeShopee) });
     var marginBaris = [];
     P.forEach(function (p, pi) {
       if (!(p.hs > 0)) return;
-      var re = retailExcl(p), sal = {};
-      retailers.forEach(function (r) {
-        var basis = dasarRet[r] === 'modal' ? p.hs : re;
-        if (norma[r] == null || !(basis > 0)) { sal[r] = null; return; }
-        var net = Math.round(basis * norma[r] / (o.invoicePpn ? pajakR(p) : 1));
-        sal[r] = { net: net, margin: net > 0 ? (net - p.hs) / net : null };
+      var ws = p.h > 0 ? p.h : 0, sal = {};
+      saluran.forEach(function (x) {
+        var hj = 0;
+        if (x.jenis === 'konsinyasi' || x.jenis === 'shopee') hj = p.r > 0 ? p.r : 0;
+        else if (x.jenis === 'grosir') hj = ws > 0 ? Math.round(ws / (1 - x.m)) : 0;
+        else hj = Math.round(Math.round(p.hs / (1 - x.m)) * (1 + tarifPajak(p)));
+        sal[x.k] = hj > 0 ? { harga: hj, net: Math.round(hj * (1 - x.m)), margin: x.m } : null;
       });
-      var mp = Number(o.marginPutus); if (!(mp >= 0 && mp < 0.95)) mp = 0.1;
-      var np = Math.round(p.hs / (1 - mp)); sal.putus = { net: np, margin: (np - p.hs) / np };
-      if (re > 0) { var ns = Math.round(re * (1 - o.feeShopee)); sal.shopee = { net: ns, margin: ns > 0 ? (ns - p.hs) / ns : null }; } else sal.shopee = null;
-      marginBaris.push({ pi: pi, s: p.s || p.b, b: p.b, n: p.n, hs: p.hs, retailExcl: re, saluran: sal });
+      marginBaris.push({ pi: pi, s: p.s || p.b, b: p.b, n: p.n, hs: p.hs, wholesale: ws, retail: p.r || 0, saluran: sal });
     });
-    var rasioRet = {}, dasarMargin = {}; retailers.forEach(function (r) { if (norma[r] != null) { rasioRet[r] = norma[r]; dasarMargin[r] = dasarRet[r] || 'retail'; } });
 
     /* ---------- SLA kiriman ---------- */
     var grup = {}, kembali = {};
@@ -281,7 +289,7 @@
     }
 
     return { hariIni: hariIni, bulanTutup: bulanTutup, opsi: o, L: L, P: P, retailers: retailers, tutup: tutup, rekon: rekon,
-      margin: { rasio: rasioRet, dasar: dasarMargin, baris: marginBaris, retailers: retailers }, janggal: janggal, sla: sla, rapor: rapor, retur: retur, tg: tg, diperbarui: dp.diperbarui || '' };
+      margin: { saluran: saluran, baris: marginBaris }, rekonDasar: dasarRet, janggal: janggal, sla: sla, rapor: rapor, retur: retur, tg: tg, diperbarui: dp.diperbarui || '' };
   }
 
   /* ================= draf email (selalu bahasa Indonesia resmi) ================= */
@@ -348,10 +356,9 @@
       tepatWaktu: 'On time', telat: function (n) { return 'Late, ' + n + ' days quiet'; }, hari: 'days', tanpaData: 'No data', belumTagih: 'Sheet not set up', lewatTempo: 'overdue',
       gerai: 'Store', jmlGerai: function (n) { return n + (n === 1 ? ' store' : ' stores'); }, rak: 'On shelf', drafJudul: 'Email draft', draf: { laporan: 'Draft: report request', rekon: 'Draft: reconciliation', tagihan: 'Draft: payment reminder', isiUlang: 'Draft: restock' },
       subjek: 'Subject', isi: 'Message', salin: 'Copy', disalin: 'Copied', surel: 'Open in email app', drafKet: 'Nothing is sent from here. Copy the text or open it in your email app, add the recipient, and send it yourself.',
-      feeShopee: 'Shopee fee', marginPutus: 'Outright margin', ppn: 'Partner invoices include VAT', cariSku: 'Find a SKU', modal: 'Wholesale', putus: 'Outright', shopee: 'Shopee (estimate)',
-      dasarMargin: function (r) { return 'Margin = (money in per unit - wholesale) / money in. Consignment uses the median invoice ratio of each partner (' + r + '): against retail before tax or against wholesale, whichever has been steadier across its store-months. Outright uses wholesale / (1 - margin), Shopee uses retail before tax minus the fee. Tax is read per SKU.'; },
-      dasarR: 'of retail', dasarW: 'of wholesale',
-      tanpaRasio: 'No invoices yet',
+      aturMargin: 'Partner margins', cariSku: 'Find a SKU', modal: 'Wholesale incl. VAT', putus: 'Outright sale (individual)', shopee: 'Shopee fee (estimate)', gamotion: 'Gamotion',
+      hargaJual: 'Selling price', bersih: 'Net to principal',
+      dasarMargin: 'Percentages are partner margins. All amounts include VAT. Consignment (Toys Kingdom, Kinokuniya, MAA): selling price is the shelf retail price, net to principal = retail x (1 - partner margin). Gamotion: price = wholesale incl. VAT / (1 - margin), so the principal receives wholesale. Outright sale to an individual follows direct sales at 10%, priced the same way as the Catalog. Shopee: retail price minus the platform fee. Every percentage can be changed above; the outright margin is shared with the Catalog.',
       rk: { bulan: 'Month', unitInv: 'Invoice pcs', unitBuku: 'Ledger pcs', nilai: 'Value', rasio: 'Ratio / norm', status: 'Status' },
       stRekon: { cocok: 'Match', nilaiMenyimpang: 'Value off', tanpaInvoice: 'No invoice', tanpaBuku: 'Not in ledger', selisihUnit: 'Units differ' },
       semua: 'All', masalah: 'Problems only', rekonKet: function (a) { return 'A line is "value off" when its invoice ratio is more than ' + a + ' away from the partner median. The ratio is against retail before tax or against wholesale, whichever has been steadier for that partner.'; },
@@ -383,10 +390,9 @@
       tepatWaktu: 'Tepat waktu', telat: function (n) { return 'Telat, diam ' + n + ' hari'; }, hari: 'hari', tanpaData: 'Tanpa data', belumTagih: 'Sheet belum disiapkan', lewatTempo: 'lewat tempo',
       gerai: 'Gerai', jmlGerai: function (n) { return n + ' gerai'; }, rak: 'Di rak', drafJudul: 'Draf email', draf: { laporan: 'Draf: minta laporan', rekon: 'Draf: rekonsiliasi', tagihan: 'Draf: pengingat bayar', isiUlang: 'Draf: isi ulang' },
       subjek: 'Subjek', isi: 'Isi', salin: 'Salin', disalin: 'Tersalin', surel: 'Buka di aplikasi surel', drafKet: 'Tidak ada yang terkirim dari sini. Salin teksnya atau buka di aplikasi surel, isi penerimanya, lalu kirim sendiri.',
-      feeShopee: 'Biaya Shopee', marginPutus: 'Margin jual putus', ppn: 'Invoice mitra sudah termasuk PPN', cariSku: 'Cari SKU', modal: 'Wholesale', putus: 'Jual putus', shopee: 'Shopee (perkiraan)',
-      dasarMargin: function (r) { return 'Margin = (uang masuk per unit - wholesale) / uang masuk. Konsinyasi memakai median rasio invoice tiap mitra (' + r + '): terhadap retail tanpa pajak atau terhadap wholesale, mana yang paling tetap antar gerai-bulannya. Jual putus memakai wholesale / (1 - margin), Shopee memakai retail tanpa pajak dikurangi biaya. Pajak dibaca per SKU.'; },
-      dasarR: 'dari retail', dasarW: 'dari wholesale',
-      tanpaRasio: 'Belum ada invoice',
+      aturMargin: 'Margin mitra', cariSku: 'Cari SKU', modal: 'Wholesale termasuk PPN', putus: 'Jual putus (perorangan)', shopee: 'Biaya Shopee (perkiraan)', gamotion: 'Gamotion',
+      hargaJual: 'Harga jual', bersih: 'Bersih ke principal',
+      dasarMargin: 'Persentase adalah margin mitra. Seluruh nilai termasuk PPN. Konsinyasi (Toys Kingdom, Kinokuniya, MAA): harga jual adalah harga retail di rak, bersih ke principal = retail x (1 - margin mitra). Gamotion: harga = wholesale termasuk PPN / (1 - margin), sehingga principal menerima wholesale. Jual putus kepada perorangan mengikuti direct sales 10%, dengan cara hitung yang sama dengan Katalog. Shopee: harga retail dikurangi biaya platform. Setiap persentase dapat diubah di atas; margin jual putus sama dengan Katalog.',
       rk: { bulan: 'Bulan', unitInv: 'Pcs invoice', unitBuku: 'Pcs buku', nilai: 'Nilai', rasio: 'Rasio / patokan', status: 'Status' },
       stRekon: { cocok: 'Cocok', nilaiMenyimpang: 'Nilai menyimpang', tanpaInvoice: 'Belum ada invoice', tanpaBuku: 'Tidak ada di buku', selisihUnit: 'Unit beda' },
       semua: 'Semua', masalah: 'Yang bermasalah', rekonKet: function (a) { return 'Baris disebut "nilai menyimpang" kalau rasio invoicenya berbeda lebih dari ' + a + ' dari median mitranya. Rasionya terhadap retail tanpa pajak atau terhadap wholesale, mana yang paling tetap untuk mitra itu.'; },
@@ -406,12 +412,12 @@
   var KUNCI = 'wms_kontrol_atur', KUNCI_MARGIN = 'wms_katalog_margin';
   function bacaAtur() {
     var a = {}; try { a = JSON.parse(W.localStorage.getItem(KUNCI) || '{}') || {}; } catch (e) { a = {}; }
-    var o = { feeShopee: a.feeShopee, slaKirim: a.slaKirim, slaRetur: a.slaRetur, invoicePpn: a.invoicePpn };
+    var o = { feeShopee: a.feeShopee, slaKirim: a.slaKirim, slaRetur: a.slaRetur, marginMitra: a.marginMitra && typeof a.marginMitra === 'object' ? a.marginMitra : {} };
     try { var m = W.localStorage.getItem(KUNCI_MARGIN), n = Number(m); if (m != null && m !== '' && n >= 0 && n < 95) o.marginPutus = n / 100; } catch (e) {}
     return o;
   }
   function simpanAtur(o) {
-    try { W.localStorage.setItem(KUNCI, JSON.stringify({ feeShopee: o.feeShopee, slaKirim: o.slaKirim, slaRetur: o.slaRetur, invoicePpn: o.invoicePpn })); } catch (e) {}
+    try { W.localStorage.setItem(KUNCI, JSON.stringify({ feeShopee: o.feeShopee, slaKirim: o.slaKirim, slaRetur: o.slaRetur, marginMitra: o.marginMitra || {} })); } catch (e) {}
     try { if (o.marginPutus != null) W.localStorage.setItem(KUNCI_MARGIN, String(Math.round(o.marginPutus * 1000) / 10)); } catch (e) {}
   }
 
@@ -469,11 +475,13 @@
     d.addEventListener('change', function (e) {
       var g = e.target; if (!g) return;
       var o = bacaAtur(), n = Number(String(g.value).replace(',', '.'));
-      if (g.id === 'knFeeShopee') { if (n >= 0 && n < 95) o.feeShopee = n / 100; }
-      else if (g.id === 'knMarginPutus') { if (n >= 0 && n < 95) o.marginPutus = n / 100; }
+      var km = g.getAttribute && g.getAttribute('data-margin-input');
+      if (km) {
+        if (!(n >= 0 && n < 95)) { gambarIsi(); return; }
+        if (km === 'shopee') o.feeShopee = n / 100; else if (km === 'putus') o.marginPutus = n / 100; else { o.marginMitra = o.marginMitra || {}; o.marginMitra[km] = n / 100; }
+      }
       else if (g.id === 'knSlaKirim') { if (n >= 0 && n <= 60) o.slaKirim = Math.round(n); }
       else if (g.id === 'knSlaRetur') { if (n >= 0 && n <= 60) o.slaRetur = Math.round(n); }
-      else if (g.id === 'knPpn') o.invoicePpn = !!g.checked;
       else return;
       simpanAtur(o); gambarIsi();
     });
@@ -604,27 +612,27 @@
   }
 
   /* ---------- margin ---------- */
+  function persenRingkas(x) { var v = Math.round(x * 1000) / 10; return (v % 1 === 0 ? String(v) : (id() ? String(v).replace('.', ',') : String(v))) + '%'; }
+  function judulSaluran(k) { return k === 'putus' || k === 'shopee' || k === 'gamotion' ? t(k) : namaRetailer(k); }
   function halMargin(h) {
-    var o = h.opsi;
-    var rasio = h.retailers.map(function (r) { return namaRetailer(r) + ' ' + (h.margin.rasio[r] != null ? persen1(h.margin.rasio[r]) + ' ' + t(h.margin.dasar[r] === 'modal' ? 'dasarW' : 'dasarR') : t('tanpaRasio')); }).join(', ');
-    return '<div class="kn-atur">' +
-      '<label class="kn-isian" for="knFeeShopee"><span>' + esc(t('feeShopee')) + '</span><input id="knFeeShopee" type="number" inputmode="decimal" min="0" max="90" step="0.5" value="' + esc(Math.round(o.feeShopee * 1000) / 10) + '"><b>%</b></label>' +
-      '<label class="kn-isian" for="knMarginPutus"><span>' + esc(t('marginPutus')) + '</span><input id="knMarginPutus" type="number" inputmode="decimal" min="0" max="90" step="0.5" value="' + esc(Math.round(o.marginPutus * 1000) / 10) + '"><b>%</b></label>' +
-      '<label class="kn-centang" for="knPpn"><input id="knPpn" type="checkbox"' + (o.invoicePpn ? ' checked' : '') + '><span>' + esc(t('ppn')) + '</span></label>' +
+    return '<div class="kn-atur"><span class="kn-atur-judul">' + esc(t('aturMargin')) + '</span>' +
+      h.margin.saluran.map(function (x) {
+        return '<label class="kn-isian"><span>' + esc(judulSaluran(x.k)) + '</span><input data-margin-input="' + esc(x.k) + '" type="number" inputmode="decimal" min="0" max="90" step="0.5" value="' + esc(Math.round(x.m * 1000) / 10) + '"><b>%</b></label>';
+      }).join('') +
       '<input id="knCariSku" type="search" autocomplete="off" spellcheck="false" placeholder="' + esc(t('cariSku')) + '" aria-label="' + esc(t('cariSku')) + '" value="' + esc(A.cari) + '">' +
-      '</div><div id="knMarginTabel"></div><p class="ket-alat kn-dasar">' + esc(t('dasarMargin')(rasio)) + '</p>';
+      '</div><div id="knMarginTabel"></div><p class="ket-alat kn-dasar">' + esc(t('dasarMargin')) + '</p>';
   }
   function gambarMarginTabel(h) {
     var w = el('knMarginTabel'); if (!w || !D.dp) return;
     h = h || H();
     var q = String(A.cari || '').trim().toLowerCase();
     var baris = h.margin.baris.filter(function (b) { return !q || String(b.n || '').toLowerCase().indexOf(q) > -1 || String(b.s || '').toLowerCase().indexOf(q) > -1 || String(b.b || '').indexOf(q) > -1; });
-    var kol = h.retailers.concat(['putus', 'shopee']);
-    var judulKol = function (k) { return k === 'putus' ? t('putus') : k === 'shopee' ? t('shopee') : namaRetailer(k); };
-    var sel = function (x) { if (!x) return '<span class="kn-mut">-</span>'; return '<span class="kn-net">' + rp(x.net) + '</span><span class="kn-m ' + (x.margin < 0 ? 'neg' : 'pos') + '">' + persen1(x.margin) + '</span>'; };
-    w.innerHTML = '<div class="kn-gulir"><table class="kn-tabel kn-margin"><thead><tr><th>SKU</th><th class="ka">' + esc(t('modal')) + '</th>' + kol.map(function (k) { return '<th class="ka">' + esc(judulKol(k)) + '</th>'; }).join('') + '</tr></thead><tbody>' +
-      baris.map(function (b) { return '<tr data-margin-sku="' + esc(b.s) + '"><td class="kn-sku"><b>' + esc(namaPendek(b.n)) + '</b><small>' + esc(b.s) + '</small></td><td class="ka">' + rp(b.hs) + '</td>' + kol.map(function (k) { return '<td class="ka" data-saluran="' + k + '">' + sel(b.saluran[k]) + '</td>'; }).join('') + '</tr>'; }).join('') +
-      '</tbody></table></div>';
+    var kol = h.margin.saluran;
+    var sel = function (x) { if (!x) return '<span class="kn-mut">-</span>'; return '<span class="kn-harga" title="' + esc(t('hargaJual')) + '">' + rp(x.harga) + '</span><span class="kn-net" title="' + esc(t('bersih')) + '">' + rp(x.net) + '</span>'; };
+    w.innerHTML = '<div class="kn-gulir"><table class="kn-tabel kn-margin"><thead><tr><th>SKU</th><th class="ka">' + esc(t('modal')) + '</th>' +
+      kol.map(function (x) { return '<th class="ka">' + esc(judulSaluran(x.k)) + '<span class="kn-m pos">' + persenRingkas(x.m) + '</span></th>'; }).join('') + '</tr></thead><tbody>' +
+      baris.map(function (b) { return '<tr data-margin-sku="' + esc(b.s) + '"><td class="kn-sku"><b>' + esc(namaPendek(b.n)) + '</b><small>' + esc(b.s) + '</small></td><td class="ka">' + (b.wholesale > 0 ? rp(b.wholesale) : '-') + '</td>' + kol.map(function (x) { return '<td class="ka" data-saluran="' + esc(x.k) + '">' + sel(b.saluran[x.k]) + '</td>'; }).join('') + '</tr>'; }).join('') +
+      '</tbody></table></div><p class="kn-legenda"><span class="kn-harga">' + esc(t('hargaJual')) + '</span> <span class="kn-net">' + esc(t('bersih')) + '</span></p>';
   }
 
   /* ---------- rekonsiliasi ---------- */
