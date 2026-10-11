@@ -700,3 +700,19 @@ body.alat-terbuka{overflow:hidden}
   .kn-rapor{padding:12px}
   .kn-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
+/* Kontrol: margin mitra (11 Okt) */
+.kn-atur-judul{flex-basis:100%;font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
+.kn-margin th .kn-m{display:block;width:max-content;margin:4px 0 0 auto}
+.kn-harga{display:block;font-size:12px;font-weight:700;color:var(--mut)}
+.kn-legenda{display:flex;gap:16px;margin:8px 0 0;font-size:12px}
+.kn-legenda .kn-harga,.kn-legenda .kn-net{display:inline}
+/* Katalog: unduhan PDF, JPG, Excel (11 Okt) */
+.kt-unduh{align-self:center;font-size:13px;font-weight:800;color:var(--mut)}
+.kt-aksi .btn[aria-busy=true]{opacity:.6;cursor:progress}
+.kt-status{flex-basis:100%;font-size:12.5px;font-weight:700;color:var(--mut);text-align:right}
+.kt-status:empty{display:none}
+@media (max-width:560px){
+  .kn-atur .kn-isian{flex:1 1 calc(50% - 10px);justify-content:space-between}
+  .kn-atur .kn-isian span{flex:1;min-width:0}
+  .kn-atur .kn-isian input{width:64px}
+}

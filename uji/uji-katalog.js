@@ -1,5 +1,5 @@
 /* Uji Katalog WMS (wms/katalog.js), 11 Okt 2026.
- * Harapan: "18 pemeriksaan, SEMUA LULUS".
+ * Harapan: "24 pemeriksaan, SEMUA LULUS".
  *
  * KENAPA UJI INI ADA. Ferdy: "buat juga fitur catalog yang menampilkan semua
  * SKU yang ada dan harga jual putus, ... kayaknya 10%, di WMS sudah include
@@ -12,15 +12,63 @@
  *    datanya sendiri. Fixture memuat satu SKU berpajak 5% supaya pengali rata
  *    langsung ketahuan;
  *  - SKU tanpa stok hilang dari daftar, padahal Ferdy minta SEMUA SKU.
+ * Ferdy (11 Okt): "kasih opsi katalog itu pdf dan jpg juga serta excel".
+ * K19 sampai K24 memeriksa berkas yang benar benar terunduh: Excel dibuka
+ * openpyxl lalu rumusnya dihitung ulang LibreOffice (angka harus sama dengan
+ * layar), JPG dibuka Pillow, PDF dibuka pypdf. Semuanya dibuat di browser
+ * tanpa pustaka dari luar.
  * Data disusun di sini, papan lama palsu, tanpa jaringan.
  */
 const { chromium } = require('playwright');
-const http = require('http'), fs = require('fs'), path = require('path');
+const http = require('http'), fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+const SEMENTARA = fs.mkdtempSync('/tmp/uji-katalog-');
+const RECALC = (() => { try { const d = '/root/.claude/skills/synced'; for (const x of fs.readdirSync(d)) { const f = path.join(d, x, 'xlsx/scripts/recalc.py'); if (fs.existsSync(f)) return f; } } catch (e) {} return ''; })();
+const py = (kode, ...arg) => { try { return JSON.parse(execFileSync('python3', ['-c', kode, ...arg], { encoding: 'utf8', timeout: 120000 })); } catch (e) { return { galat: String(e.stderr || e.message).slice(-300) }; } };
+const simpanUnduhan = async (u, nama) => { if (!u) return ''; const f = await u.path(); if (!f) return ''; const t = path.join(SEMENTARA, nama); fs.copyFileSync(f, t); return t; };
+const unduhLewat = async (p, sel) => { if (!(await p.$(sel))) return null; const [u] = await Promise.all([p.waitForEvent('download', { timeout: 20000 }).catch(() => null), p.click(sel)]); return u; };
+/* Tabel xref PDF harus menunjuk tepat ke awal tiap objek ("n 0 obj"). pypdf memaafkan xref yang meleset
+   (ia membangun ulang), tapi tidak semua pembaca PDF begitu, jadi diperiksa langsung dari bitanya. */
+const xrefSah = f => { try { const b = fs.readFileSync(f).toString('latin1'); const sx = Number((b.match(/startxref\s+(\d+)/) || [])[1]); if (b.slice(sx, sx + 4) !== 'xref') return 'startxref'; const m = b.slice(sx).match(/^xref\s+0 (\d+)\s+/); const n = Number(m[1]); let p0 = sx + m[0].length; for (let k = 0; k < n; k++) { const e = b.slice(p0 + k * 20, p0 + k * 20 + 20); if (k === 0) continue; const o = Number(e.slice(0, 10)); if (b.slice(o, o + String(k).length + 6) !== k + ' 0 obj') return 'objek ' + k; } return 'ok'; } catch (e) { return 'galat ' + e.message; } };
+const PY_XLSX = `
+import sys, json, openpyxl
+f = sys.argv[1]
+wf = openpyxl.load_workbook(f); wv = openpyxl.load_workbook(f, data_only=True)
+sf, sv = wf.active, wv.active
+kepala = None
+for r in range(1, 12):
+    if sv.cell(r, 1).value == 'SKU': kepala = r; break
+out = {'judul': sv.title, 'kepala': kepala, 'margin': sv['B2'].value, 'baris': {}}
+if kepala:
+    out['kolom'] = [sv.cell(kepala, c).value for c in range(1, 11)]
+    r = kepala + 1
+    while sv.cell(r, 1).value:
+        s = sv.cell(r, 1).value
+        out['baris'][s] = {'barcode': sv.cell(r, 2).value, 'pajak': sv.cell(r, 8).value, 'fmtPajak': sv.cell(r, 8).number_format,
+            'sebelum': sv.cell(r, 7).value, 'termasuk': sv.cell(r, 9).value, 'rumus': str(sf.cell(r, 9).value or ''), 'rumusG': str(sf.cell(r, 7).value or ''), 'fmtHarga': sv.cell(r, 9).number_format}
+        r += 1
+    out['beku'] = sf.freeze_panes
+print(json.dumps(out, default=str))
+`;
+const PY_JPG = `
+import sys, json
+from PIL import Image, ImageStat
+im = Image.open(sys.argv[1]); st = ImageStat.Stat(im.convert('L'))
+print(json.dumps({'fmt': im.format, 'w': im.size[0], 'h': im.size[1], 'sd': st.stddev[0]}))
+`;
+const PY_PDF = `
+import sys, json
+from pypdf import PdfReader
+r = PdfReader(sys.argv[1], strict=True); hal = []
+for p in r.pages:
+    xo = p['/Resources']['/XObject']; im = [xo[k].get_object() for k in xo]
+    hal.append({'w': float(p.mediabox.width), 'h': float(p.mediabox.height), 'img': [[int(i['/Width']), int(i['/Height']), str(i['/Filter'])] for i in im]})
+print(json.dumps({'hal': hal, 'judul': (r.metadata or {}).get('/Title')}))
+`;
 const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 18;
+const DIHARAPKAN = 24;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -201,6 +249,58 @@ const PALSU_AWAL = () => {
     await p.click('#katalog [data-katalog=cetak]'); await jeda(200);
     const ct = await p.evaluate(() => ({ c: window.__cetak, sisa: document.body.classList.contains('cetak-katalog') }));
     c('K14 Cetak memakai lembar cetak khusus berisi 6 SKU, margin 20% tertulis di kepala, kelas cetak dilepas lagi', ct.c && ct.c.kelas && ct.c.baris === 6 && /20%/.test(ct.c.teks) && !ct.sisa, JSON.stringify(ct).slice(0, 300));
+
+    /* ---------- Excel, JPG, PDF (margin masih 20%) ----------
+       Harapan dihitung sendiri: Bear 175.000 / 0,8 = 218.750, x 1,11 = 242.812,5 -> 242.813.
+       Pekingese 200.000 / 0,8 = 250.000, x 1,05 = 262.500. Cap Melon tanpa harga: sel kosong. */
+    const ux = await unduhLewat(p, '#katalog [data-katalog=xlsx]');
+    const fx = await simpanUnduhan(ux, 'katalog.xlsx');
+    const xa = fx ? py(PY_XLSX, fx) : {};
+    const xb = xa.baris || {}, xbear = xb['MF-PLU-005'] || {}, xpek = xb['MF-PLU-061'] || {}, xcap = xb['MF-CAP-002'] || {};
+    c('K19 Unduh Excel: berkas .xlsx terbuka di openpyxl, 6 SKU di bawah kepala kolom, margin 20% di B2, Bear 242.813 dan Pekingese 262.500 (angka, bukan teks), barcode tetap teks, pajak 11% berformat persen',
+      ux && /^katalog-jual-putus-\d{4}-\d{2}-\d{2}\.xlsx$/.test(ux.suggestedFilename()) && Object.keys(xb).length === 6 && xa.margin === 0.2 &&
+      xbear.termasuk === 242813 && xpek.termasuk === 262500 && xbear.barcode === '4582586962058' && xbear.pajak === 0.11 && /%/.test(xbear.fmtPajak) && xcap.termasuk == null && xa.beku,
+      JSON.stringify([ux && ux.suggestedFilename(), xa]).slice(0, 500));
+    let xr = {};
+    if (fx && RECALC) { fs.copyFileSync(fx, fx + '.ulang.xlsx'); try { execFileSync('python3', [RECALC, fx + '.ulang.xlsx', '90'], { encoding: 'utf8', timeout: 150000 }); } catch (e) {} xr = py(PY_XLSX, fx + '.ulang.xlsx'); }
+    const rb = (xr.baris || {})['MF-PLU-005'] || {}, rp2 = (xr.baris || {})['MF-PLU-061'] || {};
+    c('K20 harga di Excel berupa rumus dari sel margin; dihitung ulang LibreOffice hasilnya tetap 242.813 dan 262.500 (sama dengan layar)',
+      /^=ROUND\(G\d+\*\(1\+H\d+\)/.test(xbear.rumus) && /^=ROUND\(F\d+\/\(1-\$B\$2\)/.test(xbear.rumusG) && rb.termasuk === 242813 && rp2.termasuk === 262500 && rb.sebelum === 218750, JSON.stringify([xbear.rumusG, xbear.rumus, RECALC ? 'recalc' : 'TANPA RECALC', rb, rp2]).slice(0, 400));
+
+    const uj = await unduhLewat(p, '#katalog [data-katalog=jpg]');
+    const fj = await simpanUnduhan(uj, 'katalog-6.jpg');
+    const ja = fj ? py(PY_JPG, fj) : {};
+    await p.click('#katalog [data-saring=ho]'); await jeda(150);
+    const uj3 = await unduhLewat(p, '#katalog [data-katalog=jpg]');
+    const jb = uj3 ? py(PY_JPG, await simpanUnduhan(uj3, 'katalog-3.jpg')) : {};
+    await p.click('#katalog [data-saring=semua]'); await jeda(150);
+    c('K21 Unduh JPG: gambar JPEG lebar 1240 px berisi kartu SKU (tidak polos); ikut saringan, 3 SKU lebih pendek dari 6 SKU',
+      uj && /^katalog-jual-putus-\d{4}-\d{2}-\d{2}\.jpg$/.test(uj.suggestedFilename()) && ja.fmt === 'JPEG' && ja.w === 1240 && ja.sd > 12 && jb.w === 1240 && jb.h < ja.h && jb.h > 400,
+      JSON.stringify([uj && uj.suggestedFilename(), ja, jb]));
+
+    const up = await unduhLewat(p, '#katalog [data-katalog=pdf]');
+    const fp = await simpanUnduhan(up, 'katalog.pdf');
+    const pa = fp ? py(PY_PDF, fp) : {};
+    const h0 = (pa.hal || [])[0] || {}, xs = fp ? xrefSah(fp) : '-';
+    c('K22 Unduh PDF: terbuka di pypdf (ketat) dan tabel xref tepat, 1 halaman A4 (595 x 842 pt) berisi gambar JPEG 1240 px, berjudul daftar harga',
+      up && /^katalog-jual-putus-\d{4}-\d{2}-\d{2}\.pdf$/.test(up.suggestedFilename()) && (pa.hal || []).length === 1 && Math.round(h0.w) === 595 && Math.round(h0.h) === 842 &&
+      h0.img && h0.img[0] && h0.img[0][0] === 1240 && /DCTDecode/.test(h0.img[0][2]) && /Mofmofriends/.test(pa.judul || '') && xs === 'ok', JSON.stringify([up && up.suggestedFilename(), xs, pa]).slice(0, 400));
+
+    /* Penulis PDF untuk katalog panjang: 3 halaman JPEG berukuran beda, semua harus jadi halaman sendiri. */
+    const b64 = await p.evaluate(async () => {
+      const K = window.WmsKatalog; if (!K || !K._pdf) return '';
+      const hal = [];
+      for (const [w, h] of [[120, 170], [240, 340], [60, 85]]) {
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'); g.fillStyle = '#A9501C'; g.fillRect(0, 0, w, h);
+        const bl = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.8)); hal.push({ bytes: new Uint8Array(await bl.arrayBuffer()), w, h });
+      }
+      const u8 = K._pdf(hal, 'Uji'); let s = ''; for (let i = 0; i < u8.length; i++) s += String.fromCharCode(u8[i]); return btoa(s);
+    });
+    let pb = {};
+    if (b64) { fs.writeFileSync(path.join(SEMENTARA, 'tiga.pdf'), Buffer.from(b64, 'base64')); pb = py(PY_PDF, path.join(SEMENTARA, 'tiga.pdf')); }
+    const xs3 = b64 ? xrefSah(path.join(SEMENTARA, 'tiga.pdf')) : '-';
+    c('K23 penulis PDF: tiga halaman JPEG jadi tiga halaman A4, ukuran gambar asli terjaga (120, 240, 60 px), tabel xref tepat',
+      xs3 === 'ok' && (pb.hal || []).length === 3 && pb.hal.map(x => x.img[0][0]).join(',') === '120,240,60' && pb.hal.every(x => Math.round(x.w) === 595), JSON.stringify([xs3, pb]).slice(0, 300));
     await ctx.close();
 
     /* ================= HP, Indonesia ================= */
@@ -218,6 +318,8 @@ const PALSU_AWAL = () => {
       tb2 && tb2.teks === 'Katalog' && /Ada stok HO/.test(id.chip) && /Rp215\.833/.test(id.harga) && /Belum ada harga/.test(id.tanpa), JSON.stringify([tb2, id]));
     const em = await hp.evaluate(() => /\u2014/.test(document.getElementById('katalog').innerText));
     c('K17 tidak ada tanda pisah panjang di lembar katalog', !em, String(em));
+    const tbU = await hp.evaluate(() => ['pdf', 'jpg', 'xlsx', 'csv'].map(k => { const b = document.querySelector('#katalog [data-katalog=' + k + ']'); if (!b) return k + ':-'; const r = b.getBoundingClientRect(); return k + ':' + b.textContent.trim() + ':' + b.getAttribute('aria-label') + ':' + (r.right <= innerWidth + 1 && r.width > 0 ? 'ok' : 'luber'); }).join('|'));
+    c('K24 HP Indonesia: tombol PDF, JPG, Excel, CSV terlihat utuh, label lengkapnya "Unduh ..."', /^pdf:PDF:Unduh PDF:ok\|jpg:JPG:Unduh JPG:ok\|xlsx:Excel:Unduh Excel:ok\|csv:CSV:Unduh CSV:ok$/.test(tbU), tbU);
     await ctx2.close();
   } catch (e) {
     c('MATI di tengah jalan', false, e.stack);
