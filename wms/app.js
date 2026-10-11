@@ -95,13 +95,21 @@
       .then(function (s) {
         if (tm) clearTimeout(tm);
         var h = null; try { h = JSON.parse(s); } catch (e) { h = null; }
-        if (!h || typeof h !== 'object') throw new Error(bhs() === 'id' ? 'Server papan tidak menjawab dengan benar. Kalau WMS baru ini baru dipasang, server papan mungkin belum diperbarui (deploy versi baru).' : 'The board server did not answer properly. If the new WMS was just set up, the board server may not be updated yet (deploy the new version).');
+        /* Bukan JSON = halaman galat Google (server sibuk atau terlalu lama), bukan
+           server lama: server lama tetap menjawab JSON, hanya tanpa 'pintu'. */
+        if (!h || typeof h !== 'object') { var es = new Error(bhs() === 'id' ? 'Server Google sedang sibuk dan belum menjawab dengan benar. Coba lagi sebentar lagi.' : "Google's server is busy and did not answer properly. Try again in a moment."); es.sementara = true; throw es; }
         /* Server papan versi lama tidak mengenal aksi 'wms' dan menjawab tanpa 'pintu'.
            Tanpa pemeriksaan ini jawabannya terbaca sebagai "kode salah". */
         if (!h.pintu) throw new Error(bhs() === 'id' ? 'Server papan belum diperbarui untuk WMS baru. Minta deploy versi baru Apps Script dulu.' : 'The board server is not updated for the new WMS yet. Deploy the new Apps Script version first.');
         if (h.pintu === 'galat') throw new Error(h.pesan || 'Server error.');
         return h.hasil;
-      }, function (e) { if (tm) clearTimeout(tm); throw new Error(e && e.name === 'AbortError' ? 'The server took too long. Try again.' : 'Connection lost. Try again when the signal is back.'); });
+      }, function (e) {
+        if (tm) clearTimeout(tm);
+        if (e && e.sementara) throw e;
+        var ej = new Error(e && e.name === 'AbortError' ? 'The server took too long. Try again.' : 'Connection lost. Try again when the signal is back.');
+        if (!(e && e.name === 'AbortError')) ej.sementara = true;
+        throw ej;
+      });
   }
   /* ---------- Supabase: potret baca cepat ---------- */
   function kirimSupa(badan, batas) {
@@ -265,7 +273,7 @@
      jalan = deploy; fungsi belum masuk izin = disebut namanya. */
   function pesanBelumDeploy(e) {
     var s = String(e && e.message ? e.message : e), id = bhs() === 'id', m;
-    if (/not updated for the new WMS|tidak menjawab dengan benar|did not answer properly/i.test(s))
+    if (/not updated for the new WMS|belum diperbarui untuk WMS/i.test(s))
       return id ? 'Fitur ini menyala setelah Apps Script di-deploy versi baru.' : 'This feature turns on after the new Apps Script version is deployed.';
     if ((m = s.match(/Fungsi "(\w+)" tidak ada/)))
       return id ? 'Fitur ini (' + m[1] + ') baru ada di kode Apps Script terbaru, jadi menyala setelah di-deploy versi baru.' : 'This feature (' + m[1] + ') is only in the newest Apps Script code, so it turns on after a new version is deployed.';
@@ -291,7 +299,15 @@
       if (d !== undefined) { cat.dari = 'supa'; return d; }
       cat.dari = 'gas';
       if (!BACA_PAPAN[nama] && !BACA_TANPA_KODE[nama] && !POLA_BACA.test(nama)) tandaiKotor();
-      return kirim({ aksi: 'wms', fn: 'panggil', tiket: S.tiket, nama: nama, args: args }).then(function (x) {
+      var badan = { aksi: 'wms', fn: 'panggil', tiket: S.tiket, nama: nama, args: args };
+      /* Bacaan yang kena jawaban sesaat (halaman galat Google, sinyal putus) dicoba
+         ulang sekali. Tulisan tidak, karena bisa sudah tercatat di server. */
+      var minta = kirim(badan).catch(function (e) {
+        if (tulisan || !(e && e.sementara)) throw e;
+        cat.ulang = 1;
+        return new Promise(function (ok) { setTimeout(ok, 1200); }).then(function () { return kirim(badan); });
+      });
+      return minta.then(function (x) {
         if (x && x.perluMasuk) { keluarAkun(true); throw new Error(x.pesan || 'Please sign in again.'); }
         return x;
       }, function (e) { cat.galat = String(e && e.message || e).slice(0, 80); throw new Error(pesanBelumDeploy(e)); });
