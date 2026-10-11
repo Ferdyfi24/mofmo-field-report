@@ -1,5 +1,5 @@
 /* Uji Katalog WMS (wms/katalog.js), 11 Okt 2026.
- * Harapan: "24 pemeriksaan, SEMUA LULUS".
+ * Harapan: "25 pemeriksaan, SEMUA LULUS".
  *
  * KENAPA UJI INI ADA. Ferdy: "buat juga fitur catalog yang menampilkan semua
  * SKU yang ada dan harga jual putus, ... kayaknya 10%, di WMS sudah include
@@ -17,6 +17,9 @@
  * openpyxl lalu rumusnya dihitung ulang LibreOffice (angka harus sama dengan
  * layar), JPG dibuka Pillow, PDF dibuka pypdf. Semuanya dibuat di browser
  * tanpa pustaka dari luar.
+ * Ferdy (11 Okt): "harga beli putus aja". JPG, PDF, dan Cetak dikirim ke
+ * pembeli, jadi tidak boleh menyebut margin, wholesale, atau rumus. K14 dan
+ * K25 membaca teks yang benar benar tercetak dan tergambar di kanvas.
  * Data disusun di sini, papan lama palsu, tanpa jaringan.
  */
 const { chromium } = require('playwright');
@@ -68,7 +71,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 24;
+const DIHARAPKAN = 25;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -123,6 +126,10 @@ const PALSU_AWAL = () => {
   Ctx.prototype.createGain = function () { return { gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, connect() {} }; };
   Ctx.prototype.resume = function () {};
   window.AudioContext = Ctx; window.webkitAudioContext = Ctx;
+  /* Semua teks yang digambar ke kanvas dicatat, supaya isi JPG dan PDF bisa diperiksa tanpa OCR. */
+  window.__teksKanvas = [];
+  const asliFill = CanvasRenderingContext2D.prototype.fillText;
+  CanvasRenderingContext2D.prototype.fillText = function (s) { window.__teksKanvas.push(String(s)); return asliFill.apply(this, arguments); };
   window.print = function () { window.__cetak = { kelas: document.body.classList.contains('cetak-katalog'), baris: document.querySelectorAll('#lembarKatalog [data-cetak-sku]').length, teks: (document.getElementById('lembarKatalog') || {}).innerText || '' }; };
 };
 
@@ -248,7 +255,8 @@ const PALSU_AWAL = () => {
 
     await p.click('#katalog [data-katalog=cetak]'); await jeda(200);
     const ct = await p.evaluate(() => ({ c: window.__cetak, sisa: document.body.classList.contains('cetak-katalog') }));
-    c('K14 Cetak memakai lembar cetak khusus berisi 6 SKU, margin 20% tertulis di kepala, kelas cetak dilepas lagi', ct.c && ct.c.kelas && ct.c.baris === 6 && /20%/.test(ct.c.teks) && !ct.sisa, JSON.stringify(ct).slice(0, 300));
+    c('K14 Cetak memakai lembar cetak khusus berisi 6 SKU dengan harga beli putus (Bear Rp242,813), tanpa menyebut margin, wholesale, atau 20%; kelas cetak dilepas lagi',
+      ct.c && ct.c.kelas && ct.c.baris === 6 && /Rp242,813/.test(ct.c.teks) && /purchase price/i.test(ct.c.teks) && !/margin|wholesale|20%/i.test(ct.c.teks) && !ct.sisa, JSON.stringify(ct).slice(0, 300));
 
     /* ---------- Excel, JPG, PDF (margin masih 20%) ----------
        Harapan dihitung sendiri: Bear 175.000 / 0,8 = 218.750, x 1,11 = 242.812,5 -> 242.813.
@@ -275,7 +283,7 @@ const PALSU_AWAL = () => {
     const jb = uj3 ? py(PY_JPG, await simpanUnduhan(uj3, 'katalog-3.jpg')) : {};
     await p.click('#katalog [data-saring=semua]'); await jeda(150);
     c('K21 Unduh JPG: gambar JPEG lebar 1240 px berisi kartu SKU (tidak polos); ikut saringan, 3 SKU lebih pendek dari 6 SKU',
-      uj && /^katalog-jual-putus-\d{4}-\d{2}-\d{2}\.jpg$/.test(uj.suggestedFilename()) && ja.fmt === 'JPEG' && ja.w === 1240 && ja.sd > 12 && jb.w === 1240 && jb.h < ja.h && jb.h > 400,
+      uj && /^katalog-jual-putus-\d{4}-\d{2}-\d{2}\.jpg$/.test(uj.suggestedFilename()) && ja.fmt === 'JPEG' && ja.w === 1240 && ja.sd > 12 && jb.w === 1240 && jb.h < ja.h && jb.h >= 360,
       JSON.stringify([uj && uj.suggestedFilename(), ja, jb]));
 
     const up = await unduhLewat(p, '#katalog [data-katalog=pdf]');
@@ -285,6 +293,10 @@ const PALSU_AWAL = () => {
     c('K22 Unduh PDF: terbuka di pypdf (ketat) dan tabel xref tepat, 1 halaman A4 (595 x 842 pt) berisi gambar JPEG 1240 px, berjudul daftar harga',
       up && /^katalog-jual-putus-\d{4}-\d{2}-\d{2}\.pdf$/.test(up.suggestedFilename()) && (pa.hal || []).length === 1 && Math.round(h0.w) === 595 && Math.round(h0.h) === 842 &&
       h0.img && h0.img[0] && h0.img[0][0] === 1240 && /DCTDecode/.test(h0.img[0][2]) && /Mofmofriends/.test(pa.judul || '') && xs === 'ok', JSON.stringify([up && up.suggestedFilename(), xs, pa]).slice(0, 400));
+
+    const tk = await p.evaluate(() => window.__teksKanvas.join(' | '));
+    c('K25 JPG dan PDF cuma memuat harga beli putus: Bear Rp242,813 dan Pekingese Rp262,500 tergambar, kata margin, wholesale, rumus, dan 20% tidak ada',
+      /Rp242,813/.test(tk) && /Rp262,500/.test(tk) && /purchase price/i.test(tk) && !/margin|wholesale|selling price|20%|\u00f7/i.test(tk), tk.slice(0, 500));
 
     /* Penulis PDF untuk katalog panjang: 3 halaman JPEG berukuran beda, semua harus jadi halaman sendiri. */
     const b64 = await p.evaluate(async () => {
