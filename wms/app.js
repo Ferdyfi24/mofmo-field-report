@@ -557,6 +557,7 @@
       menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg>',
       katalog: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l8 8a1.4 1.4 0 0 1 0 2l-7.1 7.1a1.4 1.4 0 0 1-2 0z"/><circle cx="8.3" cy="8.3" r="1.6"/></svg>',
       kontrol: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.5h6v2.5H9zM8.5 12.5l2 2 4.5-4.5M8.5 17.5h7"/></svg>',
+      laporan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M12 16.5v3.5M8.5 20h7M7.5 13.5v-2.5M11 13.5V9M14.5 13.5v-4.5M18 13.5v-1.5"/></svg>',
       buku: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.2 5 7.6 4.5 4 4.8v13c3.6-.3 6.2.2 8 1.7 1.8-1.5 4.4-2 8-1.7v-13c-3.6-.3-6.2.2-8 1.7z"/><path d="M12 6.5v13"/></svg>'
     };
     function tombol(teks, label, fn, jenis) {
@@ -578,6 +579,9 @@
       /* Kontrol (11 Okt): tutup bulan, rapor mitra, margin, rekonsiliasi, angka janggal, SLA, retur Shopee */
       var kn = tombol('', C.teks.kontrol, function () { H.kontrol(); }, 'kontrol'); kn.innerHTML = IKON.kontrol + '<span>' + C.teks.kontrolPendek + '</span>'; kn.style.paddingRight = '15px';
       kanan.appendChild(kn);
+      /* Laporan bulanan (11 Okt): sales, inventory movement, inventory condition, SKU, channel jadi PPT */
+      var lp = tombol('', C.teks.laporan, function () { H.laporan(); }, 'laporan'); lp.innerHTML = IKON.laporan + '<span>' + C.teks.laporanPendek + '</span>'; lp.style.paddingRight = '15px';
+      kanan.appendChild(lp);
       /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
       var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
       kanan.appendChild(tm);
@@ -729,7 +733,7 @@
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
       var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
-        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', laporan: id ? 'Laporan bulanan: sales, inventory, SKU, channel jadi PowerPoint' : 'Monthly report: sales, inventory, SKU and channels as PowerPoint', laporanPendek: id ? 'Laporan' : 'Report', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
@@ -766,6 +770,7 @@
     kitabku: function (tab) { if (window.WmsKitabku) window.WmsKitabku.buka(tab); },
     katalog: function () { if (window.WmsKatalog) window.WmsKatalog.buka(); },
     kontrol: function (tab) { if (window.WmsKontrol) window.WmsKontrol.buka(tab); },
+    laporan: function () { if (window.WmsLaporan) window.WmsLaporan.buka(); },
     /* Tata letak Mofmo Soft P9 sampai P14 (tata.js), dipasang ke bingkai papan */
     tata: function (fw) { if (window.WmsTata) window.WmsTata.pasang(fw); }
   };
