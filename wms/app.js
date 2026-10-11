@@ -95,13 +95,21 @@
       .then(function (s) {
         if (tm) clearTimeout(tm);
         var h = null; try { h = JSON.parse(s); } catch (e) { h = null; }
-        if (!h || typeof h !== 'object') throw new Error(bhs() === 'id' ? 'Server papan tidak menjawab dengan benar. Kalau WMS baru ini baru dipasang, server papan mungkin belum diperbarui (deploy versi baru).' : 'The board server did not answer properly. If the new WMS was just set up, the board server may not be updated yet (deploy the new version).');
+        /* Bukan JSON = halaman galat Google (server sibuk atau terlalu lama), bukan
+           server lama: server lama tetap menjawab JSON, hanya tanpa 'pintu'. */
+        if (!h || typeof h !== 'object') { var es = new Error(bhs() === 'id' ? 'Server Google sedang sibuk dan belum menjawab dengan benar. Coba lagi sebentar lagi.' : "Google's server is busy and did not answer properly. Try again in a moment."); es.sementara = true; throw es; }
         /* Server papan versi lama tidak mengenal aksi 'wms' dan menjawab tanpa 'pintu'.
            Tanpa pemeriksaan ini jawabannya terbaca sebagai "kode salah". */
         if (!h.pintu) throw new Error(bhs() === 'id' ? 'Server papan belum diperbarui untuk WMS baru. Minta deploy versi baru Apps Script dulu.' : 'The board server is not updated for the new WMS yet. Deploy the new Apps Script version first.');
         if (h.pintu === 'galat') throw new Error(h.pesan || 'Server error.');
         return h.hasil;
-      }, function (e) { if (tm) clearTimeout(tm); throw new Error(e && e.name === 'AbortError' ? 'The server took too long. Try again.' : 'Connection lost. Try again when the signal is back.'); });
+      }, function (e) {
+        if (tm) clearTimeout(tm);
+        if (e && e.sementara) throw e;
+        var ej = new Error(e && e.name === 'AbortError' ? 'The server took too long. Try again.' : 'Connection lost. Try again when the signal is back.');
+        if (!(e && e.name === 'AbortError')) ej.sementara = true;
+        throw ej;
+      });
   }
   /* ---------- Supabase: potret baca cepat ---------- */
   function kirimSupa(badan, batas) {
@@ -265,7 +273,7 @@
      jalan = deploy; fungsi belum masuk izin = disebut namanya. */
   function pesanBelumDeploy(e) {
     var s = String(e && e.message ? e.message : e), id = bhs() === 'id', m;
-    if (/not updated for the new WMS|tidak menjawab dengan benar|did not answer properly/i.test(s))
+    if (/not updated for the new WMS|belum diperbarui untuk WMS/i.test(s))
       return id ? 'Fitur ini menyala setelah Apps Script di-deploy versi baru.' : 'This feature turns on after the new Apps Script version is deployed.';
     if ((m = s.match(/Fungsi "(\w+)" tidak ada/)))
       return id ? 'Fitur ini (' + m[1] + ') baru ada di kode Apps Script terbaru, jadi menyala setelah di-deploy versi baru.' : 'This feature (' + m[1] + ') is only in the newest Apps Script code, so it turns on after a new version is deployed.';
@@ -291,7 +299,15 @@
       if (d !== undefined) { cat.dari = 'supa'; return d; }
       cat.dari = 'gas';
       if (!BACA_PAPAN[nama] && !BACA_TANPA_KODE[nama] && !POLA_BACA.test(nama)) tandaiKotor();
-      return kirim({ aksi: 'wms', fn: 'panggil', tiket: S.tiket, nama: nama, args: args }).then(function (x) {
+      var badan = { aksi: 'wms', fn: 'panggil', tiket: S.tiket, nama: nama, args: args };
+      /* Bacaan yang kena jawaban sesaat (halaman galat Google, sinyal putus) dicoba
+         ulang sekali. Tulisan tidak, karena bisa sudah tercatat di server. */
+      var minta = kirim(badan).catch(function (e) {
+        if (tulisan || !(e && e.sementara)) throw e;
+        cat.ulang = 1;
+        return new Promise(function (ok) { setTimeout(ok, 1200); }).then(function () { return kirim(badan); });
+      });
+      return minta.then(function (x) {
         if (x && x.perluMasuk) { keluarAkun(true); throw new Error(x.pesan || 'Please sign in again.'); }
         return x;
       }, function (e) { cat.galat = String(e && e.message || e).slice(0, 80); throw new Error(pesanBelumDeploy(e)); });
@@ -541,6 +557,7 @@
       menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h11"/></svg>',
       katalog: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.6V4.5a1 1 0 0 1 1-1h8.1l8 8a1.4 1.4 0 0 1 0 2l-7.1 7.1a1.4 1.4 0 0 1-2 0z"/><circle cx="8.3" cy="8.3" r="1.6"/></svg>',
       kontrol: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.5h6v2.5H9zM8.5 12.5l2 2 4.5-4.5M8.5 17.5h7"/></svg>',
+      laporan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M12 16.5v3.5M8.5 20h7M7.5 13.5v-2.5M11 13.5V9M14.5 13.5v-4.5M18 13.5v-1.5"/></svg>',
       buku: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.2 5 7.6 4.5 4 4.8v13c3.6-.3 6.2.2 8 1.7 1.8-1.5 4.4-2 8-1.7v-13c-3.6-.3-6.2.2-8 1.7z"/><path d="M12 6.5v13"/></svg>'
     };
     function tombol(teks, label, fn, jenis) {
@@ -562,6 +579,9 @@
       /* Kontrol (11 Okt): tutup bulan, rapor mitra, margin, rekonsiliasi, angka janggal, SLA, retur Shopee */
       var kn = tombol('', C.teks.kontrol, function () { H.kontrol(); }, 'kontrol'); kn.innerHTML = IKON.kontrol + '<span>' + C.teks.kontrolPendek + '</span>'; kn.style.paddingRight = '15px';
       kanan.appendChild(kn);
+      /* Laporan bulanan (11 Okt): sales, inventory movement, inventory condition, SKU, channel jadi PPT */
+      var lp = tombol('', C.teks.laporan, function () { H.laporan(); }, 'laporan'); lp.innerHTML = IKON.laporan + '<span>' + C.teks.laporanPendek + '</span>'; lp.style.paddingRight = '15px';
+      kanan.appendChild(lp);
       /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
       var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
       kanan.appendChild(tm);
@@ -713,7 +733,7 @@
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
       var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
-        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', laporan: id ? 'Laporan bulanan: sales, inventory, SKU, channel jadi PowerPoint' : 'Monthly report: sales, inventory, SKU and channels as PowerPoint', laporanPendek: id ? 'Laporan' : 'Report', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
@@ -750,6 +770,7 @@
     kitabku: function (tab) { if (window.WmsKitabku) window.WmsKitabku.buka(tab); },
     katalog: function () { if (window.WmsKatalog) window.WmsKatalog.buka(); },
     kontrol: function (tab) { if (window.WmsKontrol) window.WmsKontrol.buka(tab); },
+    laporan: function () { if (window.WmsLaporan) window.WmsLaporan.buka(); },
     /* Tata letak Mofmo Soft P9 sampai P14 (tata.js), dipasang ke bingkai papan */
     tata: function (fw) { if (window.WmsTata) window.WmsTata.pasang(fw); }
   };
