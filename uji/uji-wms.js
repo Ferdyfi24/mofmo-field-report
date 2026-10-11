@@ -30,7 +30,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 45;
+const DIHARAPKAN = 46;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -112,8 +112,13 @@ const AUDIO_PALSU = () => {
       : m.nama === 'simpanRusak' ? { pintu: 'ok', hasil: { ok: false, pesan: 'Baris PO tidak ketemu.' } }
       : m.nama === 'wmsFotoRak' ? { pintu: 'ok', hasil: { ok: true, foto: Object.fromEntries((m.args[1] || []).map(i => [i, GIF1])), gagal: [] } }
       : m.nama === 'fungsiBaru' ? { pintu: 'galat', pesan: 'Fungsi "fungsiBaru" tidak ada.' }
+      /* Halaman galat Google (bukan JSON): server sibuk sesaat, bukan butuh deploy. */
+      : m.nama === 'fapPapanKoreksi' ? ((S.koreksi = (S.koreksi || 0) + 1) === 1 ? 'HTML' : { pintu: 'ok', hasil: { ok: true, menunggu: [], ke: S.koreksi } })
+      : m.nama === 'daftarRusak' ? ((S.rusak = (S.rusak || 0) + 1), 'HTML')
+      : m.nama === 'simpanHtml' ? ((S.simpanHtml = (S.simpanHtml || 0) + 1), 'HTML')
       : { pintu: 'galat', pesan: 'Fungsi "' + m.nama + '" tidak dibuka untuk WMS.' };
     else h = { pintu: 'galat', pesan: 'Fungsi "' + m.fn + '" tidak dibuka untuk WMS.' };
+    if (h === 'HTML') return r.fulfill({ status: 200, contentType: 'text/html', body: '<html><body>We\'re sorry, a server error occurred. Please wait a bit and try again.</body></html>' });
     await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(h) });
   });
   const POTRET = () => {
@@ -279,6 +284,14 @@ const AUDIO_PALSU = () => {
     const pesanBaru = await diBingkai(() => new Promise(r => google.script.run.withSuccessHandler(() => r('ok')).withFailureHandler(e => r(e.message)).fungsiBaru(KODE)));
     c('W36 pesan galat jujur: fungsi yang belum masuk izin disebut namanya (bukan "deploy"), fungsi yang belum ada di server baru disebut butuh deploy',
       /bukaDokumenGudang/.test(pesanDok) && !/deploy/i.test(pesanDok) && /fungsiBaru/.test(pesanBaru) && /deploy/i.test(pesanBaru), JSON.stringify([pesanDok, pesanBaru]));
+    /* 11 Okt: antrean koreksi absen di Work Log menulis "menyala setelah deploy", padahal
+       Apps Script cuma sesekali menjawab halaman galat Google (dicek di situs asli: panggilan
+       yang sama berhasil 10 detik kemudian). Bacaan dicoba ulang sekali; tulisan tidak
+       (bisa tercatat dua kali); pesannya jujur: server sibuk, bukan deploy. */
+    const ulang = await diBingkai(() => Promise.all(['fapPapanKoreksi', 'daftarRusak', 'simpanHtml'].map(n => new Promise(r => google.script.run.withSuccessHandler(x => r('ok:' + JSON.stringify(x))).withFailureHandler(e => r('galat:' + e.message))[n](KODE)))));
+    c('W46 bacaan yang dijawab halaman galat Google dicoba ulang sekali dan berhasil; yang tetap gagal dan tulisan (tidak diulang) menulis server sibuk, bukan deploy',
+      /^ok:.*"ke":2/.test(ulang[0]) && S.koreksi === 2 && S.rusak === 2 && S.simpanHtml === 1 && /busy|sibuk/i.test(ulang[1]) && !/deploy/i.test(ulang[1]) && /busy|sibuk/i.test(ulang[2]) && !/deploy/i.test(ulang[2]),
+      JSON.stringify([ulang, S.koreksi, S.rusak, S.simpanHtml]));
     await p.evaluate(() => sessionStorage.removeItem('wms_kotor'));
 
     /* ---------- bacaan yang tidak dicerminkan tidak menandai kotor ---------- */
