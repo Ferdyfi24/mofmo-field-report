@@ -24,7 +24,7 @@
  */
 const fs = require('fs'), path = require('path'), vm = require('vm'), http = require('http');
 const AKAR = '/home/claude/fieldreport';
-const DIHARAPKAN = 31;
+const DIHARAPKAN = 32;
 const cek = []; const c = (n, ok, k) => cek.push([n, !!ok, k]);
 
 /* ---------- buku besar, disusun di sini ----------
@@ -113,20 +113,28 @@ function bagianA() {
   c('A3 rasio nilai memakai pajak tiap SKU dan patokan MEDIAN retailer: Okt T305 0,650 lawan 0,676, menyimpang -3,8%',
     bulat3(okt.rasio) === 0.65 && bulat3(okt.norma) === 0.676 && Math.round(okt.deviasi * 1000) === -38, JSON.stringify(okt));
 
+  /* Margin saluran (Ferdy 11 Okt: persennya = margin mitra, semua termasuk PPN).
+     Konsinyasi: harga rak = retail r, bersih ke principal = r x (1 - margin mitra). TGI dan KIY 35%, MAA 45%.
+     Gamotion 20%: harga = wholesale termasuk PPN / 0,8. Jual putus perorangan 10% seperti direct sales: harga
+     = aturan Katalog (hs / 0,9 lalu pajak SKU). Shopee: harga r, biaya 25% (perkiraan).
+     Bear: r 298.846 x 0,65 = 194.250 (= wholesale termasuk PPN). Gamotion 194.250 / 0,8 = 242.813.
+     Putus 175.000 / 0,9 = 194.444, x 1,11 = 215.833, bersih 215.833 x 0,9 = 194.250. Shopee 298.846 x 0,75 = 224.135. */
   const m = H.margin;
   const bear = m.baris.find(b => b.s === 'MF-PLU-005'), panda = m.baris.find(b => b.s === 'MF-PLU-010');
-  c('A4 rasio retailer TGI 0,676 dan KIY 0,5 (median dari invoice yang punya penjualan); MAA tidak ada datanya',
-    bulat3(m.rasio.TGI) === 0.676 && bulat3(m.rasio.KIY) === 0.5 && m.rasio.MAA == null && m.baris.length === 4, JSON.stringify(m.rasio) + ' baris ' + m.baris.length);
-  c('A5 margin Bear: TGI 182.000 (3,8%), KIY 134.615 (-30%), jual putus 194.444 (10%), Shopee 201.923 (13,3%)',
-    bear && bear.saluran.TGI.net === 182000 && Math.round(bear.saluran.TGI.margin * 1000) === 38 && bear.saluran.KIY.net === 134615 && Math.round(bear.saluran.KIY.margin * 100) === -30 &&
-    bear.saluran.putus.net === 194444 && Math.round(bear.saluran.putus.margin * 100) === 10 && bear.saluran.shopee.net === 201923 && Math.round(bear.saluran.shopee.margin * 1000) === 133,
-    JSON.stringify(bear && bear.saluran));
-  c('A6 pajak per SKU: Panda (5%) di TGI 202.800 dan Shopee 225.000, bukan dibagi 1,11',
-    panda && panda.saluran.TGI.net === 202800 && panda.saluran.shopee.net === 225000, JSON.stringify(panda && panda.saluran));
-  const Hp = K._hitung(DATA, { sp: SP, tg: TAGIHAN, opsi: { invoicePpn: true, feeShopee: 0.3 } });
+  const sel = (x, k) => x && x.saluran[k] ? x.saluran[k].harga + '/' + x.saluran[k].net : '-';
+  c('A4 saluran dan margin mitra: Toys Kingdom 35%, Kinokuniya 35% (MAA tidak ada gerainya), Gamotion 20%, jual putus 10%, Shopee 25%; wholesale termasuk PPN',
+    (m.saluran || []).map(x => x.k + ':' + Math.round(x.m * 100)).join(',') === 'TGI:35,KIY:35,gamotion:20,putus:10,shopee:25' && m.baris.length === 4 && !!bear && bear.wholesale === 194250,
+    JSON.stringify(m.saluran) + ' baris ' + m.baris.length + ' wholesale ' + (bear && bear.wholesale));
+  c('A5 Bear per saluran (harga/bersih ke principal, termasuk PPN): TGI dan KIY 298.846/194.250, Gamotion 242.813/194.250, jual putus 215.833/194.250, Shopee 298.846/224.135',
+    sel(bear, 'TGI') === '298846/194250' && sel(bear, 'KIY') === '298846/194250' && sel(bear, 'gamotion') === '242813/194250' && sel(bear, 'putus') === '215833/194250' && sel(bear, 'shopee') === '298846/224135',
+    ['TGI', 'KIY', 'gamotion', 'putus', 'shopee'].map(k => k + ' ' + sel(bear, k)).join(' | '));
+  c('A6 pajak per SKU: Panda (5%) jual putus 233.333 (bukan dikali 1,11), Gamotion 262.500, TGI 315.000 x 0,65 = 204.750',
+    sel(panda, 'putus') === '233333/210000' && sel(panda, 'gamotion') === '262500/210000' && sel(panda, 'TGI') === '315000/204750', ['TGI', 'gamotion', 'putus'].map(k => k + ' ' + sel(panda, k)).join(' | '));
+  const Hp = K._hitung(DATA, { sp: SP, tg: TAGIHAN, opsi: { marginMitra: { TGI: 0.4 }, feeShopee: 0.3, marginPutus: 0.2 } });
   const bp = Hp.margin.baris.find(b => b.s === 'MF-PLU-005');
-  c('A7 pilihan: invoice termasuk PPN (TGI Bear 163.964) dan biaya Shopee 30% (188.461)',
-    bp.saluran.TGI.net === 163964 && bp.saluran.shopee.net === Math.round(RB * 0.7), JSON.stringify(bp.saluran));
+  c('A7 persen bisa diubah: TGI 40% (bersih 179.308), Shopee 30% (209.192), jual putus 20% (harga 242.813), KIY tetap 35%',
+    sel(bp, 'TGI') === '298846/179308' && sel(bp, 'shopee') === '298846/209192' && sel(bp, 'putus') === '242813/194250' && sel(bp, 'KIY') === '298846/194250',
+    ['TGI', 'KIY', 'putus', 'shopee'].map(k => k + ' ' + sel(bp, k)).join(' | '));
 
   const jg = H.janggal.map(j => j.kode + ':' + j.bobot + ':' + j.jml).join(',');
   c('A8 angka janggal berbasis aturan, berat dulu: saldo minus T390, unit invoice lawan buku, nilai menyimpang, ADJUST besar, barang di jalan lewat SLA',
@@ -175,9 +183,14 @@ function bagianA() {
   D2.invoiceMitra[1].gerai['KIY-GI'] = { unit: 1, nilai: 200000 };
   D2.invoiceMitra[0].gerai['KIY-GI'] = { unit: 1, nilai: 175000 };
   const H2 = K._hitung(D2, { sp: SP, tg: TAGIHAN });
-  const b2 = H2.margin.baris.find(b => b.s === 'MF-PLU-005'), r2 = H2.rekon.filter(r => r.gerai === 'KIY-GI' && r.unitBuku).map(r => r.bulan + ':' + r.dasar + ':' + bulat3(r.rasio) + ':' + r.status).join(',');
-  c('A23 mitra yang membayar wholesale dibaca dari wholesale: rasio 1,000 cocok di dua bulan, margin KIY Bear 0% (175.000), TGI tetap dari retail',
-    H2.margin.dasar.KIY === 'modal' && H2.margin.dasar.TGI === 'retail' && r2 === '2026-10:modal:1:cocok,2026-09:modal:1:cocok' && b2.saluran.KIY.net === 175000 && b2.saluran.KIY.margin === 0, JSON.stringify({ d: H2.margin.dasar, r2, kiy: b2.saluran.KIY }));
+  const r2 = H2.rekon.filter(r => r.gerai === 'KIY-GI' && r.unitBuku).map(r => r.bulan + ':' + r.dasar + ':' + bulat3(r.rasio) + ':' + r.status).join(',');
+  c('A23 rekonsiliasi: mitra yang membayar wholesale dibaca dari wholesale (rasio 1,000 cocok di dua bulan), TGI tetap dari retail',
+    H2.rekonDasar.KIY === 'modal' && H2.rekonDasar.TGI === 'retail' && r2 === '2026-10:modal:1:cocok,2026-09:modal:1:cocok', JSON.stringify({ d: H2.rekonDasar, r2 }));
+  /* Retail tanpa pajak dibaca per SKU di rekonsiliasi: Panda (5%) 315.000 / 1,05 = 300.000, jadi invoice 150.000 = rasio 0,500.
+     Dengan 1,11 rata nilainya 283.784 dan rasio 0,529. */
+  const kiySep = H.rekon.find(r => r.gerai === 'KIY-GI' && r.bulan === '2026-09');
+  c('A24 rekonsiliasi KIY-GI September: retail tanpa pajak Panda 300.000 (pajak 5% per SKU), rasio 0,500',
+    !!kiySep && Math.round(kiySep.retail) === 300000 && bulat3(kiySep.rasio) === 0.5, JSON.stringify(kiySep && { retail: kiySep.retail, rasio: kiySep.rasio }));
   c('A22 semua draf tanpa tanda pisah panjang dan berakhir dengan nama pengirim', semua.indexOf(String.fromCharCode(8212)) === -1 && [d1, d2, d3, d4].every(d => /Ferdy/.test(d.isi)), '');
 }
 bagianA();
@@ -258,10 +271,12 @@ async function bagianB() {
       c('B4 rapor TGI bernilai C; tombol draf rekonsiliasi membuka draf yang bisa diubah dan tautan surel tanpa penerima (tidak terkirim sendiri)',
         t3.nilaiRapor === 'C' && /Rp546\.520/.test(t3.nilai) && /^mailto:\?subject=/.test(t3.href), JSON.stringify({ r: t3.nilaiRapor, href: t3.href.slice(0, 40), n: t3.nilai.slice(0, 80) }));
       await p.evaluate(() => { const x = document.querySelector('#kontrol [data-draf-tutup]'); if (x) x.click(); document.querySelector('#kontrol [data-kontrol-tab=margin]').click(); }); await jeda(150);
-      const sebelum = await p.evaluate(() => (document.querySelector('#kontrol [data-margin-sku="MF-PLU-005"] [data-saluran=shopee] .kn-m') || {}).textContent);
-      await p.evaluate(() => { const i = document.querySelector('#kontrol #knFeeShopee'); i.value = '30'; i.dispatchEvent(new Event('change', { bubbles: true })); }); await jeda(150);
-      const sesudah = await p.evaluate(() => (document.querySelector('#kontrol [data-margin-sku="MF-PLU-005"] [data-saluran=shopee] .kn-m') || {}).textContent);
-      c('B5 margin Shopee Bear 13.3% lalu 7.1% setelah biaya Shopee diganti 30%', sebelum === '13.3%' && sesudah === '7.1%', sebelum + ' -> ' + sesudah);
+      const baca = () => p.evaluate(() => ({ kepala: Array.from(document.querySelectorAll('#kontrol .kn-margin thead th')).map(x => x.textContent).join('|'), shopee: (document.querySelector('#kontrol [data-margin-sku="MF-PLU-005"] [data-saluran=shopee] .kn-net') || {}).textContent, tgi: (document.querySelector('#kontrol [data-margin-sku="MF-PLU-005"] [data-saluran=TGI] .kn-net') || {}).textContent }));
+      const sebelum = await baca();
+      await p.evaluate(() => { const i = document.querySelector('#kontrol [data-margin-input=shopee]'); i.value = '30'; i.dispatchEvent(new Event('change', { bubbles: true })); }); await jeda(150);
+      const sesudah = await baca();
+      c('B5 kepala kolom menulis margin mitra (Toys Kingdom 35%), Bear bersih Rp194,250 di TGI; Shopee Rp224,135 lalu Rp209,192 setelah biaya diganti 30%',
+        /Toys Kingdom[^|]*35%/.test(sebelum.kepala) && /Shopee[^|]*25%/.test(sebelum.kepala) && sebelum.tgi === 'Rp194,250' && sebelum.shopee === 'Rp224,135' && sesudah.shopee === 'Rp209,192' && /Shopee[^|]*30%/.test(sesudah.kepala), JSON.stringify({ sebelum, sesudah }));
       await p.keyboard.press('Escape'); await jeda(150);
       c('B6 Escape menutup lembar', await p.evaluate(() => !document.getElementById('kontrol').classList.contains('buka')), 'masih terbuka');
     }
