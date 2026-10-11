@@ -14,6 +14,9 @@
  *    pustaka dari luar. JPG dan PDF digambar di kanvas (foto SKU dari situs ini
  *    sendiri), PDF berisi halaman JPEG A4. Excel berupa .xlsx sungguhan dengan
  *    sel margin di B2 dan rumus harga yang ikut berubah kalau margin diganti.
+ *  - JPG, PDF, dan Cetak untuk pembeli (Ferdy: "harga beli putus aja"): cuma
+ *    harga beli putus termasuk pajak, tanpa margin, wholesale, atau rumus.
+ *    Excel dan CSV tetap lengkap untuk kerja internal.
  * Lembar ini cuma membaca; tidak ada yang ditulis ke sistem.
  */
 (function () {
@@ -37,7 +40,7 @@
       jual: 'Outright price', inkl: function (p) { return 'incl. ' + p + ' tax'; }, sebelum: 'before tax', modal: 'Wholesale', retail: 'Retail', stokHo: 'HO', stokTotal: 'total', pajak: 'tax',
       tanpaHarga: 'No price yet', kosong: 'No SKU matches.', jumlah: 'SKUs shown', per: 'Data as of',
       rumus: function (m) { return 'Outright price = wholesale ÷ (1 − ' + m + '). The ' + m + ' margin is taken from the selling price, the same rule the system uses for Gamotion. Each SKU then gets its own tax rate from the product master (PPN 11% for most), so the big number already includes tax.'; },
-      cetakJudul: 'Mofmofriends outright sale price list', cetakKet: function (m, t) { return 'Margin ' + m + ' from the selling price, tax included. Printed ' + t + '.'; },
+      cetakJudul: 'Mofmofriends outright purchase price list', cetakKet: function (t) { return 'Prices include tax. Issued ' + t + '.'; },
       kolom: ['SKU', 'Barcode', 'Name', 'HO stock', 'Total stock', 'Wholesale before tax', 'Outright price before tax', 'Tax %', 'Outright price incl. tax', 'Retail incl. tax']
     },
     id: {
@@ -49,7 +52,7 @@
       jual: 'Harga jual putus', inkl: function (p) { return 'termasuk pajak ' + p; }, sebelum: 'sebelum pajak', modal: 'Wholesale', retail: 'Retail', stokHo: 'HO', stokTotal: 'total', pajak: 'pajak',
       tanpaHarga: 'Belum ada harga', kosong: 'Tidak ada SKU yang cocok.', jumlah: 'SKU tampil', per: 'Data per',
       rumus: function (m) { return 'Harga jual putus = wholesale ÷ (1 − ' + m + '). Margin ' + m + ' diambil dari harga jual, aturan yang sama dengan Gamotion. Sesudah itu ditambah tarif pajak masing-masing SKU dari Master Produk (umumnya PPN 11%), jadi angka besar sudah termasuk pajak.'; },
-      cetakJudul: 'Daftar harga jual putus Mofmofriends', cetakKet: function (m, t) { return 'Margin ' + m + ' dari harga jual, sudah termasuk pajak. Dicetak ' + t + '.'; },
+      cetakJudul: 'Daftar harga beli putus Mofmofriends', cetakKet: function (t) { return 'Harga sudah termasuk pajak. Diterbitkan ' + t + '.'; },
       kolom: ['SKU', 'Barcode', 'Nama', 'Stok HO', 'Stok total', 'Wholesale sebelum pajak', 'Harga jual putus sebelum pajak', 'Pajak %', 'Harga jual putus termasuk pajak', 'Retail termasuk pajak']
     }
   };
@@ -257,7 +260,7 @@
     if (!D.data) return;
     var ls = terpilih(); if (!ls.length) return;
     var w = document.createElement('div'); w.id = 'lembarKatalog';
-    w.innerHTML = '<header class="kc-kepala"><h1>' + esc(t('cetakJudul')) + '</h1><p>' + esc(t('cetakKet')(persen(A.margin), tanggal())) + '</p></header>' +
+    w.innerHTML = '<header class="kc-kepala"><h1>' + esc(t('cetakJudul')) + '</h1><p>' + esc(t('cetakKet')(tanggal())) + '</p></header>' +
       '<div class="kc-grid">' + ls.map(function (x) {
         var p = x.p, h = x.h;
         return '<div class="kc-sku" data-cetak-sku="' + esc(p.s || p.b) + '">' + fotoHtml(p.n) + '<div class="kc-teks"><b>' + esc(p.n || p.s) + '</b><small>' + esc([p.s, p.b].filter(Boolean).join(' · ')) + '</small></div>' +
@@ -393,7 +396,7 @@
   }
 
   /* ---------- kanvas: lembar harga untuk JPG dan halaman PDF ---------- */
-  var KV = { lebar: 1240, tepi: 48, kolom: 3, celah: 18, kartu: 168, kepala: 176, kaki: 104, tinggiA4: 1754 };
+  var KV = { lebar: 1240, tepi: 48, kolom: 3, celah: 18, kartu: 168, kepala: 176, kaki: 32, tinggiA4: 1754 };
   var WARNA = { latar: '#FFFFFF', pita: '#FFF8EF', garis: '#EFE1CF', aksen: '#F6A26B', tinta: '#4A3426', redup: '#7E6656', lembut: '#FCF1E4', harga: '#A9501C' };
   var HURUF_JUDUL = '"Baloo 2", Nunito, Arial, sans-serif', HURUF = 'Nunito, Arial, sans-serif';
   function tungguHuruf() {
@@ -432,7 +435,7 @@
     g.fillStyle = WARNA.aksen; g.fillRect(0, KV.kepala - 30, KV.lebar, 4);
     g.textBaseline = 'alphabetic'; g.textAlign = 'left';
     g.fillStyle = WARNA.tinta; g.font = '800 38px ' + HURUF_JUDUL; g.fillText(t('cetakJudul'), KV.tepi, 76);
-    g.fillStyle = WARNA.redup; g.font = '700 19px ' + HURUF; g.fillText(t('cetakKet')(persen(A.margin), tanggal()), KV.tepi, 112);
+    g.fillStyle = WARNA.redup; g.font = '700 19px ' + HURUF; g.fillText(t('cetakKet')(tanggal()), KV.tepi, 112);
     g.textAlign = 'right'; g.font = '700 16px ' + HURUF;
     if (opsi.per) g.fillText(t('per') + ' ' + opsi.per, KV.lebar - KV.tepi, 76);
     if (opsi.dari > 1) g.fillText(t('halaman')(opsi.ke, opsi.dari), KV.lebar - KV.tepi, 112);
@@ -456,9 +459,6 @@
         g.fillStyle = WARNA.redup; g.font = '700 13px ' + HURUF; g.fillText(t('inkl')(persen(h.pajak)), tx, ky + 151);
       } else { g.fillStyle = WARNA.redup; g.font = '700 17px ' + HURUF; g.fillText(t('tanpaHarga'), tx, ky + 130); }
     });
-    g.fillStyle = WARNA.redup; g.font = '600 14px ' + HURUF;
-    var ket = baris2(g, t('rumus')(persen(A.margin)), isiL, 4), y0 = tinggi - KV.kaki + 22;
-    ket.forEach(function (b, j) { g.fillText(b, KV.tepi, y0 + j * 19); });
     return cv;
   }
   function keJpeg(cv) {
