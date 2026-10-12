@@ -10,7 +10,11 @@
  *    sebaliknya tetap tersembunyi waktu pindah ke halaman lain;
  *  - gambar ulang papan (gambarBacaPo memanggil innerHTML lagi) menggandakan
  *    kolom stok HO di tabel PO;
- *  - tombol simpan dan unggah papan berhenti jalan karena elemennya dipindah.
+ *  - tombol simpan dan unggah papan berhenti jalan karena elemennya dipindah;
+ *  - halaman Kualitas data baru cuma membaca sehat.temuan dan mitra telat, jadi
+ *    temuan papan berbidang sehat (gerai tanpa penjualan berhari-hari, SKU laku
+ *    yang tinggal sedikit di rak) hilang padahal lencana menu menghitungnya
+ *    (12 Okt malam: lencana 4, halaman cuma 2).
  * Semua angka harapan dihitung tangan dari baris buku besar di bawah.
  */
 const { chromium } = require('playwright');
@@ -19,7 +23,7 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 27;
+const DIHARAPKAN = 28;
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -72,6 +76,11 @@ let PIUTANG = TAGIHAN_ADA, LAMBAT = 0;
 /* ---------- papan lama palsu: HAL + gambar(), isi #isi diganti tiap halaman ---------- */
 const SKRIP = function () {
   window.HAL = 'ringkasan'; window.PO_ADA = 0;
+  /* temuan papan berbidang sehat, bentuknya persis temuanLainSehat() di papan asli */
+  window.temuanLainSehat = function () { return [
+    { bobot: 'ringan', judul: 'Tidak ada penjualan 54 hari', subjek: 'TOYS KINGDOM MARGO CITY DEPOK', ket: '100 pcs ada di rak. Penjualan terakhir tercatat:', ketData: '2026-08-19', aksi: 'Bisa memang sepi, bisa juga laporannya yang tidak masuk.' },
+    { bobot: 'ringan', judul: '2 SKU yang laku tinggal \u22642 pcs di rak', ket: '', ketData: 'MofmoFriends S - Red Panda \u00b7 <span>sisa</span> 1 \u00b7 TOYS KINGDOM ALAM SUTERA<br>Cap Banana \u00b7 <span>sisa</span> 2 \u00b7 KINOKUNIYA PIK', aksi: 'Masukkan ke kiriman berikutnya.' }
+  ]; };
   var el = function (i) { return document.getElementById(i); };
   window.gambar = function () {
     var I = el('isi');
@@ -230,8 +239,12 @@ const PALSU_AWAL = () => {
     await ke(p, 'sehat', () => !!document.querySelector('[data-l4t-skor]'));
     const q = await fe(p, () => ({ skor: document.querySelector('[data-l4t-skor]').getAttribute('data-l4t-skor'), teks: document.querySelector('.l4t-skor p').textContent,
       temuan: Array.from(document.querySelectorAll('[data-l4t-temuan]')).map(x => x.getAttribute('data-l4t-temuan') + ':' + x.querySelector('b').textContent).join('|'), lama: document.getElementById('lamaSehat').offsetParent !== null }));
-    c('T13 P14: skor 79 (100 - 10 laporan MAA telat - 3 temuan ringan - 8 satu tugas telat), "2 findings to fix. 1 of 2 automatic jobs ran on time.", temuan berat di atas, isi lama tersembunyi',
-      q.skor === '79' && q.teks === '2 findings to fix. 1 of 2 automatic jobs ran on time.' && q.temuan === 'berat:Partner report late: MAA|ringan:SKU belum pernah ada barangnya (96)' && !q.lama, JSON.stringify(q));
+    c('T13 P14: skor 73 (100 - 10 laporan MAA telat - 3 x 3 temuan ringan termasuk dua temuan papan - 8 satu tugas telat), "4 findings to fix. 1 of 2 automatic jobs ran on time.", temuan berat di atas, isi lama tersembunyi',
+      q.skor === '73' && q.teks === '4 findings to fix. 1 of 2 automatic jobs ran on time.' && q.temuan === 'berat:Partner report late: MAA|ringan:SKU belum pernah ada barangnya (96)|ringan:Tidak ada penjualan 54 hari|ringan:2 SKU yang laku tinggal \u22642 pcs di rak' && !q.lama, JSON.stringify(q));
+    const qp = await fe(p, () => Array.from(document.querySelectorAll('[data-l4t-temuan]')).slice(2).map(x => x.querySelector('small').textContent + '#' + (x.querySelector('[data-l4t=lama]') ? 'lama' : '-')));
+    c('T13b P14: temuan papan menyebut gerainya, datanya, dan sarannya; HTML di datanya jadi teks biasa (baris dipisah titik koma, tanpa tag), tombolnya membuka tampilan lama',
+      qp.length === 2 && qp[0] === 'TOYS KINGDOM MARGO CITY DEPOK · 100 pcs ada di rak. Penjualan terakhir tercatat: 2026-08-19. Bisa memang sepi, bisa juga laporannya yang tidak masuk.#lama' &&
+      qp[1] === 'MofmoFriends S - Red Panda \u00b7 sisa 1 \u00b7 TOYS KINGDOM ALAM SUTERA; Cap Banana \u00b7 sisa 2 \u00b7 KINOKUNIYA PIK. Masukkan ke kiriman berikutnya.#lama', JSON.stringify(qp));
     const tg = await fe(p, () => ({ tugas: Array.from(document.querySelectorAll('[data-l4t-tugas]')).map(x => x.getAttribute('data-status')).join(','), log: Array.from(document.querySelectorAll('[data-l4t-log] time')).map(x => x.textContent).join(',') }));
     c('T14 P14: tugas otomatis hijau/kuning/mati sesuai status, catatan aktivitas menulis jam untuk hari ini dan tanggal untuk hari lain', tg.tugas === 'hijau,kuning,mati' && tg.log === '02:10,9 Oct', JSON.stringify(tg));
     await fe(p, () => document.querySelector('[data-l4t-hal=dokumen]').click());
