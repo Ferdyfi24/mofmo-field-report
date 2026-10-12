@@ -238,7 +238,7 @@ const AUDIO_PALSU = () => {
     const ob = await diBingkai(() => { const akar = document.getElementById('smrKotak').shadowRoot; const t = getComputedStyle(akar.getElementById('tpUji')); const a = getComputedStyle(akar.getElementById('tpAngka')); const dft = getComputedStyle(akar.getElementById('daftarUji'));
       return { tpJahit: t.outlineStyle, tpSudut: t.borderTopLeftRadius, angka: a.fontFamily.slice(0, 12), angkaUkuran: a.fontSize, daftarSudut: dft.borderTopLeftRadius }; });
     c('W45 Gudang Outbound: ubin tahap berjahit dan bersudut bulat, angkanya Baloo 2 besar, daftar kiriman bersudut bulat', ob.tpJahit === 'dashed' && parseFloat(ob.tpSudut) >= 14 && /Baloo 2/.test(ob.angka) && parseFloat(ob.angkaUkuran) >= 28 && parseFloat(ob.daftarSudut) >= 14, JSON.stringify(ob));
-    c('W26 bidang isi diperbesar lagi (zoom 1.22 di layar lebar, Ferdy: "gedein fontnya"), kartu putih bersudut bulat dengan jahitan putus-putus', isi.zoom === '1.22' && parseFloat(isi.sudut) >= 14 && isi.jahit === 'dashed' && isi.latar === 'rgb(255, 255, 255)', JSON.stringify(isi));
+    c('W26 bidang isi di laptop 1360 px tidak diperbesar (zoom 1; 1.22 hanya di layar 1800 px ke atas, lihat uji-kepala-laptop.js), kartu putih bersudut bulat dengan jahitan putus-putus', isi.zoom === '1' && parseFloat(isi.sudut) >= 14 && isi.jahit === 'dashed' && isi.latar === 'rgb(255, 255, 255)', JSON.stringify(isi));
     /* Ferdy 10 Okt: "foto skunya dimasukin jg dong". Nama SKU di tabel dan di
        sel peta gudang diberi foto produk; nama yang belum punya foto dan teks
        yang bukan nama produk dibiarkan. */
