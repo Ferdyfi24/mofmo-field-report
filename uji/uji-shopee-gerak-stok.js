@@ -16,14 +16,18 @@
  *    server tidak menemukan kolomnya dan tidak ada yang bergerak;
  *  - isian kemas/serah yang cuma ditulis di baris pertama pesanan tidak
  *    terbawa ke barang kedua, jadi barang kedua tidak ikut dikemas;
- *  - stok bergerak tanpa pratinjau dan tanpa klik konfirmasi;
+ *  - Ferdy mau sekali jalan: satu kali Setor, stok ikut bergerak, tanpa klik
+ *    kedua. Jalur Gudang Shopee mengingat tahap tiap pesanan (sudah dikemas,
+ *    diserahkan, diterima, diretur), jadi setoran ulang tidak menulis dua
+ *    kali; klien cukup tidak memanggil obdShpSimpan saat pratinjau bilang
+ *    tidak ada yang baru;
  *  - pesanan yang belum dikemas ikut masuk PACKING SHOPEE.
  * Judul kolom di bawah disalin dari Mofmo_Shopee_NEW_PLUS_v8.1.xlsx (berkas
  * yang selama ini diunggah gudang): itulah kontraknya.
  */
 const fs = require('fs'), path = require('path'), vm = require('vm'), http = require('http'), { execFileSync } = require('child_process');
 const AKAR = process.env.AKAR || path.resolve(__dirname, '..');
-const DIHARAPKAN = 13;
+const DIHARAPKAN = 14;
 const cek = []; const c = (n, ok, k) => cek.push([n, !!ok, k]);
 const SEMENTARA = fs.mkdtempSync('/tmp/uji-shopee-gerak-');
 
@@ -177,33 +181,43 @@ async function bagianB() {
     await p.setInputFiles('#lsBerkas', terisi);
     await p.waitForSelector('#lsPrat [data-ls=setor]', { timeout: 10000 });
     await p.click('#lsPrat [data-ls=setor]');
-    await p.waitForSelector('#lsPrat [data-ls=gerak]', { timeout: 10000 }).catch(() => {});
+    await p.waitForFunction(() => /Tersimpan: 1 pesanan baru/.test((document.getElementById('lsPrat') || {}).innerText || ''), null, { timeout: 10000 }).catch(() => {});
     await jeda(300);
     const pr = panggil.find(x => x.nama === 'obdShpPratinjau') || { args: [] };
     const b64f = path.join(SEMENTARA, 'b64.txt'); fs.writeFileSync(b64f, String(pr.args[1] || ''));
     const isiB = pr.args[1] ? py('b64', b64f) : {};
     const t2 = await p.evaluate(() => (document.getElementById('lsPrat') || {}).innerText || '');
-    const simpanDulu = panggil.some(x => x.nama === 'obdShpSimpan');
-    c('B2 sesudah Setor: laporan tersimpan, lalu pratinjau gerak stok dipanggil dengan berkas rakitan (tab dan judul kolom Excel Operasi Stok) atas nama tiket WMS (PACKING berisi dua barang P; pesanan kemarin yang baru dikemas menunggu diserahkan); stok BELUM digerakkan',
-      panggil.findIndex(x => x.nama === 'wmsShopeeSetor') > -1 && panggil.findIndex(x => x.nama === 'wmsShopeeSetor') < panggil.findIndex(x => x.nama === 'obdShpPratinjau') && pr.args[0] === 'WMS-TIKET' && /^setoran-shopee-2026-10-12/.test(pr.args[2] || '') &&
-      (isiB.nama || []).join(',') === 'Pesanan Online,Kirim Shopee,PACKING SHOPEE' && JSON.stringify(isiB.po6) === JSON.stringify(KEPALA_PESANAN) && (isiB.pk || []).slice(1).map(r => r[0]).filter(Boolean).join(',') === '261012PPPPPPPP,261012PPPPPPPP' && !simpanDulu,
+    const urut = n => panggil.findIndex(x => x.nama === n);
+    c('B2 sesudah Setor: laporan tersimpan, pratinjau gerak stok dipanggil dengan berkas rakitan (tab dan judul kolom Excel Operasi Stok) atas nama tiket WMS (PACKING berisi dua barang P; pesanan kemarin yang baru dikemas menunggu diserahkan)',
+      urut('wmsShopeeSetor') > -1 && urut('wmsShopeeSetor') < urut('obdShpPratinjau') && pr.args[0] === 'WMS-TIKET' && /^setoran-shopee-2026-10-12/.test(pr.args[2] || '') &&
+      (isiB.nama || []).join(',') === 'Pesanan Online,Kirim Shopee,PACKING SHOPEE' && JSON.stringify(isiB.po6) === JSON.stringify(KEPALA_PESANAN) && (isiB.pk || []).slice(1).map(r => r[0]).filter(Boolean).join(',') === '261012PPPPPPPP,261012PPPPPPPP',
       JSON.stringify([panggil.map(x => x.nama), pr.args[0], pr.args[2], isiB]).slice(0, 900));
-    c('B3 pratinjau tampil: pesan server, pesanan bermasalah dengan alasannya, tombol Gerakkan stok', /Siap disimpan: 1 pesanan baru/.test(t2) && /261011CCCCCCCC/.test(t2) && /Link Foto Serah Kurir belum diisi/.test(t2) && /Gerakkan stok/.test(t2), t2);
-    await p.click('#lsPrat [data-ls=gerak]').catch(() => {});
-    await p.waitForFunction(() => /Tersimpan: 1 pesanan baru/.test((document.getElementById('lsPrat') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
     const sm = panggil.find(x => x.nama === 'obdShpSimpan') || { args: [] };
-    const t4 = await p.evaluate(() => (document.getElementById('lsPrat') || {}).innerText || '');
-    c('B4 klik Gerakkan stok: obdShpSimpan dengan token dan berkas yang sama persis, penyetor tercatat; hasil server tampil; data Shopee dibaca ulang',
-      sm.args[0] === 'WMS-TIKET' && sm.args[1] === 'TOKEN-1' && sm.args[2] === pr.args[1] && sm.args[3] === pr.args[2] && sm.args[4] === 'Rina' && /Tersimpan: 1 pesanan baru/.test(t4) && panggil.filter(x => x.nama === 'wmsShopeeData').length >= 2,
-      JSON.stringify([sm.args.slice(0, 2), sm.args[3], sm.args[4], t4]).slice(0, 600));
+    c('B3 sekali jalan: tanpa klik kedua, stok langsung digerakkan sesudah pratinjau (obdShpSimpan sekali, token dan berkas yang sama persis, penyetor tercatat), data Shopee dibaca ulang',
+      urut('obdShpPratinjau') > -1 && urut('obdShpPratinjau') < urut('obdShpSimpan') && panggil.filter(x => x.nama === 'obdShpSimpan').length === 1 &&
+      sm.args[0] === 'WMS-TIKET' && sm.args[1] === 'TOKEN-1' && sm.args[2] === pr.args[1] && sm.args[3] === pr.args[2] && sm.args[4] === 'Rina' && panggil.filter(x => x.nama === 'wmsShopeeData').length >= 2,
+      JSON.stringify([panggil.map(x => x.nama), sm.args.slice(0, 2), sm.args[3], sm.args[4]]).slice(0, 600));
+    const tb4 = await p.evaluate(() => !!document.querySelector('#lsPrat [data-ls=gerak]'));
+    c('B4 hasil tampil: pesan simpan server, pesanan bermasalah tetap disebut dengan alasannya, tanpa tombol kedua', /Tersimpan: 1 pesanan baru/.test(t2) && /261011CCCCCCCC/.test(t2) && /Link Foto Serah Kurir belum diisi/.test(t2) && !tb4, t2);
     /* pratinjau tanpa kerja: tidak ada tombol */
     pratJawab = { ok: true, token: 'TOKEN-2', pesan: 'Belum ada yang bisa disimpan. Pesanan bermasalah: 1.', jml: { impor: 0, kemas: 0, serah: 0, salah: 1, tunda: 0, susul: 0, terima: 0, retur: 0, harga: 0, pcsJual: 0 }, salah: [{ no: '261012PPPPPPPP', alasan: 'Link Foto Kirim belum diisi.' }] };
     await p.setInputFiles('#lsBerkas', terisi);
     await p.waitForSelector('#lsPrat [data-ls=setor]', { timeout: 10000 });
     await p.click('#lsPrat [data-ls=setor]');
     await p.waitForFunction(() => /Belum ada yang bisa disimpan/.test((document.getElementById('lsPrat') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
+    await jeda(400);
     const t5 = await p.evaluate(() => ({ teks: (document.getElementById('lsPrat') || {}).innerText || '', tombol: !!document.querySelector('#lsPrat [data-ls=gerak]') }));
-    c('B5 pratinjau tanpa ada yang bisa digerakkan: alasannya tampil, tanpa tombol Gerakkan stok', /Belum ada yang bisa disimpan/.test(t5.teks) && /Link Foto Kirim belum diisi/.test(t5.teks) && !t5.tombol, JSON.stringify(t5));
+    c('B5 pratinjau tanpa ada yang bisa digerakkan: alasannya tampil, stok tidak disentuh (obdShpSimpan tidak dipanggil lagi)', /Belum ada yang bisa disimpan/.test(t5.teks) && /Link Foto Kirim belum diisi/.test(t5.teks) && !t5.tombol && panggil.filter(x => x.nama === 'obdShpSimpan').length === 1, JSON.stringify([t5, panggil.filter(x => x.nama === 'obdShpSimpan').length]));
+    /* setor ulang berkas yang sama: server bilang tidak ada yang baru, jadi tidak ada tulisan kedua */
+    pratJawab = { ok: true, token: 'TOKEN-3', pesan: 'Tidak ada yang baru di berkas ini.', jml: { impor: 0, kemas: 0, serah: 0, salah: 0, tunda: 0, susul: 0, terima: 0, retur: 0, harga: 0, pcsJual: 0 } };
+    const nPrat = panggil.filter(x => x.nama === 'obdShpPratinjau').length;
+    await p.setInputFiles('#lsBerkas', terisi);
+    await p.waitForSelector('#lsPrat [data-ls=setor]', { timeout: 10000 });
+    await p.click('#lsPrat [data-ls=setor]');
+    await p.waitForFunction(() => /Tidak ada yang baru/.test((document.getElementById('lsPrat') || {}).innerText || ''), null, { timeout: 8000 }).catch(() => {});
+    await jeda(400);
+    const t8 = await p.evaluate(() => (document.getElementById('lsPrat') || {}).innerText || '');
+    c('B8 setor ulang berkas yang sama: pratinjau jalan, server bilang tidak ada yang baru, stok tidak ditulis dua kali', panggil.filter(x => x.nama === 'obdShpPratinjau').length === nPrat + 1 && panggil.filter(x => x.nama === 'obdShpSimpan').length === 1 && /Tidak ada yang baru/.test(t8), t8);
     /* jalur stok belum dibuka (deploy) */
     pratJawab = null;
     await ctx.unroute(API + '**');
