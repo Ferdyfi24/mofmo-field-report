@@ -261,7 +261,7 @@ async function bagianB() {
       await p.waitForFunction(() => document.querySelectorAll('#kontrol [data-kontrol-item]').length > 0, null, { timeout: 8000 }).catch(() => {});
       const t1 = await p.evaluate(() => ({ tab: document.querySelectorAll('#kontrol [data-kontrol-tab]').length, item: document.querySelectorAll('#kontrol [data-kontrol-item]').length,
         beres: document.querySelectorAll('#kontrol [data-kontrol-item][data-status=beres]').length, judul: (document.querySelector('#kontrol .kn-bulan') || {}).textContent || '' }));
-      c('B2 lembar Controls terbuka di Month-end close: 7 tab, 8 butir, 2 beres, periode September 2026', t1.tab === 7 && t1.item === 8 && t1.beres === 2 && /September 2026/.test(t1.judul), JSON.stringify(t1));
+      c('B2 lembar Controls terbuka di Month-end close: 9 tab (termasuk HPP mitra dan Musim jualan), 8 butir, 2 beres, periode September 2026', t1.tab === 9 && t1.item === 8 && t1.beres === 2 && /September 2026/.test(t1.judul), JSON.stringify(t1));
       await p.evaluate(() => document.querySelector('#kontrol [data-kontrol-tab=rekon]').click()); await jeda(150);
       const t2 = await p.evaluate(() => Array.from(document.querySelectorAll('#kontrol [data-rekon]')).map(x => x.getAttribute('data-rekon') + '=' + x.getAttribute('data-status')).join(','));
       c('B3 tab Reconciliation: 6 baris dengan status yang sama dengan hitungan', t2 === '2026-10|T305=nilaiMenyimpang,2026-09|T305=cocok,2026-09|T390=tanpaInvoice,2026-09|KIY-GI=cocok,2026-08|T305=cocok,2026-08|KIY-GI=tanpaBuku', t2);
