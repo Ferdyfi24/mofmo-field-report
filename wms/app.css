@@ -1013,3 +1013,38 @@ html[data-theme="dark"] .jp-status.kuning{background:#4D4127;color:#F2DC9B}
 .ms-galat{grid-column:1/-1;margin:0;color:var(--wInk);font-weight:800;font-size:13px}.ms-galat:empty{display:none}
 .ms-form .ptk-tombol{grid-column:1/-1}
 @media (max-width:760px){.ms-kisi,.ms-form{grid-template-columns:minmax(0,1fr)}}
+
+/* Laporan Shopee (lapshopee.js, 12 Okt 2026): setoran sore, laporan harian dan bulanan */
+.ls-kisi{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:6px}
+.ls-kartu[data-ls-kartu=setor]{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));align-items:start;column-gap:18px}
+.ls-kartu[data-ls-kartu=setor]>h3,.ls-kartu[data-ls-kartu=setor]>.ls-prat{grid-column:1/-1}
+.ls-kanan{display:flex;flex-direction:column;gap:14px;min-width:0}
+.ls-kisi2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.ls-kartu{border:1.5px solid var(--line2);border-radius:18px;padding:14px 16px;background:var(--card);display:flex;flex-direction:column;gap:10px;min-width:0}
+.ls-kartu h3{margin:0;font-size:17px;font-weight:900;color:var(--ink)}
+.ls-kartu .btn{align-self:flex-start}
+.ls-baris{display:flex;flex-direction:column;gap:6px}
+.ls-isian{display:flex;flex-wrap:wrap;gap:10px}
+.ls-kartu .lp-isian{flex-wrap:wrap}
+.ls-kartu input[type=date],.ls-kartu input[type=text],.ls-kartu select{height:44px;padding:0 12px;border:1.5px solid var(--line2);border-radius:14px;background:var(--card);color:var(--ink);font:700 15px Nunito,sans-serif;max-width:100%;min-width:0}
+.ls-berkas{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:800;color:var(--mut)}
+.ls-berkas input[type=file]{max-width:100%;font:700 13px Nunito,sans-serif;color:var(--ink)}
+.ls-prat{display:flex;flex-direction:column;gap:8px}.ls-prat:empty{display:none}
+.ls-prat p{margin:0;font-size:13.5px;font-weight:700;color:var(--ink);word-break:break-word}
+.ls-awas{color:var(--wInk) !important}
+.ls-hasil{color:var(--okInk) !important;font-weight:900 !important}
+.ls-tolak{font-size:13px;font-weight:700;color:var(--wInk);background:var(--wBg);border-radius:14px;padding:10px 12px}
+.ls-tolak ul{margin:6px 0 0;padding-left:18px}
+.ls-status{display:flex;flex-direction:column;gap:8px;font-size:13.5px;font-weight:800;color:var(--mut)}
+.ls-hari-kisi{display:flex;flex-wrap:wrap;gap:4px}
+.ls-hari{width:26px;height:26px;border-radius:8px;background:var(--soft);color:var(--mut);font-size:11.5px;font-weight:900;display:inline-flex;align-items:center;justify-content:center}
+.ls-hari.on{background:var(--okBg);color:var(--okInk)}
+.ls-gulung{overflow-x:auto;border:1.5px solid var(--line2);border-radius:14px;max-width:100%}
+.ls-tabel{border-collapse:collapse;width:100%;font-size:13px}
+.ls-tabel th{background:var(--soft);color:var(--mut);font-size:11.5px;font-weight:800;text-align:left;padding:7px 8px;white-space:nowrap}
+.ls-tabel td{padding:7px 8px;border-top:1px solid var(--line2);font-weight:700;white-space:nowrap}
+.ls-tabel .num{text-align:right;font-variant-numeric:tabular-nums}
+.ls-ket{margin-top:12px}
+@media (max-width:900px){.ls-kisi2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){.ls-kartu .btn{align-self:stretch}}
+@media (max-width:520px){.ls-kartu{padding:12px}.ls-tabel{font-size:12px}.ls-tabel th,.ls-tabel td{padding:6px 5px}.ls-tabel th,.ls-tabel td:first-child{white-space:normal}}

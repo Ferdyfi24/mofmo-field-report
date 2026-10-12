@@ -118,7 +118,7 @@
   var F = { biasa: 0, tebal: 1, putih: 2, biru: 3, hijau: 4, judul: 5, catatan: 6 };
   var ISI = { kosong: 0, kepala: 2, promo: 3, input: 4, total: 5, ulang: 6 };
   var WARNA_ISI = [null, null, 'FF1F3A5F', 'FFFCE4D6', 'FFFFF2CC', 'FFF2F2F2', 'FFDDEBF7'];
-  var FMT = { rp: 164, pct: 165, bulat: 1 };
+  var FMT = { rp: 164, pct: 165, bulat: 1, tgl: 166, des1: 167 };
   function gayaXml(G) {
     var isi = '<fills count="7"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>' + WARNA_ISI.slice(2).map(function (w) { return '<fill><patternFill patternType="solid"><fgColor rgb="' + w + '"/><bgColor indexed="64"/></patternFill></fill>'; }).join('') + '</fills>';
     var xf = G.daftar.map(function (k) {
@@ -126,7 +126,7 @@
       return '<xf numFmtId="' + p[3] + '" fontId="' + p[0] + '" fillId="' + p[1] + '" borderId="' + p[2] + '" xfId="0"' + (p[3] ? ' applyNumberFormat="1"' : '') + ' applyFont="1"' + (p[1] ? ' applyFill="1"' : '') + (p[2] ? ' applyBorder="1"' : '') + (p[4] ? ' applyAlignment="1"><alignment wrapText="1" vertical="center"/></xf>' : '/>');
     }).join('');
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-      '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0;(#,##0);&quot;-&quot;"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts>' +
+      '<numFmts count="4"><numFmt numFmtId="164" formatCode="#,##0;(#,##0);&quot;-&quot;"/><numFmt numFmtId="165" formatCode="0.0%"/><numFmt numFmtId="166" formatCode="yyyy\\-mm\\-dd"/><numFmt numFmtId="167" formatCode="0.0"/></numFmts>' +
       '<fonts count="' + HURUF.length + '">' + HURUF.join('') + '</fonts>' + isi +
       '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right><top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom><diagonal/></border></borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="' + G.daftar.length + '">' + xf + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
@@ -152,14 +152,20 @@
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
       pane + '<sheetFormatPr defaultRowHeight="15"/>' + cols + '<sheetData>' + rows + '</sheetData>' + (this.saring ? '<autoFilter ref="' + this.saring + '"/>' : '') + '<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>';
   };
-  function rakitXlsx(lembar, G) {
+  /* Filter otomatis butuh nama _FilterDatabase per lembar; tanpa itu LibreOffice (dan
+     sebagian Excel lama) membuang filternya waktu berkas disimpan ulang. */
+  function filterDb(lembar) {
+    var n = lembar.map(function (l, i) { if (!l.saring) return ''; var r = l.saring.split(':').map(function (x) { return x.replace(/^([A-Z]+)(\d+)$/, '$$$1$$$2'); }).join(':'); return '<definedName name="_xlnm._FilterDatabase" localSheetId="' + i + '" hidden="1">\'' + xe(l.nama).replace(/'/g, "''") + '\'!' + r + '</definedName>'; }).join('');
+    return n ? '<definedNames>' + n + '</definedNames>' : '';
+  }
+  function rakitXlsx(lembar, G, judul) {
     var z = new W.JSZip();
     z.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
       lembar.map(function (l, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('') + '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/></Types>');
     z.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/></Relationships>');
-    z.file('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>HPP mitra</dc:title><dc:creator>One Logistics Solutions</dc:creator></cp:coreProperties>');
+    z.file('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:title>' + xe(judul || 'HPP mitra') + '</dc:title><dc:creator>One Logistics Solutions</dc:creator></cp:coreProperties>');
     z.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
-      lembar.map(function (l, i) { return '<sheet name="' + xe(l.nama) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>');
+      lembar.map(function (l, i) { return '<sheet name="' + xe(l.nama) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets>' + filterDb(lembar) + '<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>');
     z.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
       lembar.map(function (l, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join('') +
       '<Relationship Id="rId' + (lembar.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
@@ -388,5 +394,6 @@
     W.document.addEventListener('change', function (e) { if (e.target && e.target.id === 'hppBulan') { S.bulan = e.target.value; ulang(); } });
   }
 
-  W.WmsHpp = { hitung: hitung, xlsx: xlsx, pdf: pdf, gambar: gambar, _bacaPromo: bacaPromo };
+  /* Penulis XLSX yang sama dipakai laporan Excel harian dan bulanan (laporanxl.js). */
+  W.WmsHpp = { hitung: hitung, xlsx: xlsx, pdf: pdf, gambar: gambar, _bacaPromo: bacaPromo, _kit: { Gaya: Gaya, Lembar: Lembar, rakit: rakitXlsx, F: F, ISI: ISI, FMT: FMT, muatZip: muatZip } };
 })();
