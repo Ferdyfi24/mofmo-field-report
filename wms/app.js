@@ -492,12 +492,20 @@
         t.nodeValue = v.replace(RE_FO, 'Operational PIC').replace(RE_FOB, 'OPERATIONAL PIC');
       });
     }
+    /* kartu Top SKU (.lnk span di Ringkasan): kode -> nama produk */
+    function namaTopSku(n) {
+      if (!K.namaTopSku || !n.querySelectorAll) return;
+      var prod = window.D && window.D.prod;
+      var el = n.matches && n.matches('.lnk span') ? [n] : Array.prototype.slice.call(n.querySelectorAll('.lnk span'));
+      el.forEach(function (e) { var t = e.textContent, b = K.namaTopSku(t, prod); if (b !== t) e.textContent = b; });
+    }
     function periksaBaru(akar, n) {
       if (n && n.nodeType === 3) { gantiNama(n); return; }
       if (!n || n.nodeType !== 1) return;
       cariFoto(n);
       pasangSku(n);
       gantiNama(n);
+      namaTopSku(n);
       if (n.matches && n.matches('.nil,.stokangka')) hitungNaik(n);
       if (n.querySelectorAll) Array.prototype.forEach.call(n.querySelectorAll('.nil,.stokangka'), hitungNaik);
       /* pesan memuat papan lama: teks pendek tanpa boneka -> diberi boneka */
