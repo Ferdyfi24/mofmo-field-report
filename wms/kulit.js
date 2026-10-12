@@ -40,6 +40,11 @@
     var c = keHsl(hex), hangat = c.h < 70 || c.h > 330;
     var coklat = c.h >= 18 && c.h <= 55 && c.l < 0.5;
     var krem = c.h >= 25 && c.h <= 65 && c.l > 0.76;
+    /* Warna seri grafik yang jenuh (emas dan toska) dapat warna sendiri.
+       Tanpa ini emas ikut tangga coklat (MAA = TGI) dan toska ikut biru
+       (Gamotion = Direct HO) di grafik penjualan per saluran. */
+    if (c.s >= 0.6 && c.l >= 0.3 && c.l <= 0.6 && c.h >= 35 && c.h <= 60) return gelap ? '#E2B868' : '#C08A2E';
+    if (c.s >= 0.6 && c.l >= 0.2 && c.l <= 0.6 && c.h >= 170 && c.h <= 200) return gelap ? '#8FD3C4' : '#2F8577';
     if (c.s < 0.35 || coklat || krem) {
       if (gelap) return c.l > 0.985 ? '#352A22' : c.l > 0.93 ? '#2B221C' : c.l > 0.84 ? '#3C2F26' : c.l > 0.7 ? '#4B3C31' : c.l > 0.36 ? '#C9B4A2' : '#F8ECDF';
       return c.l > 0.985 ? '#FFFFFF' : c.l > 0.93 ? '#FFF8EF' : c.l > 0.84 ? '#FCF1E4' : c.l > 0.7 ? '#EFE1CF' : c.l > 0.36 ? '#7E6656' : '#4A3426';
@@ -257,6 +262,11 @@
       '.c.res{background:repeating-linear-gradient(135deg,var(--l4-kartu) 0 6px,var(--l4-arsir) 6px 12px) !important}',
       '.key .sw[style*="dashed"]{background:repeating-linear-gradient(135deg,var(--l4-kartu) 0 3px,var(--l4-arsir) 3px 6px) !important}',
       '.gbrKosong,.gdgIsiTanpaFoto{background:repeating-linear-gradient(45deg,var(--l4-kartu) 0 5px,var(--l4-arsir) 5px 10px) !important;border-radius:12px}',
+      /* SKU Performance (#pdgSkuKotak) membawa palet hitam papan lama sebagai
+         variabel; ditimpa token Mofmo Soft supaya tidak jadi kotak hitam */
+      ':host(#pdgSkuKotak){--tua:var(--l4-ink) !important;--pasir:var(--l4-kartu) !important;--garis:var(--l4-garis) !important;--kertas:var(--l4-lembut) !important;--line:var(--l4-garis) !important;--mut:var(--l4-mut) !important;background:transparent !important;color:var(--l4-ink) !important}',
+      ':host(#pdgSkuKotak) .kk{background:var(--l4-kartu) !important;border-color:var(--l4-garis) !important}',
+      ':host(#pdgSkuKotak) .batangIsi{background:var(--l4-aksen) !important}',
       /* boneka di pesan memuat papan lama */
       '.l4-boneka{display:inline-block;width:46px;height:auto;vertical-align:middle;margin-right:10px;animation:l4intip 1.4s ease-in-out infinite}',
       '@keyframes l4intip{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}',
@@ -309,5 +319,14 @@
   }
   function ubahHtml(html, gelap) { return ubahHuruf(ubahWarna(ubahKaki(html), gelap)); }
 
-  W.KulitPapan = { petaWarna: petaWarna, ubahWarna: ubahWarna, ubahHtml: ubahHtml, ubahHasil: ubahHasil, css: css, cssBayang: cssBayang, fotoSku: fotoSku, FOTO: FOTO, RE_PRODUK: RE_PRODUK.source, dasar: DASAR, warna: T };
+  /* Kartu Top SKU di Ringkasan menulis kode saja ("MF-KEY-019 with 10 pcs");
+     kodenya diberi nama produk pendek dari daftar produk papan (D.prod). */
+  function namaTopSku(teks, prod) {
+    var m = /^(MF-[A-Z]{3}-\d{3})(\s+(?:with|dengan)\s[\s\S]*)$/.exec(String(teks == null ? '' : teks));
+    if (!m || !prod || !prod.length) return teks;
+    var p = null; for (var i = 0; i < prod.length; i++) { if (prod[i] && prod[i].s === m[1]) { p = prod[i]; break; } }
+    if (!p || !p.n) return teks;
+    return String(p.n).replace(/^mofmofriends\s+/i, '') + ' (' + m[1] + ')' + m[2];
+  }
+  W.KulitPapan = { namaTopSku: namaTopSku, petaWarna: petaWarna, ubahWarna: ubahWarna, ubahHtml: ubahHtml, ubahHasil: ubahHasil, css: css, cssBayang: cssBayang, fotoSku: fotoSku, FOTO: FOTO, RE_PRODUK: RE_PRODUK.source, dasar: DASAR, warna: T };
 })(typeof window !== 'undefined' ? window : globalThis);
