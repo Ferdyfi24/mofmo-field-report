@@ -73,15 +73,39 @@
     if (D.janji && !paksa && Date.now() - D.waktu < 5 * 60 * 1000) return D.janji;
     D.waktu = Date.now();
     var m = M();
-    var pG = m.potret ? m.potret(['wmsGudang|["K"]']).then(function (isi) { var x = isi['wmsGudang|["K"]']; return x && x.data && x.data.lokasi ? x.data : null; }, function () { return null; }) : Promise.resolve(null);
-    var pD = m.jalan ? m.jalan('dataPapan', ['WMS-TIKET']).then(function (x) { return x && x.prod ? x : null; }, function () { return null; }) : Promise.resolve(null);
+    /* Tanpa sinyal tidak menunggu jaringan sama sekali; sinyal lemah ditunggu
+       paling lama 6 detik sebelum simpanan HP dipakai. */
+    var luring = W.navigator && W.navigator.onLine === false;
+    var batas = function (p) { return luring ? Promise.resolve(null) : Promise.race([p, new Promise(function (ok) { setTimeout(function () { ok(null); }, 6000); })]); };
+    var pG = luring || !m.potret ? Promise.resolve(null) : batas(m.potret(['wmsGudang|["K"]']).then(function (isi) { var x = isi['wmsGudang|["K"]']; return x && x.data && x.data.lokasi ? x.data : null; }, function () { return null; }));
+    var pD = luring || !m.jalan ? Promise.resolve(null) : batas(m.jalan('dataPapan', ['WMS-TIKET']).then(function (x) { return x && x.prod ? x : null; }, function () { return null; }));
     D.janji = Promise.all([pG, pD]).then(function (r) {
-      D.gudang = r[0]; D.data = r[1]; susunIndeks();
+      /* Tanpa sinyal (12 Okt): peta gudang dan Master Produk terakhir disimpan
+         di perangkat, jadi Scan & cari dan Petik tetap jalan di dalam gudang. */
+      /* Per bagian: yang terbaca segar dipakai dan disimpan; yang gagal diambil
+         dari simpanan HP. Peta gudang yang dari simpanan ditandai. */
+      var c = bacaPerangkat() || {};
+      D.gudang = r[0] || c.gudang || null; D.data = r[1] || c.data || null;
+      D.dariSimpanan = !r[0] && c.gudang ? (c.waktuGudang || c.waktu || '') : '';
+      if (r[0] || r[1]) simpanPerangkat(r[0], r[1], c);
+      susunIndeks();
       if (!D.gudang && !D.data) { D.janji = null; throw new Error('data'); }
+      if (D.dariSimpanan) D.waktu = 0;
       return D;
     });
     return D.janji;
   }
+  var KUNCI_SIMPAN = 'wms_alat_simpan';
+  function simpanPerangkat(segarG, segarD, lama) {
+    try {
+      lama = lama || {};
+      var g = segarG ? { lokasi: (segarG.lokasi || []).map(function (l) { return { kode: l.kode, sku: l.sku, barcode: l.barcode, isi: l.isi, kap: l.kap, zona: l.zona, unit: l.unit, level: l.level, pos: l.pos, peran: l.peran, persen: l.persen, rendah: l.rendah }; }) } : null;
+      var d = segarD ? { prod: (segarD.prod || []).map(function (p) { return { b: p.b, n: p.n, s: p.s }; }), lok: (segarD.lok || []).map(function (l) { return { k: l.k, n: l.n, r: l.r, toko: l.toko }; }), baris: [], diperbarui: segarD.diperbarui || '' } : null;
+      var kini = new Date().toISOString();
+      W.localStorage.setItem(KUNCI_SIMPAN, JSON.stringify({ waktu: kini, gudang: g || lama.gudang || null, waktuGudang: g ? kini : (lama.waktuGudang || lama.waktu || ''), data: d || lama.data || null }));
+    } catch (e) {}
+  }
+  function bacaPerangkat() { try { var c = JSON.parse(W.localStorage.getItem(KUNCI_SIMPAN) || 'null'); return c && (c.gudang || c.data) ? c : null; } catch (e) { return null; } }
   function susunIndeks() {
     X = { lok: {}, perBc: {}, prodBc: {}, prodNama: {}, pendek: {}, lokIdx: {} };
     ((D.gudang && D.gudang.lokasi) || []).forEach(function (l) {
@@ -157,9 +181,9 @@
   }
   function gambarKepala() {
     var d = el('alat');
-    d.querySelector('.tab-alat').innerHTML = ['scan', 'label'].map(function (m) {
+    d.querySelector('.tab-alat').innerHTML = (W.WmsPetik ? ['scan', 'petik', 'label'] : ['scan', 'label']).map(function (m) {
       var on = A.mode === m || (A.mode === 'paspor' && m === 'scan');
-      return '<button type="button" role="tab" data-tab="' + m + '" aria-selected="' + (on ? 'true' : 'false') + '" class="' + (on ? 'on' : '') + '">' + esc(t(m === 'scan' ? 'tabScan' : 'tabLabel')) + '</button>';
+      return '<button type="button" role="tab" data-tab="' + m + '" aria-selected="' + (on ? 'true' : 'false') + '" class="' + (on ? 'on' : '') + '">' + esc(m === 'petik' ? W.WmsPetik.judulTab() : t(m === 'scan' ? 'tabScan' : 'tabLabel')) + '</button>';
     }).join('');
     var tt = d.querySelector('.tutup-alat'); tt.setAttribute('aria-label', t('tutup')); tt.title = t('tutup');
     tt.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -183,6 +207,7 @@
     gambarKepala();
     if (A.mode === 'label') return gambarLabelAwal();
     if (A.mode === 'paspor') return;
+    if (A.mode === 'petik' && W.WmsPetik) return W.WmsPetik.gambar(el('alatIsi'));
     gambarScan(arg);
   }
 
@@ -213,6 +238,7 @@
     hasil('<p class="ket-alat">' + esc(t('muat')) + '</p>');
     muat().then(function () {
       var k = q.toUpperCase();
+      if (D.dariSimpanan && W.WmsPetik) setTimeout(function () { var h = el('alatHasil'); if (h && !h.querySelector('.alat-simpanan')) h.insertAdjacentHTML('afterbegin', '<p class="alat-simpanan" role="status">' + esc(W.WmsPetik.teksSimpanan(D.dariSimpanan)) + '</p>'); }, 0);
       if (X.lok[k]) { tampilSlot(X.lok[k]); bunyi('scanOk'); getar(30); catat(k); return; }
       var angka = q.replace(/\s+/g, '');
       if (/^\d{6,}$/.test(angka) && (X.prodBc[angka] || X.perBc[angka])) { tampilBarcode(angka); bunyi('scanOk'); getar(30); catat(angka); return; }
@@ -451,5 +477,7 @@
     var isi = el('alatIsi'); if (isi) isi.scrollTop = 0;
   }
 
-  W.WmsAlat = { buka: buka, tutup: tutup, paspor: paspor, kode128: kode128, _hitung: hitungPaspor };
+  W.WmsAlat = { buka: buka, tutup: tutup, paspor: paspor, kode128: kode128, _hitung: hitungPaspor,
+    /* untuk Petik tanpa sinyal (petik.js) */
+    _muat: function () { return muat(); }, _data: function () { return { gudang: D.gudang, data: D.data, dariSimpanan: D.dariSimpanan || '' }; } };
 })();

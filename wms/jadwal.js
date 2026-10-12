@@ -501,7 +501,7 @@
     var P = periksa(A.isi, gerai, b, { libur: D.libur, liburTercatat: D.liburTercatat, kontak: D.kontak, geser: D.geser });
     var st = statusTeks();
     var html = '<div class="jp-atur"><div class="jp-bulan"><button type="button" class="jp-panah" data-jadwal="bulanSeb" aria-label="' + esc(TK('bulanSeb')) + '">' + IKON_KIRI + '</button><b>' + esc(namaBulan(b, !id())) + '</b><button type="button" class="jp-panah" data-jadwal="bulanBer" aria-label="' + esc(TK('bulanBer')) + '">' + IKON_KANAN + '</button></div>' +
-      '<span class="jp-status ' + st[1] + '">' + esc(st[0]) + '</span><span class="jp-renggang"></span><span class="lp-label">' + esc(TK('mulai')) + '</span>' +
+      '<span class="jp-status ' + st[1] + '">' + esc(st[0]) + '</span>' + (W.WmsRute ? '<button type="button" class="btn dua kn-kecil jp-rute" data-rute-buka="1">' + esc(W.WmsRute.judulTombol()) + '</button>' : '') + '<span class="jp-renggang"></span><span class="lp-label">' + esc(TK('mulai')) + '</span>' +
       [['pola', TK('pola')], ['lalu', TK('lalu')], ['kosong', TK('kosong')]].concat(D.terbit ? [['terbit', TK('terbit')]] : []).concat(Object.keys(D.jadwal || {}).length ? [['lembar', TK('lembar')]] : []).map(function (x) {
         return '<button type="button" class="chip-alat" data-jadwal-mulai="' + x[0] + '">' + esc(x[1]) + '</button>'; }).join('') + '</div>';
     if (A.tundaBulan) {

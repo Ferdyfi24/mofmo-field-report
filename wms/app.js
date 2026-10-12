@@ -559,6 +559,7 @@
       kontrol: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4.5h6v2.5H9zM8.5 12.5l2 2 4.5-4.5M8.5 17.5h7"/></svg>',
       jadwal: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M7.5 13h2M11 13h2M14.5 13h2M7.5 16.5h2M11 16.5h2"/></svg>',
       laporan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M12 16.5v3.5M8.5 20h7M7.5 13.5v-2.5M11 13.5V9M14.5 13.5v-4.5M18 13.5v-1.5"/></svg>',
+      tanya: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5.5h15v10h-8l-4.5 4v-4h-2.5z"/><path d="M10 9a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4M12 13.6v.2"/></svg>',
       buku: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.2 5 7.6 4.5 4 4.8v13c3.6-.3 6.2.2 8 1.7 1.8-1.5 4.4-2 8-1.7v-13c-3.6-.3-6.2.2-8 1.7z"/><path d="M12 6.5v13"/></svg>'
     };
     function tombol(teks, label, fn, jenis) {
@@ -586,6 +587,9 @@
       /* Jadwal Operational PIC (12 Okt): susun bulan depan, terbitkan, PDF mitra + draf Gmail + gambar staf */
       var jd = tombol('', C.teks.jadwal, function () { H.jadwal(); }, 'jadwal'); jd.innerHTML = IKON.jadwal + '<span>' + C.teks.jadwalPendek + '</span>'; jd.style.paddingRight = '15px';
       kanan.appendChild(jd);
+      /* Tanya WMS (12 Okt): pertanyaan bahasa sehari-hari, aturan tanpa AI */
+      var ty = tombol('', C.teks.tanya, function () { H.tanya(); }, 'tanya'); ty.innerHTML = IKON.tanya + '<span>' + C.teks.tanyaPendek + '</span>'; ty.style.paddingRight = '15px';
+      kanan.appendChild(ty);
       /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
       var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
       kanan.appendChild(tm);
@@ -737,7 +741,7 @@
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
       var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
-        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', laporan: id ? 'Laporan bulanan: sales, inventory, SKU, channel jadi PowerPoint' : 'Monthly report: sales, inventory, SKU and channels as PowerPoint', laporanPendek: id ? 'Laporan' : 'Report', jadwal: id ? 'Jadwal Operational PIC: susun bulan depan, PDF mitra, draf email, gambar staf' : 'Operational PIC schedule: next month, partner PDFs, email drafts, staff image', jadwalPendek: id ? 'Jadwal' : 'Schedule', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', laporan: id ? 'Laporan bulanan: sales, inventory, SKU, channel jadi PowerPoint' : 'Monthly report: sales, inventory, SKU and channels as PowerPoint', laporanPendek: id ? 'Laporan' : 'Report', jadwal: id ? 'Jadwal Operational PIC: susun bulan depan, PDF mitra, draf email, gambar staf' : 'Operational PIC schedule: next month, partner PDFs, email drafts, staff image', jadwalPendek: id ? 'Jadwal' : 'Schedule', tanya: id ? 'Tanya WMS: stok, penjualan, gerai, opname dalam bahasa sehari-hari' : 'Ask the WMS: stock, sales, stores, counts in plain words', tanyaPendek: id ? 'Tanya' : 'Ask', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
@@ -776,6 +780,7 @@
     kontrol: function (tab) { if (window.WmsKontrol) window.WmsKontrol.buka(tab); },
     laporan: function () { if (window.WmsLaporan) window.WmsLaporan.buka(); },
     jadwal: function () { if (window.WmsJadwal) window.WmsJadwal.buka(); },
+    tanya: function () { if (window.WmsTanya) window.WmsTanya.buka(); },
     /* Tata letak Mofmo Soft P9 sampai P14 (tata.js), dipasang ke bingkai papan */
     tata: function (fw) { if (window.WmsTata) window.WmsTata.pasang(fw); }
   };
@@ -809,4 +814,6 @@
     /* potret Supabase apa adanya (tanpa jatuh ke Apps Script), untuk alat.js */
     potret: function (kunci) { return kirimSupa({ fn: 'ambil', tiket: S.tiket, kunci: kunci }).then(function (h) { return h && h.ok && h.isi ? h.isi : {}; }); } };
   gambar();
+  /* Kerangka situs tetap terbuka tanpa sinyal (sw.js, jaringan dulu) */
+  try { if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {}
 })();

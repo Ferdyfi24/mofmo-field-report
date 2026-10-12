@@ -340,7 +340,7 @@
     en: {
       judul: 'Controls', sub: 'Month-end close, partner report cards, margins, reconciliation and number checks. Read only.', tutup: 'Close',
       muat: 'Reading the ledger…', gagal: 'The data could not be read right now. Check the signal and try again.',
-      tab: { tutup: 'Month-end close', rapor: 'Partner report card', margin: 'Channel margin', rekon: 'Reconciliation', janggal: 'Odd numbers', sla: 'Delivery SLA', retur: 'Shopee returns' },
+      tab: { tutup: 'Month-end close', rapor: 'Partner report card', margin: 'Channel margin', rekon: 'Reconciliation', hpp: 'Partner COGS', musim: 'Selling calendar', janggal: 'Odd numbers', sla: 'Delivery SLA', retur: 'Shopee returns' },
       tutupJudul: 'Month-end close', dari: function (a, b) { return a + ' of ' + b + ' done'; }, buka: 'Open',
       butir: { laporan: 'Sales reports in from every active store', rekon: 'Partner invoices match the ledger', transit: 'Nothing left in transit at month end', opname: 'Every required location counted in the last 30 days',
         tagihan: 'An invoice raised for every partner that sold', otomatis: 'Monthly report job ran', kualitas: 'No serious data quality findings', janggalBerat: 'No serious odd numbers' },
@@ -374,7 +374,7 @@
     id: {
       judul: 'Kontrol', sub: 'Tutup bulan, rapor mitra, margin, rekonsiliasi, dan pemeriksaan angka. Cuma membaca.', tutup: 'Tutup',
       muat: 'Membaca buku besar…', gagal: 'Data belum bisa dibaca sekarang. Cek sinyal lalu coba lagi.',
-      tab: { tutup: 'Tutup bulan', rapor: 'Rapor mitra', margin: 'Margin saluran', rekon: 'Rekonsiliasi', janggal: 'Angka janggal', sla: 'SLA kiriman', retur: 'Retur Shopee' },
+      tab: { tutup: 'Tutup bulan', rapor: 'Rapor mitra', margin: 'Margin saluran', rekon: 'Rekonsiliasi', hpp: 'HPP mitra', musim: 'Musim jualan', janggal: 'Angka janggal', sla: 'SLA kiriman', retur: 'Retur Shopee' },
       tutupJudul: 'Tutup bulan', dari: function (a, b) { return a + ' dari ' + b + ' beres'; }, buka: 'Buka',
       butir: { laporan: 'Laporan penjualan masuk dari semua gerai aktif', rekon: 'Invoice mitra cocok dengan buku besar', transit: 'Tidak ada barang tertahan di jalan pada akhir bulan', opname: 'Semua lokasi wajib sudah opname dalam 30 hari',
         tagihan: 'Tagihan dibuat untuk setiap mitra yang berjualan', otomatis: 'Laporan bulanan otomatis berjalan', kualitas: 'Tidak ada temuan kualitas data yang berat', janggalBerat: 'Tidak ada angka janggal yang berat' },
@@ -441,7 +441,7 @@
 
   /* ================= lembar ================= */
   var A = { tab: 'tutup', terbuka: false, dari: null, rekonSaring: 'semua', cari: '', draf: null };
-  var TAB = ['tutup', 'rapor', 'margin', 'rekon', 'janggal', 'sla', 'retur'];
+  var TAB = ['tutup', 'rapor', 'margin', 'rekon', 'hpp', 'musim', 'janggal', 'sla', 'retur'];
   var IKON_TUTUP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   var IKON_ST = {
     beres: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"/></svg>',
@@ -529,6 +529,10 @@
   }
   function gambarIsi() {
     var w = el('kontrolIsi'); if (!w || !D.dp) return;
+    /* HPP mitra (hpp.js) menggambar sendiri, dari buku besar yang sama */
+    if (A.tab === 'hpp') { if (W.WmsHpp) W.WmsHpp.gambar(w, D.dp); else w.innerHTML = '<p class="ket-alat">' + esc(t('gagal')) + '</p>'; return; }
+    /* Musim jualan (musim.js) juga menggambar sendiri */
+    if (A.tab === 'musim') { if (W.WmsMusim) W.WmsMusim.gambar(w, D.dp); else w.innerHTML = '<p class="ket-alat">' + esc(t('gagal')) + '</p>'; return; }
     var h = H(), s = '';
     if (A.tab === 'tutup') s = halTutup(h);
     else if (A.tab === 'rapor') s = halRapor(h);
