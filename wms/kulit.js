@@ -121,7 +121,14 @@
       /* bidang isi: papan lama menulis isinya dengan px tetap 11 sampai 13 px
          di dalam shadow root, jadi bidangnya diperbesar utuh (Ferdy: "gedein
          fontnya"); di HP sedikit saja supaya tidak meluber */
-      '.isiRail{zoom:1.22}',
+      '.isiRail{zoom:1}',
+      /* 12 Okt: 122% cuma di layar lebar (laptop Ferdy 1920 px). Laptop 1366 px atau
+         1536 px (skala Windows 125%) memotong kartu Summary kalau ikut diperbesar. */
+      '@media (min-width:1600px){.isiRail{zoom:1.1}}',
+      '@media (min-width:1800px){.isiRail{zoom:1.22}}',
+      /* kepala: 12 tombol #kopKanan boleh turun ke baris kedua; kolom judul tidak boleh
+         diperas lebih sempit dari isinya (dulu pecah satu kata per baris) */
+      '@media (min-width:761px){header .bungkus>div:not(.gbrLogo):not(#kopKanan){min-width:max-content !important}#kopKanan{flex-wrap:wrap !important;justify-content:flex-end !important;margin-left:auto !important;row-gap:8px !important;max-width:100%}}',
       'nav#panel a{transition:background-color .2s ease,color .2s ease,transform .15s ease}',
       'nav#panel a:hover{transform:translateX(2px)}',
       'nav#panel a:active,#kopKanan button:active,#saring button:active{transform:scale(.96)}',
