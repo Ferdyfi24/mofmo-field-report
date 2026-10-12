@@ -315,7 +315,7 @@
       '2. Sudah dikemas: di baris pertama pesanan isi Waktu Kemas, Lokasi Ambil (kode rak), Dikemas Oleh, Link Foto Kirim. Barang kedua dan seterusnya cukup No Pesanan, Barcode, Qty.',
       '3. Diserahkan ke kurir: di baris pertama pesanan isi Waktu Serah Kurir, Jasa Kirim, No Resi, Nama Kurir, Link Foto Serah.',
       '4. Diterima pembeli: Waktu Diterima. Barang kembali: Retur Bagus atau Retur Rusak, Alasan, Waktu Retur. Dibatalkan sebelum dikirim: Batal = YA.',
-      '5. Simpan, lalu di WMS: Laporan > Shopee > pilih berkas > Setor. Cek pratinjau gerak stok, lalu Gerakkan stok.',
+      '5. Simpan, lalu di WMS: Laporan > Shopee > pilih berkas > Setor. Stok langsung ikut bergerak; setor ulang berkas yang sama tidak menulis dua kali.',
       'Contoh: 261011BKEGFKHX | 4582586962737 | 1 | 260000 | 2026-10-11 14:05 | 2026-10-11 16:10 | R2-1B-1 | Armand | https://drive.google.com/file/d/... | 2026-10-12 09:46 | SPX Standard | SPXID06567979777A | Budi | https://drive.google.com/file/d/...',
       'Stok bergerak lewat jalur Gudang Shopee: rak turun saat dikemas, penjualan masuk buku besar saat diserahkan ke kurir. Pesanan tanpa foto atau lokasi ditahan dengan alasannya.'].forEach(function (x, i) { PT.isi(1 + i, 1, x, i ? s.teks : s.judul); });
     PT.lebar = [150];
@@ -533,7 +533,7 @@
       setor: function (n, p) { return 'Setor ' + n + ' pesanan (' + p + ' baris)'; }, prat: function (n, p, s) { return n + ' pesanan, ' + p + ' baris dibaca dari tab ' + s + '.'; }, lewat: function (n) { return n + ' baris saluran lain dilewati.'; },
       tidakDikenal: function (n) { return n + ' barcode tidak ada di Master Produk WMS.'; }, hasil: function (b, u) { return 'Tersimpan: ' + b + ' baris baru, ' + u + ' diperbarui.'; }, ditolak: function (n) { return n + ' baris ditolak:'; },
       sudah: function (n, t) { return n + ' hari sudah setor bulan ini' + (t ? ' · terakhir ' + t : ''); }, kepalaGagal: 'Berkas ini tidak punya tabel dengan kolom No Pesanan dan Barcode.', bacaGagal: 'Berkas tidak bisa dibaca. Pastikan .xlsx.',
-      gerakJudul: 'Gerak stok (jalur Gudang Shopee)', gerakMuat: 'Menyiapkan pratinjau gerak stok…', gerakJalan: 'Menggerakkan stok…', gerakTombol: 'Gerakkan stok', gerakKet: 'Rak turun untuk yang dikemas, penjualan masuk buku besar untuk yang diserahkan ke kurir.', gerakBeres: 'Stok sudah digerakkan.', gerakGagal: function (t) { return 'Laporan tersimpan, tapi stok belum digerakkan: ' + t; },
+      gerakJudul: 'Gerak stok (jalur Gudang Shopee)', gerakMuat: 'Menyiapkan pratinjau gerak stok…', gerakJalan: 'Menggerakkan stok…', gerakBeres: 'Stok sudah digerakkan.', gerakGagal: function (t) { return 'Laporan tersimpan, tapi stok belum digerakkan: ' + t; },
       isiOleh: 'Isi nama penyetor dulu.', menyiapkan: 'Menyusun Excel…', menyetor: 'Menyetor…', gagal: 'Berkas belum bisa dibuat. Coba lagi.', muat: 'Membaca setoran…',
       deploy: 'Setor dan laporan Shopee menyala setelah Apps Script versi baru di-deploy. Mentahan sudah bisa diunduh.', galatData: 'Setoran belum bisa dibaca sekarang.', ulang: 'Muat ulang', kosong: 'Belum ada setoran.',
       ket: 'Terjual dihitung saat diserahkan ke kurir. Excel laporan berisi Ringkasan, Pivot Harian, Pivot SKU, Pesanan, Data, dan Catatan (bulanan ditambah Jasa Kirim dan Retur); semua pivot berupa rumus ke tab Data.' },
@@ -543,7 +543,7 @@
       setor: function (n, p) { return 'Submit ' + n + ' orders (' + p + ' rows)'; }, prat: function (n, p, s) { return n + ' orders, ' + p + ' rows read from the ' + s + ' tab.'; }, lewat: function (n) { return n + ' rows from other channels skipped.'; },
       tidakDikenal: function (n) { return n + ' barcodes are not in the WMS product master.'; }, hasil: function (b, u) { return 'Saved: ' + b + ' new rows, ' + u + ' updated.'; }, ditolak: function (n) { return n + ' rows rejected:'; },
       sudah: function (n, t) { return n + ' days submitted this month' + (t ? ' · last ' + t : ''); }, kepalaGagal: 'This file has no table with No Pesanan and Barcode columns.', bacaGagal: 'The file could not be read. Make sure it is .xlsx.',
-      gerakJudul: 'Stock movement (Shopee warehouse flow)', gerakMuat: 'Preparing the stock movement preview…', gerakJalan: 'Moving stock…', gerakTombol: 'Move stock', gerakKet: 'Racks go down for packed orders; sales enter the ledger for orders handed to the courier.', gerakBeres: 'Stock has been moved.', gerakGagal: function (t) { return 'The report was saved, but stock was not moved: ' + t; },
+      gerakJudul: 'Stock movement (Shopee warehouse flow)', gerakMuat: 'Preparing the stock movement preview…', gerakJalan: 'Moving stock…', gerakBeres: 'Stock has been moved.', gerakGagal: function (t) { return 'The report was saved, but stock was not moved: ' + t; },
       isiOleh: 'Fill in who is submitting first.', menyiapkan: 'Building the Excel file…', menyetor: 'Submitting…', gagal: 'The file could not be made. Try again.', muat: 'Reading submissions…',
       deploy: 'Shopee submissions and reports switch on after the new Apps Script version is deployed. The template can already be downloaded.', galatData: 'Submissions could not be read right now.', ulang: 'Reload', kosong: 'No submissions yet.',
       ket: 'Sold counts when handed to the courier. The report Excel has Summary, Daily pivot, SKU pivot, Orders, Data and Notes (monthly adds Couriers and Returns); every pivot is a formula over the Data tab. Workbook text is in Indonesian.' }
@@ -627,19 +627,17 @@
     ['salah', 'tunda'].forEach(function (k) { var x = r && r[k]; if (Array.isArray(x)) x.forEach(function (d) { if (!d) return; var teks = typeof d === 'string' ? d : (d.no ? d.no + ': ' : '') + (d.alasan || d.pesan || d.sebab || ''); if (teks) o.push(teks); }); });
     return o;
   }
+  /* jumlah tahap baru menurut pratinjau; nol berarti tidak ada yang perlu ditulis */
+  function kerjaGerak(r) { var j = (r && r.jml) || {}; return (j.impor || 0) + (j.kemas || 0) + (j.serah || 0) + (j.susul || 0) + (j.terima || 0) + (j.retur || 0) + (j.harga || 0); }
   function kartuGerak() {
     var g = S.gerak; if (!g) return '';
     var o = '<div class="ls-gerak" data-ls-gerak="1"><b>' + esc(T('gerakJudul')) + '</b>';
     if (g.galat) return o + '<p class="ls-awas">' + esc(T('gerakGagal')(g.galat)) + '</p></div>';
-    var r = g.prat || {}, j = r.jml || {}, kerja = (j.impor || 0) + (j.kemas || 0) + (j.serah || 0) + (j.susul || 0) + (j.terima || 0) + (j.retur || 0) + (j.harga || 0);
-    if (g.hasil) {
-      o += '<p class="' + (g.hasil.ok === false ? 'ls-awas' : 'ls-hasil') + '" data-ls-gerak-hasil="1">' + esc(g.hasil.pesan || (g.hasil.ok === false ? T('gagal') : T('gerakBeres'))) + '</p>';
-      return o + '</div>';
-    }
-    o += '<p>' + esc(r.pesan || '') + '</p>';
+    var r = g.prat || {};
+    if (g.hasil) o += '<p class="' + (g.hasil.ok === false ? 'ls-awas' : 'ls-hasil') + '" data-ls-gerak-hasil="1">' + esc(g.hasil.ok === false ? T('gerakGagal')(g.hasil.pesan || T('gagal')) : (g.hasil.pesan || T('gerakBeres'))) + '</p>';
+    else o += '<p>' + esc(r.pesan || '') + '</p>';
     var m = masalahGerak(r);
     if (m.length) o += '<ul class="ls-tolak">' + m.slice(0, 20).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>';
-    if (kerja > 0) o += '<button type="button" class="btn" data-ls="gerak">' + esc(T('gerakTombol')) + '</button><small class="ket-alat">' + esc(T('gerakKet')) + '</small>';
     return o + '</div>';
   }
   function ulang() { var w = el('laporanBadan'); var aktif = W.document && W.document.querySelector('#laporan [data-ls-kartu]'); if (w && S.dp && aktif) gambar(w, S.dp); }
@@ -683,17 +681,16 @@
         status(T('gerakMuat'));
         return opsBerkas(barisSetor, S.dp, oleh).then(function (b64) {
           return M().jalan('obdShpPratinjau', ['WMS-TIKET', b64, namaOps]).then(function (r) {
-            S.gerak = r && r.ok !== false ? { prat: r, b64: b64, nama: namaOps, oleh: oleh } : { galat: (r && (r.pesan || r.sebab)) || T('gagal') };
+            if (!r || r.ok === false) { S.gerak = { galat: (r && (r.pesan || r.sebab)) || T('gagal') }; return; }
+            var g = S.gerak = { prat: r };
+            /* sekali jalan: jalur Gudang Shopee mengingat tahap tiap pesanan, jadi yang ditulis cuma tahap baru.
+               Kalau pratinjau bilang tidak ada yang baru, stok tidak disentuh sama sekali. */
+            if (!kerjaGerak(r)) return;
+            status(T('gerakJalan'));
+            return M().jalan('obdShpSimpan', ['WMS-TIKET', r.token, b64, namaOps, oleh]).then(function (h) { g.hasil = h || { ok: false }; }, function (e) { g.hasil = { ok: false, pesan: String(e && e.message || e) }; });
           });
         }).catch(function (e) { S.gerak = { galat: String(e && e.message || e) }; }).then(function () { return muat(true).then(function () {}, function () {}); });
       }, function (e) { S.hasil = { ok: false, pesan: String(e && e.message || e) }; }).then(function () { S.sibuk = false; status(''); var keep = S.hasil; gambarUlangDenganHasil(keep); });
-    }
-    if (a === 'gerak') {
-      var g = S.gerak; if (!g || !g.prat || g.hasil) return;
-      S.sibuk = true; bunyi('klik'); status(T('gerakJalan')); tombol(x, true);
-      M().jalan('obdShpSimpan', ['WMS-TIKET', g.prat.token, g.b64, g.nama, g.oleh]).then(function (h) { g.hasil = h || { ok: false }; }, function (e) { g.hasil = { ok: false, pesan: String(e && e.message || e) }; })
-        .then(function () { S.data = null; return muat(true).then(function () {}, function () {}); })
-        .then(function () { S.sibuk = false; status(''); ulang(); ulangPrat(); });
     }
   }
   function gambarUlangDenganHasil(h) { S.hasil = h; ulang(); ulangPrat(); }
