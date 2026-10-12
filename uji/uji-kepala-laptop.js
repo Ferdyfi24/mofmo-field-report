@@ -14,6 +14,8 @@
  * judul flex:1;min-width:0, #kopKanan flex. Yang diperiksa hasil akhirnya:
  * tinggi judul sama dengan satu baris, semua tombol di dalam layar, tidak ada
  * geser samping, dan nilai zoom isi per lebar layar.
+ * 12 Okt sore: enam alat masuk daftar Alat (uji-menu-alat.js), jadi kepala
+ * tinggal 4 tombol papan + Scan, Alat, tema, Keluar = 8.
  */
 const fs = require('fs'), path = require('path'), http = require('http');
 const AKAR = process.env.AKAR || path.resolve(__dirname, '..');
@@ -64,7 +66,7 @@ const PAPAN = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta 
     await p.waitForSelector('#kode', { timeout: 8000 });
     await p.fill('#kode', 'kode-palsu'); await p.click('#tMasuk');
     let fr = null; const t0 = Date.now();
-    while (Date.now() - t0 < 12000) { fr = p.frames().find(x => x !== p.mainFrame()); try { if (fr && await fr.evaluate(() => window.__siap === 1 && document.querySelectorAll('#kopKanan [data-wms]').length >= 6)) break; } catch (e) {} await jeda(100); }
+    while (Date.now() - t0 < 12000) { fr = p.frames().find(x => x !== p.mainFrame()); try { if (fr && await fr.evaluate(() => window.__siap === 1 && document.querySelectorAll('#kopKanan [data-wms]').length >= 4)) break; } catch (e) {} await jeda(100); }
     await jeda(600);
     const r = fr ? await fr.evaluate(() => {
       const h1 = document.getElementById('judulUji'), sub = document.getElementById('subJudul'), kk = document.getElementById('kopKanan'), bk = document.querySelector('header .bungkus');
@@ -86,7 +88,7 @@ const PAPAN = '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta 
   try {
     const a = await ukur(1366, 768);
     c('1 laptop 1366 px: judul dan subjudul satu baris, semua tombol kepala utuh (teks tidak terpotong, tidak menabrak judul) di dalam layar, tanpa geser samping, isi tidak diperbesar (zoom 1), kartu tidak terpotong',
-      satu(a) && a.tombol >= 10 && !a.luar.length && a.geser <= 1 && String(a.zoom) === '1' && a.potong === 0, JSON.stringify(a));
+      satu(a) && a.tombol >= 8 && !a.luar.length && a.geser <= 1 && String(a.zoom) === '1' && a.potong === 0, JSON.stringify(a));
     const b2 = await ukur(1536, 864);
     c('2 laptop 1536 px (skala 125%): judul satu baris, tombol di dalam layar, zoom 1, kartu utuh', satu(b2) && !b2.luar.length && b2.geser <= 1 && String(b2.zoom) === '1' && b2.potong === 0, JSON.stringify(b2));
     const d = await ukur(1700, 950);

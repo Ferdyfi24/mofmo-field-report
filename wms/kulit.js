@@ -113,6 +113,19 @@
       'nav#panel .pnlLcn.awas{background:var(--l4-aksen) !important;color:var(--l4-diAksen) !important}',
       'nav#panel a.on .pnlLcn{background:var(--l4-kartu) !important;color:var(--l4-ink) !important}',
       'nav#panel .iknKotak{border-radius:12px !important}',
+      /* daftar Alat di kepala (app.js pasangMenuAlat, 12 Okt) */
+      '.l4-menu-alat{position:fixed;z-index:90;display:none;box-sizing:border-box;padding:8px;background:var(--l4-kartu);color:var(--l4-ink);border:1.5px solid var(--l4-garis);border-radius:20px;box-shadow:0 16px 40px var(--l4-bayang);font-family:Nunito,"Helvetica Neue",Arial,sans-serif;max-height:calc(100vh - 100px);overflow-y:auto}',
+      '.l4-menu-alat.buka{display:block}',
+      '.l4-menu-alat a{display:flex;align-items:center;gap:12px;min-height:52px;padding:8px 12px;border-radius:14px;text-decoration:none;color:var(--l4-ink) !important;outline:none}',
+      '.l4-menu-alat a:hover,.l4-menu-alat a:focus-visible{background:var(--l4-lembut)}',
+      '.l4-menu-alat a:focus-visible{box-shadow:0 0 0 2px var(--l4-aksen)}',
+      '.l4-ma-ikon{width:36px;height:36px;border-radius:11px;background:var(--l4-peach);color:var(--l4-aksenTeks);display:inline-flex;align-items:center;justify-content:center;flex:none}',
+      '.l4-ma-ikon svg{width:19px;height:19px}',
+      '.l4-ma-teks{display:flex;flex-direction:column;gap:1px;min-width:0}',
+      '.l4-ma-teks b{font-weight:900;font-size:14.5px;color:var(--l4-ink)}',
+      '.l4-ma-teks small{font-weight:700;font-size:12px;color:var(--l4-mut)}',
+      '#kopKanan [data-wms=alat][aria-expanded=true]{background:var(--l4-peach) !important;box-shadow:0 0 0 2px var(--l4-aksen) !important}',
+      '#kopKanan [data-wms=alat] .l4-panah{transition:transform .15s ease}#kopKanan [data-wms=alat][aria-expanded=true] .l4-panah{transform:rotate(180deg)}',
       'nav#panel a.on .iknKotak{background:rgba(255,255,255,.55) !important}',
       /* saringan periode: pil, yang aktif peach */
       '#kotakSaring{background:var(--l4-bg) !important;border-bottom:2px dashed var(--l4-jahit)}',
@@ -168,6 +181,8 @@
         '#subJudul{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px !important;margin:2px 0 0 !important}' +
         '#kopKanan{grid-column:1 / -1;display:flex !important;gap:6px !important;overflow-x:auto;justify-content:flex-start !important;margin:4px 0 0 !important;position:static !important;scrollbar-width:none}' +
         '#kopKanan button,#kopKanan a{height:36px !important;min-width:36px !important;margin:0 !important;flex:none;padding:0 12px !important}' +
+        /* HP: Scan dan Alat paling depan supaya tidak perlu digeser; Scan cukup ikon (mockup B) */
+        '#kopKanan [data-wms=scan]{order:-2}#kopKanan [data-wms=alat]{order:-1;height:44px !important;min-width:44px !important}#kopKanan [data-wms=scan]{height:44px !important;min-width:44px !important;padding:0 !important;justify-content:center}#kopKanan [data-wms=scan] span{display:none}' +
         'nav#panel{scrollbar-width:none}nav#panel::-webkit-scrollbar,#saring .grup::-webkit-scrollbar,#kopKanan::-webkit-scrollbar{display:none}' +
         'nav#panel a.on::after{width:20px;height:20px}' +
         '#saring{flex-wrap:wrap !important;gap:6px !important}' +

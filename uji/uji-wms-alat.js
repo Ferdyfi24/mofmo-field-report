@@ -182,10 +182,12 @@ const KAMERA_PALSU = () => {
     /* ---- Kitabku (10 Okt): tombol di kop papan membuka lembar admin dengan tiket WMS yang sama ---- */
     const kitabBadan = [];
     await p.route('**/functions/v1/kitab', (r) => { kitabBadan.push(JSON.parse(r.request().postData() || '{}')); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true, acara: null, angka: { kartu: 4, pemain: 3, struk: 1, klaim: 0, kode: 0, dipakai: 0 }, hadiah: [] }) }); });
-    const kbTombol = await diBingkai(p, () => { const t = document.querySelector('#kopKanan [data-wms=kitabku]'); return t ? { svg: !!t.querySelector('svg'), teks: t.textContent.trim() } : null; });
-    await bingkai(p).click('#kopKanan [data-wms=kitabku]');
+    const kbTombol = await diBingkai(p, () => { const t = document.querySelector('[data-wms-menu=alat] [data-wms=kitabku]'); return t ? { svg: !!t.querySelector('svg'), teks: (t.querySelector('b') || t).textContent.trim() } : null; });
+    /* 12 Okt: Kitabku pindah ke daftar Alat di kepala (uji-menu-alat.js) */
+    await bingkai(p).click('#kopKanan [data-wms=alat]');
+    await bingkai(p).click('[data-wms-menu=alat] [data-wms=kitabku]');
     await tunggu(p, () => { const d = document.getElementById('kitabkuAdmin'); return d && d.classList.contains('buka') && /Collectors/.test(d.innerText); });
-    c('W60 tombol Kitabku di kop papan membuka lembar Kitabku; permintaannya membawa tiket WMS yang sama, bukan kode akses',
+    c('W60 Kitabku di daftar Alat kop papan membuka lembar Kitabku; permintaannya membawa tiket WMS yang sama, bukan kode akses',
       kbTombol && kbTombol.svg && kbTombol.teks === 'Kitabku' && kitabBadan.length === 1 && kitabBadan[0].fn === 'admin' && kitabBadan[0].aksi === 'ringkas' && kitabBadan[0].tiket === 'TIKET.SUPA' && !JSON.stringify(kitabBadan).includes(KODE_BENAR), JSON.stringify([kbTombol, kitabBadan]));
     await p.keyboard.press('Escape');
     await tunggu(p, () => !document.getElementById('kitabkuAdmin').classList.contains('buka'));

@@ -170,7 +170,7 @@ const PALSU_AWAL = () => {
   const bingkai = p => p.frames().find(f => f !== p.mainFrame());
   const tungguBingkai = async (p, fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < (ms || 8000)) { try { const f = bingkai(p); if (f && await f.evaluate(fn)) return true; } catch (e) {} await jeda(100); } return false; };
   const tunggu = (p, fn, ms) => p.waitForFunction(fn, null, { timeout: ms || 6000 }).catch(() => {});
-  const siapPapan = p => tungguBingkai(p, () => window.__siap === 1 && !!document.querySelector('#kopKanan [data-wms=katalog]'), 10000);
+  const siapPapan = p => tungguBingkai(p, () => window.__siap === 1 && !!document.querySelector('[data-wms-menu=alat] [data-wms=katalog]'), 10000);
   const masuk = async (p, bhs) => {
     await p.goto(URL0);
     await p.evaluate(b => { localStorage.setItem('wms_tema', 'light'); localStorage.setItem('wms_bhs', b); }, bhs || 'en');
@@ -181,7 +181,9 @@ const PALSU_AWAL = () => {
     await jeda(500);
   };
   const bukaKatalog = async p => {
-    await bingkai(p).click('#kopKanan [data-wms=katalog]');
+    /* 12 Okt: Katalog ada di daftar Alat di kepala (uji-menu-alat.js) */
+    await bingkai(p).click('#kopKanan [data-wms=alat]');
+    await bingkai(p).click('[data-wms-menu=alat] [data-wms=katalog]');
     await tunggu(p, () => { const d = document.getElementById('katalog'); return d && d.classList.contains('buka') && d.querySelectorAll('[data-sku]').length > 0; });
   };
   const baris = p => p.evaluate(() => Array.prototype.map.call(document.querySelectorAll('#katalog [data-sku]'), e => ({
@@ -207,10 +209,10 @@ const PALSU_AWAL = () => {
     c('K4 pajak dibaca per SKU: Pekingese berpajak 5% jadi 222.222 lalu 233.333, bukan dikali 1,11; SKU tanpa harga mengembalikan null, bukan Rp0',
       h && h.d && h.d.sebelum === 222222 && h.d.termasuk === 233333 && h.e === null, JSON.stringify([h && h.d, h && h.e]));
 
-    const tb = await bingkai(p).evaluate(() => { const t = document.querySelector('#kopKanan [data-wms=katalog]'); return t ? { svg: !!t.querySelector('svg'), teks: t.textContent.trim(), label: t.getAttribute('aria-label') } : null; });
+    const tb = await bingkai(p).evaluate(() => { const t = document.querySelector('[data-wms-menu=alat] [data-wms=katalog]'); return t ? { svg: !!t.querySelector('svg'), teks: (t.querySelector('b') || t).textContent.trim(), label: t.getAttribute('aria-label') || t.textContent } : null; });
     await bukaKatalog(p);
     const r1 = await baris(p);
-    c('K5 tombol Catalog di kop papan (ikon + tulisan) membuka lembar katalog', tb && tb.svg && tb.teks === 'Catalog' && /catalog/i.test(tb.label) && r1.length > 0, JSON.stringify(tb));
+    c('K5 Catalog di daftar Alat kop papan (ikon + tulisan) membuka lembar katalog', tb && tb.svg && tb.teks === 'Catalog' && /catalog/i.test(tb.label) && r1.length > 0, JSON.stringify(tb));
     c('K6 SEMUA SKU tampil, termasuk yang stoknya nol (Elephant) dan yang belum berharga (Cap Melon), keduanya diredupkan',
       r1.length === 6 && r1.find(x => x.s === 'MF-PLU-099' && x.kosong) && r1.find(x => x.s === 'MF-CAP-002' && x.kosong) && !r1.find(x => x.s === 'MF-PLU-005').kosong, JSON.stringify(r1.map(x => x.s + (x.kosong ? '(redup)' : ''))));
     const bear = r1.find(x => x.s === 'MF-PLU-005') || {};
@@ -320,7 +322,7 @@ const PALSU_AWAL = () => {
     await pasangRute(ctx2);
     const hp = await halaman(ctx2);
     await masuk(hp, 'id');
-    const tb2 = await bingkai(hp).evaluate(() => { const t = document.querySelector('#kopKanan [data-wms=katalog]'); return t ? { teks: t.textContent.trim(), label: t.getAttribute('aria-label') } : null; });
+    const tb2 = await bingkai(hp).evaluate(() => { const t = document.querySelector('[data-wms-menu=alat] [data-wms=katalog]'); return t ? { teks: (t.querySelector('b') || t).textContent.trim(), label: t.getAttribute('aria-label') || t.textContent } : null; });
     await bukaKatalog(hp);
     await jeda(300);
     const hpL = await hp.evaluate(() => { const l = document.querySelector('#katalog .lembar'); return { gulir: document.documentElement.scrollWidth, lebar: Math.round(l.getBoundingClientRect().width), dalam: l.scrollWidth - l.clientWidth }; });
