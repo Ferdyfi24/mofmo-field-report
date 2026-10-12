@@ -343,11 +343,28 @@
   }
 
   /* ---------- P14 Kualitas data ---------- */
-  function gambarKualitas(sek) {
+  /* teks HTML kecil dari papan (ketData) jadi teks biasa; baris <br> dipisah titik koma */
+  function polos(h) {
+    return String(h == null ? '' : h).replace(/<br\s*\/?>/gi, '; ').replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
+      .replace(/\s+/g, ' ').trim();
+  }
+  /* temuan papan berbidang sehat (temuanLainSehat di papan): yang dihitung lencana menu Kualitas data */
+  function temuanPapanSehat(fw) {
+    var tp = [];
+    try { if (fw && typeof fw.temuanLainSehat === 'function') tp = fw.temuanLainSehat() || []; } catch (e) { tp = []; }
+    return tp.filter(function (z) { return z && z.judul; }).map(function (z) {
+      var isi = [String(z.ket || '').trim(), polos(z.ketData)].filter(Boolean).join(' ');
+      var ket = [polos(z.subjek), isi].filter(Boolean).join(' · ') + (z.aksi ? '. ' + polos(z.aksi) : '');
+      return { berat: z.bobot === 'berat', judul: polos(z.judul), ket: ket, aksi: 'lama', label: t('q_lihat') };
+    });
+  }
+  function gambarKualitas(sek, fw) {
     var x = D.data, sehat = x.sehat || {}, temuan = sehat.temuan || [], pem = (x.pemicu && x.pemicu.daftar) || [];
     var telatMitra = ((x.mitraDiam && x.mitraDiam.mitra) || []).filter(function (m) { return m.telat; });
-    var berat = temuan.filter(function (z) { return z.bobot === 'berat'; }).length + telatMitra.length;
-    var ringan = temuan.length - temuan.filter(function (z) { return z.bobot === 'berat'; }).length;
+    var dariPapan = temuanPapanSehat(fw), beratPapan = dariPapan.filter(function (z) { return z.berat; }).length;
+    var berat = temuan.filter(function (z) { return z.bobot === 'berat'; }).length + telatMitra.length + beratPapan;
+    var ringan = temuan.length - temuan.filter(function (z) { return z.bobot === 'berat'; }).length + dariPapan.length - beratPapan;
     var aktif = pem.filter(function (p) { return p.terpasang !== false; });
     var tepat = aktif.filter(function (p) { return p.status === 'hijau'; }).length;
     var skor = Math.max(0, Math.min(100, 100 - 10 * berat - 3 * ringan - 8 * (aktif.length - tepat)));
@@ -358,7 +375,8 @@
     var kanan = '<div class="l4t-skor" data-l4t-skor="' + skor + '" title="' + esc(t('q_skorRumus')) + '">' + cincin + '<p>' + esc(t('q_skorKet')(berat + ringan, tepat, aktif.length)) + '</p></div>' + tombolLama();
     var h = kepalaHal(t('q_alis'), t('q_judul'), kanan);
     var tm = telatMitra.map(function (m) { return { berat: true, judul: t('q_telatJudul')(namaRetailer(m.kode)), ket: t('q_telatKet')(tglPendek(m.terakhir), nf(m.hariDiam)), aksi: 'dokumen', label: t('q_bukaDok') }; })
-      .concat(temuan.map(function (z) { return { berat: z.bobot === 'berat', judul: z.judul + (z.jml ? ' (' + nf(z.jml) + ')' : ''), ket: (z.ket || '') + (z.contoh && z.contoh.length ? ' ' + z.contoh.slice(0, 3).join(', ') + (z.contoh.length > 3 ? ', …' : '') : ''), aksi: 'lama', label: t('q_lihat') }; }));
+      .concat(temuan.map(function (z) { return { berat: z.bobot === 'berat', judul: z.judul + (z.jml ? ' (' + nf(z.jml) + ')' : ''), ket: (z.ket || '') + (z.contoh && z.contoh.length ? ' ' + z.contoh.slice(0, 3).join(', ') + (z.contoh.length > 3 ? ', …' : '') : ''), aksi: 'lama', label: t('q_lihat') }; }))
+      .concat(dariPapan);
     var temuanHtml = tm.length ? '<div class="l4t-daftar">' + tm.map(function (z) {
       return '<div class="l4t-temuan' + (z.berat ? ' berat' : '') + '" data-l4t-temuan="' + (z.berat ? 'berat' : 'ringan') + '"><span class="l4t-tanda">' + (z.berat ? '!' : 'i') + '</span><div class="isi"><b>' + esc(z.judul) + '</b><small>' + esc(z.ket) + '</small></div>' +
         '<button type="button" class="l4t-tombol dua" ' + (z.aksi === 'lama' ? 'data-l4t="lama"' : 'data-l4t-hal="' + esc(z.aksi) + '"') + '>' + esc(z.label) + '</button></div>';
@@ -488,7 +506,7 @@
     sek.innerHTML = '<p class="l4t-ket">' + esc(t('muat')) + '</p>';
     isi.insertBefore(sek, isi.firstChild);
     isi.classList.add('l4t-ganti'); isi.classList.remove('l4t-lihatlama');
-    var isiUlang = function () { if (!sek.isConnected || fw.HAL !== hal) return; try { GANTI[hal](sek); } catch (e) { sek.innerHTML = '<p class="l4t-ket">' + esc(t('gagal')) + '</p>'; if (W.console) W.console.warn('tata ' + hal, e); } };
+    var isiUlang = function () { if (!sek.isConnected || fw.HAL !== hal) return; try { GANTI[hal](sek, fw); } catch (e) { sek.innerHTML = '<p class="l4t-ket">' + esc(t('gagal')) + '</p>'; if (W.console) W.console.warn('tata ' + hal, e); } };
     muat().then(function () { isiUlang(); if (hal === 'mitra2') muatPiutang().then(isiUlang, isiUlang); }, function () { if (sek.isConnected) sek.innerHTML = '<p class="l4t-ket">' + esc(t('gagal')) + '</p>'; });
   }
   function terapkan(fw) {
