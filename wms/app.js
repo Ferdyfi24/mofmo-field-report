@@ -560,6 +560,8 @@
       jadwal: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4M7.5 13h2M11 13h2M14.5 13h2M7.5 16.5h2M11 16.5h2"/></svg>',
       laporan: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="12" rx="2"/><path d="M12 16.5v3.5M8.5 20h7M7.5 13.5v-2.5M11 13.5V9M14.5 13.5v-4.5M18 13.5v-1.5"/></svg>',
       tanya: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5.5h15v10h-8l-4.5 4v-4h-2.5z"/><path d="M10 9a2 2 0 1 1 2.6 1.9c-.4.2-.6.5-.6.9v.4M12 13.6v.2"/></svg>',
+      alat: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>',
+      panah: '<svg class="l4-panah" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
       buku: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.2 5 7.6 4.5 4 4.8v13c3.6-.3 6.2.2 8 1.7 1.8-1.5 4.4-2 8-1.7v-13c-3.6-.3-6.2.2-8 1.7z"/><path d="M12 6.5v13"/></svg>'
     };
     function tombol(teks, label, fn, jenis) {
@@ -568,28 +570,56 @@
       b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); fn(); });
       return b;
     }
+    /* Mockup B (12 Okt): enam alat di balik satu tombol "Alat" di kepala. Daftarnya
+       ditempel ke body (position fixed) supaya tidak terpotong #kopKanan, yang di HP
+       digeser samping. Menutup sesudah alat dipilih, klik di luar, Esc, atau Tab. */
+    var DAFTAR_ALAT = [['laporan', 'laporanPendek', 'ketLaporan', 'laporan'], ['kontrol', 'kontrolPendek', 'ketKontrol', 'kontrol'], ['jadwal', 'jadwalMenu', 'ketJadwal', 'jadwal'],
+      ['katalog', 'katalogPendek', 'ketKatalog', 'katalog'], ['kitabku', null, 'ketKitabku', 'buku'], ['tanya', 'tanyaMenu', 'ketTanya', 'tanya']];
+    function bukaAlat(k) { if (k === 'laporan') H.laporan(); else if (k === 'kontrol') H.kontrol(); else if (k === 'jadwal') H.jadwal(); else if (k === 'katalog') H.katalog(); else if (k === 'kitabku') H.kitabku(); else if (k === 'tanya') H.tanya(); }
+    function pasangMenuAlat(kanan) {
+      var bt = tombol('', C.teks.alatLabel, function () {}, 'alat');
+      bt.setAttribute('aria-haspopup', 'menu'); bt.setAttribute('aria-expanded', 'false'); bt.setAttribute('aria-controls', 'l4MenuAlat'); bt.removeAttribute('title');
+      bt.innerHTML = IKON.alat + '<span>' + C.teks.alat + '</span>' + IKON.panah; bt.style.paddingRight = '13px';
+      kanan.appendChild(bt);
+      var m = document.createElement('div'); m.id = 'l4MenuAlat'; m.className = 'l4-menu-alat'; m.setAttribute('role', 'menu'); m.setAttribute('data-wms-menu', 'alat'); m.setAttribute('aria-label', C.teks.alat);
+      DAFTAR_ALAT.forEach(function (x) {
+        var a = document.createElement('a'); a.href = '#'; a.setAttribute('role', 'menuitem'); a.setAttribute('data-wms', x[0]); a.tabIndex = -1;
+        a.innerHTML = '<span class="l4-ma-ikon">' + IKON[x[3]] + '</span><span class="l4-ma-teks"><b></b><small></small></span>';
+        a.querySelector('b').textContent = x[1] ? C.teks[x[1]] : 'Kitabku'; a.querySelector('small').textContent = C.teks[x[2]];
+        a.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); tutup(false); bukaAlat(x[0]); });
+        m.appendChild(a);
+      });
+      document.body.appendChild(m);
+      var butir = function () { return [].slice.call(m.querySelectorAll('[role=menuitem]')); };
+      var terbuka = function () { return m.classList.contains('buka'); };
+      function letak() {
+        var r = bt.getBoundingClientRect(), w = window.innerWidth;
+        m.style.top = Math.round(r.bottom + 8) + 'px';
+        if (w <= 760) { m.style.left = '12px'; m.style.right = '12px'; m.style.width = 'auto'; }
+        else { m.style.left = 'auto'; m.style.width = '300px'; m.style.right = Math.max(12, Math.round(w - r.right)) + 'px'; }
+      }
+      function buka(fokus) { letak(); m.classList.add('buka'); bt.setAttribute('aria-expanded', 'true'); if (fokus) { var b = butir()[0]; if (b) b.focus(); } }
+      function tutup(balik) { if (!terbuka()) return; m.classList.remove('buka'); bt.setAttribute('aria-expanded', 'false'); if (balik) bt.focus(); }
+      bt.addEventListener('click', function (e) { if (terbuka()) tutup(false); else buka(e.detail === 0); });
+      bt.addEventListener('keydown', function (e) { if (e.key === 'ArrowDown' && !terbuka()) { e.preventDefault(); buka(true); } });
+      m.addEventListener('keydown', function (e) {
+        var bs = butir(), i = bs.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') { e.preventDefault(); bs[(i + 1) % bs.length].focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); bs[(i - 1 + bs.length) % bs.length].focus(); }
+        else if (e.key === 'Home') { e.preventDefault(); bs[0].focus(); }
+        else if (e.key === 'End') { e.preventDefault(); bs[bs.length - 1].focus(); }
+        else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); tutup(true); }
+        else if (e.key === 'Tab') tutup(false);
+      });
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && terbuka()) tutup(true); });
+      document.addEventListener('click', function (e) { if (terbuka() && !m.contains(e.target) && !bt.contains(e.target)) tutup(false); }, true);
+      window.addEventListener('resize', function () { tutup(false); });
+    }
     function pasangAlat() {
       var kanan = document.getElementById('kopKanan'); if (!kanan || kanan.querySelector('[data-wms]')) return;
       var sc = tombol('', C.teks.scan, function () { H.alat('scan'); }, 'scan'); sc.innerHTML = IKON.scan + '<span>' + C.teks.scanPendek + '</span>'; sc.style.paddingRight = '15px';
       kanan.appendChild(sc);
-      /* Kitabku (10 Okt): event, hadiah, cetak kartu QR paket Shopee, klaim struk gerai */
-      var kb = tombol('', C.teks.kitabku, function () { H.kitabku(); }, 'kitabku'); kb.innerHTML = IKON.buku + '<span>Kitabku</span>'; kb.style.paddingRight = '15px';
-      kanan.appendChild(kb);
-      /* Katalog (11 Okt): semua SKU dan harga jual putus termasuk pajak */
-      var kt = tombol('', C.teks.katalog, function () { H.katalog(); }, 'katalog'); kt.innerHTML = IKON.katalog + '<span>' + C.teks.katalogPendek + '</span>'; kt.style.paddingRight = '15px';
-      kanan.appendChild(kt);
-      /* Kontrol (11 Okt): tutup bulan, rapor mitra, margin, rekonsiliasi, angka janggal, SLA, retur Shopee */
-      var kn = tombol('', C.teks.kontrol, function () { H.kontrol(); }, 'kontrol'); kn.innerHTML = IKON.kontrol + '<span>' + C.teks.kontrolPendek + '</span>'; kn.style.paddingRight = '15px';
-      kanan.appendChild(kn);
-      /* Laporan bulanan (11 Okt): sales, inventory movement, inventory condition, SKU, channel jadi PPT */
-      var lp = tombol('', C.teks.laporan, function () { H.laporan(); }, 'laporan'); lp.innerHTML = IKON.laporan + '<span>' + C.teks.laporanPendek + '</span>'; lp.style.paddingRight = '15px';
-      kanan.appendChild(lp);
-      /* Jadwal Operational PIC (12 Okt): susun bulan depan, terbitkan, PDF mitra + draf Gmail + gambar staf */
-      var jd = tombol('', C.teks.jadwal, function () { H.jadwal(); }, 'jadwal'); jd.innerHTML = IKON.jadwal + '<span>' + C.teks.jadwalPendek + '</span>'; jd.style.paddingRight = '15px';
-      kanan.appendChild(jd);
-      /* Tanya WMS (12 Okt): pertanyaan bahasa sehari-hari, aturan tanpa AI */
-      var ty = tombol('', C.teks.tanya, function () { H.tanya(); }, 'tanya'); ty.innerHTML = IKON.tanya + '<span>' + C.teks.tanyaPendek + '</span>'; ty.style.paddingRight = '15px';
-      kanan.appendChild(ty);
+      pasangMenuAlat(kanan);
       /* Ikon menunjuk mode TUJUAN (Ferdy: tulisan Day/Night bikin ragu mau klik) */
       var tm = tombol('', C.gelap ? C.teks.keSiang : C.teks.keMalam, function () { H.tema(); }, 'tema'); tm.innerHTML = C.gelap ? IKON.matahari : IKON.bulan;
       kanan.appendChild(tm);
@@ -741,7 +771,7 @@
       var gelap = PAPAN.tema === 'dark', K = window.KulitPapan;
       var id = bhs() === 'id';
       var C = { cssBayang: K.cssBayang(), gelap: gelap, boneka: '<img class="l4-boneka" src="' + K.dasar + 'angora.webp" alt="">', teks: { keMalam: id ? 'Ganti ke malam' : 'Switch to night', keSiang: id ? 'Ganti ke siang' : 'Switch to day', keluar: t('logout'),
-        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', laporan: id ? 'Laporan bulanan: sales, inventory, SKU, channel jadi PowerPoint' : 'Monthly report: sales, inventory, SKU and channels as PowerPoint', laporanPendek: id ? 'Laporan' : 'Report', jadwal: id ? 'Jadwal Operational PIC: susun bulan depan, PDF mitra, draf email, gambar staf' : 'Operational PIC schedule: next month, partner PDFs, email drafts, staff image', jadwalPendek: id ? 'Jadwal' : 'Schedule', tanya: id ? 'Tanya WMS: stok, penjualan, gerai, opname dalam bahasa sehari-hari' : 'Ask the WMS: stock, sales, stores, counts in plain words', tanyaPendek: id ? 'Tanya' : 'Ask', menu: 'Menu', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
+        scan: id ? 'Scan rak atau cari SKU' : 'Scan a rack or find a SKU', scanPendek: 'Scan', kitabku: id ? 'Kitabku: event, hadiah, kartu QR, klaim struk' : 'Kitabku: events, rewards, QR cards, receipt claims', katalog: id ? 'Katalog: semua SKU dan harga jual putus' : 'Catalog: every SKU with its outright sale price', katalogPendek: id ? 'Katalog' : 'Catalog', kontrol: id ? 'Kontrol: tutup bulan, rapor mitra, margin, rekonsiliasi' : 'Controls: month-end close, partner report cards, margins, reconciliation', kontrolPendek: id ? 'Kontrol' : 'Controls', laporan: id ? 'Laporan bulanan: sales, inventory, SKU, channel jadi PowerPoint' : 'Monthly report: sales, inventory, SKU and channels as PowerPoint', laporanPendek: id ? 'Laporan' : 'Report', jadwal: id ? 'Jadwal Operational PIC: susun bulan depan, PDF mitra, draf email, gambar staf' : 'Operational PIC schedule: next month, partner PDFs, email drafts, staff image', jadwalPendek: id ? 'Jadwal' : 'Schedule', tanya: id ? 'Tanya WMS: stok, penjualan, gerai, opname dalam bahasa sehari-hari' : 'Ask the WMS: stock, sales, stores, counts in plain words', tanyaPendek: id ? 'Tanya' : 'Ask', menu: 'Menu', alat: id ? 'Alat' : 'Tools', alatLabel: id ? 'Alat: laporan, kontrol, jadwal, katalog, Kitabku, Tanya WMS' : 'Tools: reports, controls, schedule, catalog, Kitabku, Ask WMS', jadwalMenu: id ? 'Jadwal PIC' : 'PIC schedule', tanyaMenu: id ? 'Tanya WMS' : 'Ask WMS', ketLaporan: id ? 'Bulanan, per mitra, Shopee' : 'Monthly, by partner, Shopee', ketKontrol: id ? 'Tutup bulan, HPP, rekonsiliasi' : 'Month-end close, COGS, reconciliation', ketJadwal: id ? 'Kunjungan dan rute' : 'Visits and routes', ketKatalog: id ? 'SKU dan harga jual' : 'SKUs and sale prices', ketKitabku: id ? 'Event, hadiah, kartu QR' : 'Events, rewards, QR cards', ketTanya: id ? 'Tanya stok, penjualan, jadwal' : 'Ask about stock, sales, schedules', paspor: id ? 'Buka paspor SKU' : 'Open the SKU passport' } };
       var html = K.ubahHtml(mentah, gelap);
       var kepala = '<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@500;600;700;800;900&display=swap" rel="stylesheet">' +
         '<script>(' + String(PENGGANTI) + ')(' + JSON.stringify(C) + ');<\/script>';
