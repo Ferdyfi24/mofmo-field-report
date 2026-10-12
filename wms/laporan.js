@@ -41,11 +41,14 @@
 
   /* ================= hitungan ================= */
   var MARGIN_MITRA = { TGI: 0.35, KIY: 0.35, MAA: 0.45, GMT: 0.20 };
-  var NAMA_RETAILER = { TGI: 'Toys Kingdom', KIY: 'Kinokuniya', MAA: 'MAA', GMT: 'Gamotion' };
+  var NAMA_RETAILER = { TGI: 'Toys Kingdom', KIY: 'Kinokuniya', MAA: 'MAA', GMT: 'Gamotion', SHP: 'Shopee' };
   function toko(l) { return !!(l && (l.toko === 1 || l.toko === '1' || l.toko === true)); }
-  function dipegang(l) { return !!l && (l.k === 'HO' || l.k === 'TRANSIT' || l.k === 'GMT' || toko(l)); }
-  function grupLokasi(l) { return l.k === 'HO' ? 'HO' : l.k === 'TRANSIT' ? 'TRANSIT' : l.k === 'GMT' ? 'GMT' : 'GERAI'; }
-  function grupJual(l) { return toko(l) ? (l.r || l.k) : l.k === 'GMT' ? 'GMT' : 'HO'; }
+  /* SHP (Shopee, 12 Okt): paket Shopee yang sudah dikemas masih barang gudang sampai
+     diserahkan ke kurir, jadi dihitung dipegang dan masuk kelompok lokasi HO.
+     HO -> SHP perpindahan internal, SHP -> TERJUAL penjualan saluran Shopee. */
+  function dipegang(l) { return !!l && (l.k === 'HO' || l.k === 'TRANSIT' || l.k === 'GMT' || l.k === 'SHP' || toko(l)); }
+  function grupLokasi(l) { return l.k === 'HO' || l.k === 'SHP' ? 'HO' : l.k === 'TRANSIT' ? 'TRANSIT' : l.k === 'GMT' ? 'GMT' : 'GERAI'; }
+  function grupJual(l) { return toko(l) ? (l.r || l.k) : l.k === 'GMT' ? 'GMT' : l.k === 'SHP' ? 'SHP' : 'HO'; }
 
   function hitung(dp, opsi) {
     opsi = opsi || {};
@@ -62,9 +65,12 @@
     var harga = function (pi) { return Number((P[pi] || {}).h) || 0; };
     var modal = function (pi) { return Number((P[pi] || {}).hs) || 0; };
     var jual = function (r) { return dipegang(r.d) && r.k.k === 'TERJUAL'; };
+    /* retur (TERJUAL -> lokasi dipegang) mengurangi penjualan saluran asalnya */
+    var arah = function (r) { return jual(r) ? 1 : r.d.k === 'TERJUAL' && dipegang(r.k) ? -1 : 0; };
+    var asal = function (r) { return jual(r) ? r.d : r.k; };
 
     /* ---------- sales ---------- */
-    var nilaiBulan = function (mm) { var n = 0, p = 0; B.forEach(function (r) { if (jual(r) && r.t.slice(0, 7) === mm) { n += r.q * harga(r.pi); p += r.q; } }); return { nilai: n, pcs: p }; };
+    var nilaiBulan = function (mm) { var n = 0, p = 0; B.forEach(function (r) { var a = arah(r); if (a && r.t.slice(0, 7) === mm) { n += a * r.q * harga(r.pi); p += a * r.q; } }); return { nilai: n, pcs: p }; };
     var tren = []; for (var j = 5; j >= 0; j--) { var mm = geserBulan(bulan, -j), x = nilaiBulan(mm); tren.push({ bulan: mm, nilai: x.nilai, pcs: x.pcs }); }
     var ini = tren[5], lalu = tren[4];
     var saldo = function (batas) { /* saldo per lokasi per SKU untuk baris dengan tanggal < batas */
@@ -74,8 +80,9 @@
     var jumlah = function (o) { var n = 0; for (var k in o) n += o[k]; return n; };
     var sAwal = saldo(awal), sAkhir = saldo(geserHari(akhir, 1));
     var urutRet = []; L.forEach(function (l) { if (toko(l) && l.r && urutRet.indexOf(l.r) < 0) urutRet.push(l.r); });
-    var grupUrut = urutRet.concat(['GMT', 'HO']);
-    var stokGrup = function (g, s) { var n = 0; L.forEach(function (l, li) { if (!dipegang(l)) return; if ((g === 'GMT' && l.k === 'GMT') || (toko(l) && (l.r || l.k) === g)) n += jumlah(s[li] || {}); }); return n; };
+    var adaShp = L.some(function (l) { return l.k === 'SHP'; });
+    var grupUrut = urutRet.concat(['GMT'], adaShp ? ['SHP'] : [], ['HO']);
+    var stokGrup = function (g, s) { var n = 0; L.forEach(function (l, li) { if (!dipegang(l)) return; if ((g === 'GMT' && l.k === 'GMT') || (g === 'SHP' && l.k === 'SHP') || (toko(l) && (l.r || l.k) === g)) n += jumlah(s[li] || {}); }); return n; };
     var mitra = grupUrut.map(function (g) {
       var o = { k: g, nama: g === 'HO' ? null : (NAMA_RETAILER[g] || g), pcs: 0, nilai: 0, nilaiLalu: 0, sisa: g === 'HO' ? '-' : stokGrup(g, sAkhir), gerai: [] };
       L.forEach(function (l, li) { if (toko(l) && (l.r || l.k) === g) o.gerai.push({ li: li, k: l.k, nama: l.n || l.k, pcs: 0, nilai: 0, sisa: jumlah(sAkhir[li] || {}) }); });
@@ -83,10 +90,10 @@
     });
     var cariMitra = function (g) { for (var i = 0; i < mitra.length; i++) if (mitra[i].k === g) return mitra[i]; return null; };
     B.forEach(function (r) {
-      if (!jual(r)) return;
-      var m = cariMitra(grupJual(r.d)); if (!m) return;
-      var mm = r.t.slice(0, 7), v = r.q * harga(r.pi);
-      if (mm === bulan) { m.pcs += r.q; m.nilai += v; m.gerai.forEach(function (g) { if (g.li === r.dl) { g.pcs += r.q; g.nilai += v; } }); }
+      var a = arah(r); if (!a) return;
+      var m = cariMitra(grupJual(asal(r))); if (!m) return;
+      var mm = r.t.slice(0, 7), q = a * r.q, v = q * harga(r.pi), li = a > 0 ? r.dl : r.kl;
+      if (mm === bulan) { m.pcs += q; m.nilai += v; m.gerai.forEach(function (g) { if (g.li === li) { g.pcs += q; g.nilai += v; } }); }
       else if (mm === bulanLalu) m.nilaiLalu += v;
     });
 
@@ -144,9 +151,9 @@
     /* ---------- SKU ---------- */
     var perSku = {};
     B.forEach(function (r) {
-      if (!jual(r) || r.t.slice(0, 7) !== bulan) return;
+      var a = arah(r); if (!a || r.t.slice(0, 7) !== bulan) return;
       var o = perSku[r.pi] = perSku[r.pi] || { pi: r.pi, pcs: 0, nilai: 0, saluran: {} };
-      o.pcs += r.q; o.nilai += r.q * harga(r.pi); o.saluran[grupJual(r.d)] = 1;
+      o.pcs += a * r.q; o.nilai += a * r.q * harga(r.pi); if (a > 0) o.saluran[grupJual(r.d)] = 1;
     });
     var info = function (pi) { var p = P[pi] || {}; return { s: p.s || p.b || '', n: p.n || p.s || '', b: p.b || '' }; };
     var top = Object.keys(perSku).map(function (k) { return perSku[k]; })
@@ -156,7 +163,7 @@
       .sort(function (a, b) { return b.sisa - a.sisa || b.hari - a.hari; }).slice(0, 6)
       .map(function (o) { var f = info(o.pi); return { pi: o.pi, s: f.s, n: f.n, sisa: o.sisa, hari: o.hari }; });
     var mulaiAbc = geserBulan(bulan, -2), nilaiAbc = {};
-    B.forEach(function (r) { var mm = r.t.slice(0, 7); if (jual(r) && mm >= mulaiAbc && mm <= bulan) nilaiAbc[r.pi] = (nilaiAbc[r.pi] || 0) + r.q * harga(r.pi); });
+    B.forEach(function (r) { var mm = r.t.slice(0, 7), a = arah(r); if (a && mm >= mulaiAbc && mm <= bulan) nilaiAbc[r.pi] = (nilaiAbc[r.pi] || 0) + a * r.q * harga(r.pi); });
     var daftarAbc = []; P.forEach(function (p, pi) { if (Number(p.hs) > 0) daftarAbc.push({ pi: pi, v: nilaiAbc[pi] || 0 }); });
     daftarAbc.sort(function (a, b) { return b.v - a.v; });
     var totalAbc = daftarAbc.reduce(function (a, x) { return a + x.v; }, 0), kum = 0;
@@ -181,9 +188,9 @@
       }
       return { k: m.k, nama: m.nama, tersedia: tersedia, terjual: terjual, pcs: m.pcs, nilai: m.nilai, porsi: total > 0 ? Math.round(m.nilai / total * 100) : 0, st: m.k !== 'HO' && tersedia > 0 ? terjual / tersedia : null, margin: MARGIN_MITRA[m.k] != null ? MARGIN_MITRA[m.k] : null };
     });
-    var komisi = 0; B.forEach(function (r) { if (jual(r) && r.t.slice(0, 7) === bulan) komisi += r.q * modal(r.pi); });
+    var komisi = 0; B.forEach(function (r) { var a = arah(r); if (a && r.t.slice(0, 7) === bulan) komisi += a * r.q * modal(r.pi); });
     komisi = Math.round(komisi * (Number(dp.tarif) > 0 ? Number(dp.tarif) : 0.1));
-    var geraiTersedia = 0, geraiJual = 0; channel.forEach(function (x) { if (x.k !== 'HO' && x.k !== 'GMT') { geraiJual += x.terjual; geraiTersedia += x.tersedia; } });
+    var geraiTersedia = 0, geraiJual = 0; channel.forEach(function (x) { if (x.k !== 'HO' && x.k !== 'GMT' && x.k !== 'SHP') { geraiJual += x.terjual; geraiTersedia += x.tersedia; } });
 
     /* ---------- tindak lanjut (aturan tetap) ---------- */
     var tindak = [];
@@ -367,7 +374,8 @@
       tdOpname: function (n, x) { return 'Schedule a stock count at ' + n + (n === 1 ? ' location' : ' locations') + ' past 30 days: ' + x; }, tdMati: function (n, q) { return 'Review ' + n + ' dead-stock store SKUs (' + q + ' pcs): move them to stores that sell, or promote'; },
       tdTransit: function (q, t) { return 'Confirm the ' + q + ' pcs still in transit on ' + tglPendek(t) + ' reached the stores'; }, tdSepi: function (n, x) { return 'Confirm the sales report of ' + n + (n === 1 ? ' store' : ' stores') + ' with stock but no sales: ' + x; },
       langsung: 'Direct sales (HO)', gerai: 'Partner stores', gudang: 'HO warehouse', transit: 'In transit', gamotion: 'Gamotion',
-      tab: { bulanan: 'Monthly report', mitra: 'By partner', riwayat: 'History' },
+      tab: { bulanan: 'Monthly report', mitra: 'By partner', shopee: 'Shopee', riwayat: 'History' },
+      subShopee: 'Download the daily Shopee template, submit it every evening, then download the Shopee daily and monthly reports (Excel with pivot tabs).',
       subMitra: 'A report card per retail partner as PowerPoint: sales by store, stock on the shelf, SKUs that sell and that sit, compliance and follow-ups.',
       mitraJudul: 'Partners', bagianJudul: 'Sections in each report', untukMitra: 'Sent to the partner', mInternal: 'Internal',
       untukKetMI: 'The internal version includes OLS commission, receivables and the report score.', untukKetMM: 'The partner version shows only that partner\'s own stores, without commission, receivables or score. It cannot be merged.',
@@ -394,7 +402,8 @@
       tdOpname: function (n, x) { return 'Jadwalkan opname di ' + n + ' lokasi yang lewat 30 hari: ' + x; }, tdMati: function (n, q) { return 'Tinjau ' + n + ' SKU-gerai stok mati (' + q + ' pcs): rotasi ke gerai yang laku atau promosi'; },
       tdTransit: function (q, t) { return 'Pastikan ' + q + ' pcs yang masih di jalan per ' + tglPendek(t) + ' sudah diterima gerai'; }, tdSepi: function (n, x) { return 'Konfirmasi laporan penjualan ' + n + ' gerai yang punya stok tapi tanpa penjualan: ' + x; },
       langsung: 'Penjualan langsung (HO)', gerai: 'Gerai mitra', gudang: 'Gudang HO', transit: 'Di jalan', gamotion: 'Gamotion',
-      tab: { bulanan: 'Laporan bulanan', mitra: 'Per mitra', riwayat: 'Riwayat' },
+      tab: { bulanan: 'Laporan bulanan', mitra: 'Per mitra', shopee: 'Shopee', riwayat: 'Riwayat' },
+      subShopee: 'Unduh mentahan harian Shopee, setor tiap sore, lalu unduh laporan harian dan bulanan Shopee (Excel berisi tab pivot).',
       subMitra: 'Rapor tiap mitra retail dalam PowerPoint: penjualan per gerai, stok di rak, SKU yang laku dan yang diam, kepatuhan laporan, dan tindak lanjut.',
       mitraJudul: 'Mitra', bagianJudul: 'Isi tiap rapor', untukMitra: 'Dikirim ke mitra', mInternal: 'Internal',
       untukKetMI: 'Versi internal memuat komisi OLS, piutang, dan skor rapor.', untukKetMM: 'Versi mitra hanya memuat gerai mitra itu sendiri, tanpa komisi, piutang, dan skor. Tidak bisa digabung.',
@@ -840,7 +849,7 @@
     d.classList.remove('buka'); d.setAttribute('aria-hidden', 'true'); W.document.body.classList.remove('alat-terbuka');
     try { if (A.dari && A.dari.focus) A.dari.focus(); } catch (e) {}
   }
-  var TAB_LAP = ['bulanan', 'mitra', 'riwayat'];
+  var TAB_LAP = ['bulanan', 'mitra', 'shopee', 'riwayat'];
   var IKON_TUTUP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
   function gambar(paksa) {
     var isi = el('laporanIsi');
@@ -854,11 +863,12 @@
   function gambarTab() {
     var t = el('lpTab'); if (!t) return;
     t.innerHTML = TAB_LAP.map(function (k) { return '<button type="button" role="tab" class="lp-tab-btn' + (A.tab === k ? ' on' : '') + '" data-laporan-tab="' + k + '" aria-selected="' + (A.tab === k) + '">' + esc(TK('tab')[k]) + '</button>'; }).join('');
-    var sub = el('laporanIsi') && el('laporanIsi').querySelector('.lp-judul small'); if (sub) sub.textContent = A.tab === 'mitra' ? TK('subMitra') : TK('sub');
+    var sub = el('laporanIsi') && el('laporanIsi').querySelector('.lp-judul small'); if (sub) sub.textContent = A.tab === 'mitra' ? TK('subMitra') : A.tab === 'shopee' ? TK('subShopee') : TK('sub');
   }
   function gambarIsi() {
     var w = el('laporanBadan'); if (!w || !D.dp) return;
     if (A.tab === 'mitra') { gambarMitra(w); return; }
+    if (A.tab === 'shopee') { if (W.WmsLapShopee) W.WmsLapShopee.gambar(w, D.dp); return; }
     if (A.tab === 'riwayat' && typeof gambarRiwayat === 'function') { gambarRiwayat(w); return; }
     var h = H(), berkas = susunSlide({ gabung: A.gabung, pilih: A.pilih, bulan: h.bulan });
     var nSlide = berkas.reduce(function (a, f) { return a + f.slide.length; }, 0), sl = TK('sl');
