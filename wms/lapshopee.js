@@ -106,7 +106,11 @@
   /* ================= urai berkas jadi baris setoran ================= */
   var PETA = { no: ['no pesanan'], barcode: ['barcode'], qty: ['qty', 'qty (pcs)'], harga: ['harga jual', 'harga jual (rp)'], tPesan: ['waktu pesan', 'tanggal pesan'], tKemas: ['waktu kemas', 'waktu packing'],
     tSerah: ['waktu serah kurir'], jasa: ['jasa kirim', 'kurir'], resi: ['no resi'], status: ['status'], tTerima: ['waktu diterima'], tRetur: ['waktu retur'], rBagus: ['retur bagus'], rRusak: ['retur rusak'],
-    alasan: ['alasan retur'], catatan: ['catatan'], saluran: ['saluran'] };
+    alasan: ['alasan retur'], catatan: ['catatan'], saluran: ['saluran'],
+    lokasi: ['lokasi ambil (rak)', 'lokasi staging', 'lokasi'], pengemas: ['dikemas oleh', 'dipacking oleh'], fotoKirim: ['link foto kirim'], namaKurir: ['nama kurir', 'nama kurir penjemput'],
+    fotoSerah: ['link foto serah', 'link foto serah kurir'], batal: ['batal'] };
+  /* isian per pesanan: cukup ditulis di baris pertama pesanan, barang berikutnya ikut */
+  var ISIAN_PESANAN = ['tKemas', 'lokasi', 'pengemas', 'fotoKirim', 'tSerah', 'jasa', 'resi', 'namaKurir', 'fotoSerah', 'tTerima'];
   function cariKepala(rows) {
     for (var i = 0; i < Math.min(rows.length, 15); i++) {
       var r = (rows[i] || []).map(function (v) { return String(v == null ? '' : v).trim().toLowerCase(); });
@@ -133,18 +137,22 @@
     var K = utama.kp.kol, pk = {};
     if (kirim) {
       var KK = kirim.kp.kol;
-      kirim.rows.slice(kirim.kp.baris + 1).forEach(function (r) { var no = teksSel(r[KK.no]).replace(/^#\s*/, ''); if (!no) return; pk[no] = { tKemas: waktuSel(r[KK.tKemas]), tSerah: waktuSel(r[KK.tSerah]), jasa: teksSel(r[KK.jasa]), resi: teksSel(r[KK.resi]), tTerima: waktuSel(r[KK.tTerima]) }; });
+      kirim.rows.slice(kirim.kp.baris + 1).forEach(function (r) { var no = teksSel(r[KK.no]).replace(/^#\s*/, ''); if (!no) return; var x = {}; ISIAN_PESANAN.forEach(function (f) { x[f] = KK[f] == null ? '' : /^t[A-Z]/.test(f) ? waktuSel(r[KK[f]]) : teksSel(r[KK[f]]); }); pk[no] = x; });
     }
     utama.rows.slice(utama.kp.baris + 1).forEach(function (r) {
       var no = teksSel(r[K.no]).replace(/^#\s*/, ''); if (!no) return;
       if (K.saluran != null && String(r[K.saluran] || '').trim().toUpperCase() !== 'SHOPEE') { hasil.lewat++; return; }
       var b = { no: no, barcode: teksSel(r[K.barcode]).replace(/\.0+$/, ''), qty: angkaSel(r[K.qty]), harga: K.harga != null ? angkaSel(r[K.harga]) : '' };
       ['tPesan', 'tKemas', 'tSerah', 'tTerima', 'tRetur'].forEach(function (f) { b[f] = K[f] != null ? waktuSel(r[K[f]]) : ''; });
-      ['jasa', 'resi', 'status', 'alasan', 'catatan'].forEach(function (f) { b[f] = K[f] != null ? teksSel(r[K[f]]) : ''; });
+      ['jasa', 'resi', 'status', 'alasan', 'catatan', 'lokasi', 'pengemas', 'fotoKirim', 'namaKurir', 'fotoSerah'].forEach(function (f) { b[f] = K[f] != null ? teksSel(r[K[f]]) : ''; });
+      if (K.batal != null && /^(ya|y|yes|x|v|1|batal|true)$/i.test(teksSel(r[K.batal]))) b.status = 'Batal';
       b.rBagus = K.rBagus != null ? angkaSel(r[K.rBagus]) : ''; b.rRusak = K.rRusak != null ? angkaSel(r[K.rRusak]) : '';
-      var x = pk[no]; if (x) ['tKemas', 'tSerah', 'jasa', 'resi', 'tTerima'].forEach(function (f) { if (x[f] && !b[f]) b[f] = x[f]; });
+      var x = pk[no]; if (x) ISIAN_PESANAN.forEach(function (f) { if (x[f] && !b[f]) b[f] = x[f]; });
       hasil.baris.push(b);
     });
+    var pertama = {};
+    hasil.baris.forEach(function (b) { var q = pertama[b.no] = pertama[b.no] || {}; ISIAN_PESANAN.forEach(function (f) { if (b[f] && !q[f]) q[f] = b[f]; }); });
+    hasil.baris.forEach(function (b) { var q = pertama[b.no]; ISIAN_PESANAN.forEach(function (f) { if (!b[f] && q[f]) b[f] = q[f]; }); });
     return hasil;
   }
 
@@ -258,51 +266,115 @@
     };
   }
   var BARIS_KOSONG = 150;
+  /* Excel gudang satu lembar (12 Okt sore, Ferdy: "tadi orang gudang ngisi agak ribet").
+     Kolom per pesanan (kemas sampai diterima) cukup diisi di baris pertama pesanan. */
+  var KOLOM_GUDANG = [['No Pesanan', 18, 'no'], ['Barcode', 16, 'barcode'], ['SKU (otomatis)', 12, null], ['Nama Produk (otomatis)', 30, null], ['Qty', 6, 'qty'], ['Harga Jual', 11, 'harga'], ['Waktu Pesan', 16, 'tPesan'],
+    ['Waktu Kemas', 16, 'tKemas'], ['Lokasi Ambil (rak)', 13, 'lokasi'], ['Dikemas Oleh', 12, 'pengemas'], ['Link Foto Kirim', 24, 'fotoKirim'],
+    ['Waktu Serah Kurir', 16, 'tSerah'], ['Jasa Kirim', 14, 'jasa'], ['No Resi', 18, 'resi'], ['Nama Kurir', 12, 'namaKurir'], ['Link Foto Serah', 24, 'fotoSerah'],
+    ['Waktu Diterima', 16, 'tTerima'], ['Retur Bagus', 8, 'rBagus'], ['Retur Rusak', 8, 'rRusak'], ['Alasan Retur', 16, 'alasan'], ['Waktu Retur', 16, 'tRetur'], ['Batal', 7, 'batal'], ['Catatan', 24, 'catatan']];
+  var GRUP_GUDANG = [[1, 'PESANAN'], [8, 'KEMAS · isi di baris pertama pesanan'], [12, 'SERAH KURIR · baris pertama pesanan'], [17, 'DITERIMA DAN RETUR']];
   function susunMentahan(dp, data, tanggal, oleh) {
-    var K = W.WmsHpp._kit, s = gaya(K), P = produk(dp), daftarP = (dp.prod || []).filter(function (p) { return p && p.b; });
+    var K = W.WmsHpp._kit, s = gaya(K), G = s.G, daftarP = (dp.prod || []).filter(function (p) { return p && p.b; });
+    var grup = G.id(K.F.tebal, K.ISI.ulang, 1);
     var L = new K.Lembar('Pesanan');
-    L.isi(1, 1, 'Laporan harian Shopee · isi tiap sore, lalu setor di WMS (Laporan > Shopee)', s.judul);
+    L.isi(1, 1, 'Kerja Shopee hari ini · isi lalu setor di WMS (Laporan > Shopee)', s.judul);
     L.isi(2, 1, 'Tanggal laporan', s.tebal); L.isi(2, 2, tanggal, s.isian);
     L.isi(3, 1, 'Disetor oleh', s.tebal); L.isi(3, 2, oleh || '', s.isian);
-    L.isi(2, 4, 'Satu baris per pesanan per barcode. Kuning = diisi. Hijau = otomatis. Biru muda = pesanan dari setoran sebelumnya yang belum selesai: perbarui jam kemas, serah kurir, diterima, atau retur. Waktu ditulis 2026-10-12 09:46.', s.catatan);
-    var KP = ['No Pesanan', 'Barcode', 'SKU (otomatis)', 'Nama Produk (otomatis)', 'Qty', 'Harga Jual', 'Waktu Pesan', 'Waktu Kemas', 'Waktu Serah Kurir', 'Jasa Kirim', 'No Resi', 'Status', 'Waktu Diterima', 'Waktu Retur', 'Retur Bagus', 'Retur Rusak', 'Alasan Retur', 'Catatan'];
-    KP.forEach(function (h, j) { L.isi(5, j + 1, h, s.kepala); }); L.tinggi[5] = 32;
+    L.isi(2, 4, 'Kuning = diisi, hijau = otomatis, biru muda = pesanan kemarin yang belum selesai. Waktu ditulis 2026-10-12 09:46. Link foto = tautan Drive https. Contoh lengkap di tab Petunjuk.', s.catatan);
+    GRUP_GUDANG.forEach(function (g) { L.isi(4, g[0], g[1], grup); });
+    KOLOM_GUDANG.forEach(function (k, j) { L.isi(5, j + 1, k[0], s.kepala); }); L.tinggi[5] = 32;
     var buka = []; ((data && data.baris) || []).forEach(function (r) { var st = String(r.status || ''); if (r.tTerima || st === 'Diterima' || st === 'Batal' || st === 'Retur') return; buka.push(r); });
-    buka.sort(function (a, b) { var x = String(a.tPesan), y = String(b.tPesan); return x < y ? -1 : x > y ? 1 : 0; });
+    buka.sort(function (a, b) { var x = String(a.tPesan), y = String(b.tPesan); return x < y ? -1 : x > y ? 1 : String(a.no) < String(b.no) ? -1 : String(a.no) > String(b.no) ? 1 : 0; });
     var nP = daftarP.length + 1, n = 6;
-    var rumusSku = function (r) { return { f: 'IF(B' + r + '="","",IFERROR(INDEX(Produk!$B$2:$B$' + nP + ',MATCH(B' + r + '&"",Produk!$A$2:$A$' + nP + ',0)),"BARCODE TIDAK DIKENAL"))' }; };
-    var rumusNama = function (r) { return { f: 'IF(B' + r + '="","",IFERROR(INDEX(Produk!$C$2:$C$' + nP + ',MATCH(B' + r + '&"",Produk!$A$2:$A$' + nP + ',0)),""))' }; };
-    buka.forEach(function (r) {
-      var v = [r.no, String(r.barcode), null, null, Number(r.qty) || '', r.harga === '' ? '' : Number(r.harga) || 0, r.tPesan, r.tKemas, r.tSerah, r.jasa, r.resi, r.status, r.tTerima, r.tRetur, Number(r.rBagus) || '', Number(r.rRusak) || '', r.alasan, r.catatan];
-      v.forEach(function (x, j) { if (j === 2) L.isi(n, 3, rumusSku(n), s.otomatis); else if (j === 3) L.isi(n, 4, rumusNama(n), s.otomatis); else L.isi(n, j + 1, x == null ? '' : x, j === 4 || j >= 14 && j <= 15 ? s.ulangAngka : j === 5 ? s.ulangRp : s.ulang); });
-      n++;
-    });
-    for (var i = 0; i < BARIS_KOSONG; i++, n++) {
-      KP.forEach(function (h, j) { if (j === 2) L.isi(n, 3, rumusSku(n), s.otomatis); else if (j === 3) L.isi(n, 4, rumusNama(n), s.otomatis); else L.isi(n, j + 1, '', j === 4 || j === 14 || j === 15 ? s.isianAngka : j === 5 ? s.isianRp : s.isian); });
-    }
+    var rumus = function (r, kol, cadang) { return { f: 'IF(B' + r + '="","",IFERROR(INDEX(Produk!$' + kol + '$2:$' + kol + '$' + nP + ',MATCH(B' + r + '&"",Produk!$A$2:$A$' + nP + ',0)),"' + cadang + '"))' }; };
+    var angkaKol = { qty: 1, rBagus: 1, rRusak: 1 };
+    var tulis = function (r, nilai, ulangi) {
+      KOLOM_GUDANG.forEach(function (k, j) {
+        if (j === 2) { L.isi(r, 3, rumus(r, 'B', 'BARCODE TIDAK DIKENAL'), s.otomatis); return; }
+        if (j === 3) { L.isi(r, 4, rumus(r, 'C', ''), s.otomatis); return; }
+        var v = nilai ? nilai[k[2]] : '';
+        if (k[2] === 'qty' || k[2] === 'rBagus' || k[2] === 'rRusak') v = Number(v) || '';
+        else if (k[2] === 'harga') v = v === '' || v == null ? '' : Number(v) || 0;
+        else if (k[2] === 'batal') v = '';
+        else v = v == null ? '' : String(v);
+        L.isi(r, j + 1, v, angkaKol[k[2]] ? (ulangi ? s.ulangAngka : s.isianAngka) : k[2] === 'harga' ? (ulangi ? s.ulangRp : s.isianRp) : (ulangi ? s.ulang : s.isian));
+      });
+    };
+    buka.forEach(function (r) { tulis(n, r, true); n++; });
+    for (var i = 0; i < BARIS_KOSONG; i++, n++) tulis(n, null, false);
     var akhir = n - 1;
-    L.lebar = [18, 16, 13, 34, 7, 12, 17, 17, 17, 15, 20, 16, 17, 17, 9, 9, 17, 28]; L.beku = { r: 6, c: 3 };
-    pasangPilihan(L, [{ ref: 'B6:B' + akhir, f: 'Produk!$A$2:$A$' + nP }, { ref: 'J6:J' + akhir, f: '"' + JASA.join(',') + '"' }, { ref: 'L6:L' + akhir, f: '"' + STATUS.join(',') + '"', keras: true }, { ref: 'Q6:Q' + akhir, f: '"' + ALASAN.join(',') + '"' }]);
+    L.lebar = KOLOM_GUDANG.map(function (k) { return k[1]; }); L.beku = { r: 6, c: 3 };
+    pasangPilihan(L, [{ ref: 'B6:B' + akhir, f: 'Produk!$A$2:$A$' + nP }, { ref: 'M6:M' + akhir, f: '"' + JASA.join(',') + '"' }, { ref: 'T6:T' + akhir, f: '"' + ALASAN.join(',') + '"' }, { ref: 'V6:V' + akhir, f: '"YA"', keras: true }]);
     var PR = new K.Lembar('Produk');
     ['Barcode', 'SKU', 'Nama Produk', 'Harga wholesale incl PPN (Rp)'].forEach(function (h, j) { PR.isi(1, j + 1, h, s.kepala); });
     daftarP.forEach(function (p, i) { PR.isi(i + 2, 1, String(p.b), s.teks); PR.isi(i + 2, 2, p.s || '', s.teks); PR.isi(i + 2, 3, p.n || '', s.teks); PR.isi(i + 2, 4, Number(p.h) || 0, s.rp); });
     PR.lebar = [16, 13, 44, 16]; PR.beku = { r: 2, c: 1 };
     var PT = new K.Lembar('Petunjuk');
-    ['Cara mengisi laporan harian Shopee',
-      '1. Isi Tanggal laporan dan Disetor oleh di atas tab Pesanan.',
-      '2. Pesanan baru hari ini: satu baris per barcode. No Pesanan dari Seller Centre (contoh 261011BKEGFKHX), bukan nomor resi SPXID.',
-      '3. Pilih Barcode dari daftar; SKU dan nama produk terisi sendiri. Kalau muncul BARCODE TIDAK DIKENAL, cek barcode di tab Produk.',
-      '4. Waktu ditulis 2026-10-12 atau 2026-10-12 09:46. Jangan 12/10/2026, bisa terbaca bulan yang salah.',
-      '5. Baris biru muda = pesanan dari setoran sebelumnya yang belum selesai. Cukup isi yang berubah: jam kemas, jam serah kurir, jasa kirim, resi, jam diterima, atau retur. Sel yang dikosongkan tidak menghapus isi lama.',
-      '6. Barang dianggap terjual saat diserahkan ke kurir. Retur diisi per barcode: jumlah bagus, jumlah rusak, alasan, dan jam retur. Pesanan yang sudah diterima tidak muncul lagi di mentahan; kalau ternyata diretur, tulis satu baris dengan No Pesanan, Barcode, dan Qty yang sama lalu isi kolom retur.',
-      '7. Simpan, lalu di WMS buka Laporan > Shopee > Setor laporan sore, pilih berkas ini, cek pratinjau, tekan Setor.',
-      'Satu pesanan tidak pernah setengah masuk: kalau satu barangnya salah, seluruh pesanan itu ditolak dengan alasannya. Perbaiki lalu setor ulang; pesanan yang sudah masuk tidak tergandakan.'].forEach(function (x, i) { PT.isi(1 + i, 1, x, i ? s.teks : s.judul); });
-    PT.lebar = [140];
-    return { lembar: [L, PR, PT], G: s.G, judul: 'Mentahan laporan harian Shopee ' + tanggal };
+    ['Cara mengisi (satu baris per barang)',
+      '1. Pesanan baru: No Pesanan dari Seller Centre, pilih Barcode, isi Qty, Harga Jual, Waktu Pesan.',
+      '2. Sudah dikemas: di baris pertama pesanan isi Waktu Kemas, Lokasi Ambil (kode rak), Dikemas Oleh, Link Foto Kirim. Barang kedua dan seterusnya cukup No Pesanan, Barcode, Qty.',
+      '3. Diserahkan ke kurir: di baris pertama pesanan isi Waktu Serah Kurir, Jasa Kirim, No Resi, Nama Kurir, Link Foto Serah.',
+      '4. Diterima pembeli: Waktu Diterima. Barang kembali: Retur Bagus atau Retur Rusak, Alasan, Waktu Retur. Dibatalkan sebelum dikirim: Batal = YA.',
+      '5. Simpan, lalu di WMS: Laporan > Shopee > pilih berkas > Setor. Cek pratinjau gerak stok, lalu Gerakkan stok.',
+      'Contoh: 261011BKEGFKHX | 4582586962737 | 1 | 260000 | 2026-10-11 14:05 | 2026-10-11 16:10 | R2-1B-1 | Armand | https://drive.google.com/file/d/... | 2026-10-12 09:46 | SPX Standard | SPXID06567979777A | Budi | https://drive.google.com/file/d/...',
+      'Stok bergerak lewat jalur Gudang Shopee: rak turun saat dikemas, penjualan masuk buku besar saat diserahkan ke kurir. Pesanan tanpa foto atau lokasi ditahan dengan alasannya.'].forEach(function (x, i) { PT.isi(1 + i, 1, x, i ? s.teks : s.judul); });
+    PT.lebar = [150];
+    return { lembar: [L, PR, PT], G: s.G, judul: 'Excel gudang Shopee ' + tanggal };
   }
   function mentahan(dp, data, tanggal, oleh) {
     if (!W.WmsHpp || !W.WmsHpp._kit) return Promise.reject(new Error('penulis xlsx'));
     return W.WmsHpp._kit.muatZip().then(function () { var x = susunMentahan(dp, data, tanggal, oleh); return W.WmsHpp._kit.rakit(x.lembar, x.G, x.judul); });
+  }
+
+  /* ===== berkas Operasi Stok rakitan untuk jalur Unggah Excel Shopee (Gudang.gs obdShpPratinjau / obdShpSimpan) =====
+     Judul kolom dan letak baris kepala persis Excel Operasi Stok v8.1 yang selama ini diunggah gudang. */
+  var KEPALA_OPS = {
+    'Pesanan Online': ['No Pesanan', 'Saluran', 'Tanggal Pesan', 'Barcode', 'Qty', 'Waktu Picking', 'Waktu Packing', 'Waktu Serah Kurir', 'Kurir', 'Waktu Diterima', 'Catatan', 'Bukti Foto', 'Tanggal (otomatis)', 'SKU (otomatis)', 'Nama Produk (otomatis)', 'Pesanan (otomatis)', 'Urutan Pesanan (otomatis)', 'Dipetik (otomatis)', 'Status Petik (otomatis)', 'Harga Jual', 'Waktu Retur', 'Retur Bagus', 'Retur Rusak', 'Alasan Retur', 'Kumulatif Barcode (otomatis)'],
+    'Kirim Shopee': ['No Pesanan', 'Saluran (otomatis)', 'Tanggal Pesan (otomatis)', 'Jumlah SKU (otomatis)', 'Qty Pesan (otomatis)', 'Qty Dipetik (otomatis)', 'Koli', 'Berat (kg)', 'Lokasi Staging', 'Dipacking Oleh', 'Waktu Packing', 'Link Foto Kirim', 'Jasa Kirim', 'No Resi', 'Nama Kurir Penjemput', 'Diserahkan Oleh', 'Waktu Serah Kurir', 'Link Foto Serah Kurir', 'No Serah Terima', 'Catatan', 'Sudah Diserap', 'Status (otomatis)', 'Daftar Pesanan (otomatis)', 'Urut Surat (otomatis)', 'Waktu Diterima'],
+    'PACKING SHOPEE': ['No Pesanan', 'Saluran', 'Tanggal Pesan', 'Barcode', 'SKU', 'Nama Produk', 'Qty Pesan', 'Lokasi', 'Qty Petik', 'Qty Kemas', 'Link Foto Kirim', 'Link Foto Serah Kurir', 'Jasa Kirim', 'No Resi', 'Koli', 'Berat (kg)', 'Dipacking Oleh', 'Waktu Packing', 'Diserahkan Oleh', 'Nama Kurir Penjemput', 'Waktu Serah Kurir', 'No Serah Terima', 'Baris Kirim (otomatis)', 'Siap (otomatis)', 'Urut Shopee (otomatis)'] };
+  function barisOps(kepala, o) { return kepala.map(function (h) { var v = o[h]; return v == null ? '' : v; }); }
+  function opsTabel(baris, dp, oleh) {
+    var P = produk(dp || {}), rows = (baris || []).filter(function (b) { return b && b.no && b.status !== 'Batal'; });
+    var judul = function (t) { return [[t], ['Berkas rakitan WMS dari setoran Excel gudang Shopee.'], [], [], []]; };
+    var PO = judul('PENCATATAN PESANAN ONLINE - SHOPEE'), KS = judul('KIRIM SHOPEE'), PK = [];
+    PO.push(KEPALA_OPS['Pesanan Online'].slice()); KS.push(KEPALA_OPS['Kirim Shopee'].slice()); PK.push(KEPALA_OPS['PACKING SHOPEE'].slice());
+    var lihat = {}, grup = {}, urut = [];
+    rows.forEach(function (b) {
+      /* jalur Gudang Shopee mewajibkan foto kirim DAN foto serah di baris packing, jadi pesanan yang baru dikemas
+         (belum diserahkan) menunggu sampai diserahkan; di laporan tetap tercatat Dikemas */
+      var p = P[String(b.barcode)] || {}, tgl = tglDari(b.tPesan), q = Number(b.qty) || 0, dikemas = !!b.tKemas && !!(b.tSerah || b.fotoSerah);
+      PO.push(barisOps(KEPALA_OPS['Pesanan Online'], { 'No Pesanan': b.no, 'Saluran': 'SHOPEE', 'Tanggal Pesan': tgl, 'Barcode': String(b.barcode), 'Qty': q, 'Waktu Diterima': b.tTerima || '', 'Catatan': b.catatan || '',
+        'Tanggal (otomatis)': tgl, 'SKU (otomatis)': p.sku || '', 'Nama Produk (otomatis)': p.nama || '', 'Pesanan (otomatis)': lihat[b.no] ? 0 : 1, 'Dipetik (otomatis)': dikemas ? q : '',
+        'Harga Jual': b.harga === '' || b.harga == null ? '' : Number(b.harga) || 0, 'Waktu Retur': b.tRetur || '', 'Retur Bagus': b.rBagus === '' ? '' : Number(b.rBagus) || '', 'Retur Rusak': b.rRusak === '' ? '' : Number(b.rRusak) || '', 'Alasan Retur': b.alasan || '' }));
+      lihat[b.no] = 1;
+      if (!dikemas) return;
+      PK.push(barisOps(KEPALA_OPS['PACKING SHOPEE'], { 'No Pesanan': b.no, 'Saluran': 'SHOPEE', 'Tanggal Pesan': tgl, 'Barcode': String(b.barcode), 'SKU': p.sku || '', 'Nama Produk': p.nama || '', 'Qty Pesan': q, 'Lokasi': b.lokasi || '', 'Qty Petik': q, 'Qty Kemas': q,
+        'Link Foto Kirim': b.fotoKirim || '', 'Link Foto Serah Kurir': b.fotoSerah || '', 'Jasa Kirim': b.jasa || '', 'No Resi': b.resi || '', 'Koli': 1, 'Dipacking Oleh': b.pengemas || '', 'Waktu Packing': b.tKemas || '',
+        'Diserahkan Oleh': b.tSerah ? (oleh || '') : '', 'Nama Kurir Penjemput': b.namaKurir || '', 'Waktu Serah Kurir': b.tSerah || '' }));
+      var g = grup[b.no]; if (!g) { g = grup[b.no] = { b: b, sku: 0, qty: 0, tgl: tgl }; urut.push(b.no); } g.sku++; g.qty += q;
+    });
+    urut.forEach(function (no) {
+      var g = grup[no], b = g.b;
+      KS.push(barisOps(KEPALA_OPS['Kirim Shopee'], { 'No Pesanan': no, 'Saluran (otomatis)': 'SHOPEE', 'Tanggal Pesan (otomatis)': g.tgl, 'Jumlah SKU (otomatis)': g.sku, 'Qty Pesan (otomatis)': g.qty, 'Qty Dipetik (otomatis)': g.qty, 'Koli': 1,
+        'Lokasi Staging': b.lokasi || '', 'Dipacking Oleh': b.pengemas || '', 'Waktu Packing': b.tKemas || '', 'Link Foto Kirim': b.fotoKirim || '', 'Jasa Kirim': b.jasa || '', 'No Resi': b.resi || '', 'Nama Kurir Penjemput': b.namaKurir || '',
+        'Diserahkan Oleh': b.tSerah ? (oleh || '') : '', 'Waktu Serah Kurir': b.tSerah || '', 'Link Foto Serah Kurir': b.fotoSerah || '', 'Waktu Diterima': b.tTerima || '' }));
+    });
+    return { 'Pesanan Online': PO, 'Kirim Shopee': KS, 'PACKING SHOPEE': PK };
+  }
+  function opsBerkas(baris, dp, oleh) {
+    if (!W.WmsHpp || !W.WmsHpp._kit) return Promise.reject(new Error('penulis xlsx'));
+    var K = W.WmsHpp._kit;
+    return K.muatZip().then(function () {
+      var Tb = opsTabel(baris, dp, oleh), G = new K.Gaya(), teks = G.id(0, 0, 0, 49), lembar = [];
+      Object.keys(Tb).forEach(function (nm) {
+        var L = new K.Lembar(nm);
+        Tb[nm].forEach(function (r, i) { r.forEach(function (v, j) { if (v !== '' && v != null) L.isi(i + 1, j + 1, v, typeof v === 'number' ? 0 : teks); }); });
+        lembar.push(L);
+      });
+      return K.rakit(lembar, G, 'Setoran Shopee');
+    }).then(function (blob) {
+      return new Promise(function (ok, gagal) { var fr = new W.FileReader(); fr.onload = function () { ok(String(fr.result).split(',')[1] || ''); }; fr.onerror = function () { gagal(new Error('baca')); }; fr.readAsDataURL(blob); });
+    });
   }
 
   function susunLaporan(H) {
@@ -461,6 +533,7 @@
       setor: function (n, p) { return 'Setor ' + n + ' pesanan (' + p + ' baris)'; }, prat: function (n, p, s) { return n + ' pesanan, ' + p + ' baris dibaca dari tab ' + s + '.'; }, lewat: function (n) { return n + ' baris saluran lain dilewati.'; },
       tidakDikenal: function (n) { return n + ' barcode tidak ada di Master Produk WMS.'; }, hasil: function (b, u) { return 'Tersimpan: ' + b + ' baris baru, ' + u + ' diperbarui.'; }, ditolak: function (n) { return n + ' baris ditolak:'; },
       sudah: function (n, t) { return n + ' hari sudah setor bulan ini' + (t ? ' · terakhir ' + t : ''); }, kepalaGagal: 'Berkas ini tidak punya tabel dengan kolom No Pesanan dan Barcode.', bacaGagal: 'Berkas tidak bisa dibaca. Pastikan .xlsx.',
+      gerakJudul: 'Gerak stok (jalur Gudang Shopee)', gerakMuat: 'Menyiapkan pratinjau gerak stok…', gerakJalan: 'Menggerakkan stok…', gerakTombol: 'Gerakkan stok', gerakKet: 'Rak turun untuk yang dikemas, penjualan masuk buku besar untuk yang diserahkan ke kurir.', gerakBeres: 'Stok sudah digerakkan.', gerakGagal: function (t) { return 'Laporan tersimpan, tapi stok belum digerakkan: ' + t; },
       isiOleh: 'Isi nama penyetor dulu.', menyiapkan: 'Menyusun Excel…', menyetor: 'Menyetor…', gagal: 'Berkas belum bisa dibuat. Coba lagi.', muat: 'Membaca setoran…',
       deploy: 'Setor dan laporan Shopee menyala setelah Apps Script versi baru di-deploy. Mentahan sudah bisa diunduh.', galatData: 'Setoran belum bisa dibaca sekarang.', ulang: 'Muat ulang', kosong: 'Belum ada setoran.',
       ket: 'Terjual dihitung saat diserahkan ke kurir. Excel laporan berisi Ringkasan, Pivot Harian, Pivot SKU, Pesanan, Data, dan Catatan (bulanan ditambah Jasa Kirim dan Retur); semua pivot berupa rumus ke tab Data.' },
@@ -470,6 +543,7 @@
       setor: function (n, p) { return 'Submit ' + n + ' orders (' + p + ' rows)'; }, prat: function (n, p, s) { return n + ' orders, ' + p + ' rows read from the ' + s + ' tab.'; }, lewat: function (n) { return n + ' rows from other channels skipped.'; },
       tidakDikenal: function (n) { return n + ' barcodes are not in the WMS product master.'; }, hasil: function (b, u) { return 'Saved: ' + b + ' new rows, ' + u + ' updated.'; }, ditolak: function (n) { return n + ' rows rejected:'; },
       sudah: function (n, t) { return n + ' days submitted this month' + (t ? ' · last ' + t : ''); }, kepalaGagal: 'This file has no table with No Pesanan and Barcode columns.', bacaGagal: 'The file could not be read. Make sure it is .xlsx.',
+      gerakJudul: 'Stock movement (Shopee warehouse flow)', gerakMuat: 'Preparing the stock movement preview…', gerakJalan: 'Moving stock…', gerakTombol: 'Move stock', gerakKet: 'Racks go down for packed orders; sales enter the ledger for orders handed to the courier.', gerakBeres: 'Stock has been moved.', gerakGagal: function (t) { return 'The report was saved, but stock was not moved: ' + t; },
       isiOleh: 'Fill in who is submitting first.', menyiapkan: 'Building the Excel file…', menyetor: 'Submitting…', gagal: 'The file could not be made. Try again.', muat: 'Reading submissions…',
       deploy: 'Shopee submissions and reports switch on after the new Apps Script version is deployed. The template can already be downloaded.', galatData: 'Submissions could not be read right now.', ulang: 'Reload', kosong: 'No submissions yet.',
       ket: 'Sold counts when handed to the courier. The report Excel has Summary, Daily pivot, SKU pivot, Orders, Data and Notes (monthly adds Couriers and Returns); every pivot is a formula over the Data tab. Workbook text is in Indonesian.' }
@@ -544,7 +618,29 @@
         if (h.ditolak && h.ditolak.length) o += '<div class="ls-tolak"><b>' + esc(T('ditolak')(h.ditolak.length)) + '</b><ul>' + h.ditolak.slice(0, 20).map(function (d) { return '<li>' + esc((id() ? 'Baris ' : 'Row ') + d.baris + ' · ' + d.no + ': ' + d.sebab) + '</li>'; }).join('') + '</ul></div>';
       }
     }
+    o += kartuGerak();
     return o;
+  }
+  /* daftar pesanan bermasalah dari pratinjau Gudang Shopee: larik berisi {no, alasan|pesan|sebab} */
+  function masalahGerak(r) {
+    var o = [];
+    ['salah', 'tunda'].forEach(function (k) { var x = r && r[k]; if (Array.isArray(x)) x.forEach(function (d) { if (!d) return; var teks = typeof d === 'string' ? d : (d.no ? d.no + ': ' : '') + (d.alasan || d.pesan || d.sebab || ''); if (teks) o.push(teks); }); });
+    return o;
+  }
+  function kartuGerak() {
+    var g = S.gerak; if (!g) return '';
+    var o = '<div class="ls-gerak" data-ls-gerak="1"><b>' + esc(T('gerakJudul')) + '</b>';
+    if (g.galat) return o + '<p class="ls-awas">' + esc(T('gerakGagal')(g.galat)) + '</p></div>';
+    var r = g.prat || {}, j = r.jml || {}, kerja = (j.impor || 0) + (j.kemas || 0) + (j.serah || 0) + (j.susul || 0) + (j.terima || 0) + (j.retur || 0) + (j.harga || 0);
+    if (g.hasil) {
+      o += '<p class="' + (g.hasil.ok === false ? 'ls-awas' : 'ls-hasil') + '" data-ls-gerak-hasil="1">' + esc(g.hasil.pesan || (g.hasil.ok === false ? T('gagal') : T('gerakBeres'))) + '</p>';
+      return o + '</div>';
+    }
+    o += '<p>' + esc(r.pesan || '') + '</p>';
+    var m = masalahGerak(r);
+    if (m.length) o += '<ul class="ls-tolak">' + m.slice(0, 20).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>';
+    if (kerja > 0) o += '<button type="button" class="btn" data-ls="gerak">' + esc(T('gerakTombol')) + '</button><small class="ket-alat">' + esc(T('gerakKet')) + '</small>';
+    return o + '</div>';
   }
   function ulang() { var w = el('laporanBadan'); var aktif = W.document && W.document.querySelector('#laporan [data-ls-kartu]'); if (w && S.dp && aktif) gambar(w, S.dp); }
   function ulangPrat() { var p = el('lsPrat'); if (p) p.innerHTML = pratinjau(); }
@@ -577,10 +673,27 @@
       S.oleh = oleh; simpanOleh(oleh);
       var tgl = (el('lsSetorTgl') && el('lsSetorTgl').value) || S.setorTgl;
       S.sibuk = true; bunyi('klik'); status(T('menyetor')); tombol(x, true);
-      M().jalan('wmsShopeeSetor', ['WMS-TIKET', { tanggal: tgl, oleh: oleh, berkas: S.berkas.nama, baris: S.berkas.isi.baris }]).then(function (h) {
+      var barisSetor = S.berkas.isi.baris, namaOps = 'setoran-shopee-' + tgl + '-' + String(Date.now()).slice(-5) + '.xlsx';
+      S.gerak = null;
+      M().jalan('wmsShopeeSetor', ['WMS-TIKET', { tanggal: tgl, oleh: oleh, berkas: S.berkas.nama, baris: barisSetor }]).then(function (h) {
         S.hasil = h || { ok: false };
-        if (h && h.ok !== false) { S.berkas = null; S.data = null; var f = el('lsBerkas'); if (f) f.value = ''; return muat(true).then(function () {}, function () {}); }
+        if (!h || h.ok === false) return;
+        S.berkas = null; S.data = null; var f = el('lsBerkas'); if (f) f.value = '';
+        /* laporan tersimpan: pratinjau gerak stok lewat jalur Gudang Shopee (tidak menulis apa pun) */
+        status(T('gerakMuat'));
+        return opsBerkas(barisSetor, S.dp, oleh).then(function (b64) {
+          return M().jalan('obdShpPratinjau', ['WMS-TIKET', b64, namaOps]).then(function (r) {
+            S.gerak = r && r.ok !== false ? { prat: r, b64: b64, nama: namaOps, oleh: oleh } : { galat: (r && (r.pesan || r.sebab)) || T('gagal') };
+          });
+        }).catch(function (e) { S.gerak = { galat: String(e && e.message || e) }; }).then(function () { return muat(true).then(function () {}, function () {}); });
       }, function (e) { S.hasil = { ok: false, pesan: String(e && e.message || e) }; }).then(function () { S.sibuk = false; status(''); var keep = S.hasil; gambarUlangDenganHasil(keep); });
+    }
+    if (a === 'gerak') {
+      var g = S.gerak; if (!g || !g.prat || g.hasil) return;
+      S.sibuk = true; bunyi('klik'); status(T('gerakJalan')); tombol(x, true);
+      M().jalan('obdShpSimpan', ['WMS-TIKET', g.prat.token, g.b64, g.nama, g.oleh]).then(function (h) { g.hasil = h || { ok: false }; }, function (e) { g.hasil = { ok: false, pesan: String(e && e.message || e) }; })
+        .then(function () { S.data = null; return muat(true).then(function () {}, function () {}); })
+        .then(function () { S.sibuk = false; status(''); ulang(); ulangPrat(); });
     }
   }
   function gambarUlangDenganHasil(h) { S.hasil = h; ulang(); ulangPrat(); }
@@ -594,7 +707,7 @@
       else if (t.id === 'lsSetorTgl' && tglValid(t.value)) { S.setorTgl = t.value; }
       else if (t.id === 'lsOleh') { S.oleh = t.value.trim(); simpanOleh(S.oleh); }
       else if (t.id === 'lsBerkas' && t.files && t.files[0]) {
-        var f = t.files[0]; S.hasil = null; S.berkas = { nama: f.name, isi: null }; status(T('muat'));
+        var f = t.files[0]; S.hasil = null; S.gerak = null; S.berkas = { nama: f.name, isi: null }; status(T('muat'));
         f.arrayBuffer().then(bacaBerkas).then(function (bk) {
           var u = uraiBuku(bk);
           if (u.galat) S.berkas = { nama: f.name, galat: T('kepalaGagal') };
@@ -604,5 +717,5 @@
     });
   }
 
-  W.WmsLapShopee = { hitung: hitung, laporan: laporan, mentahan: mentahan, gambar: gambar, _uraiBuku: uraiBuku, _bacaBuku: bacaBuku, _bacaLembarXml: bacaLembarXml, _waktuSel: waktuSel, _susunLaporan: susunLaporan };
+  W.WmsLapShopee = { _opsTabel: opsTabel, hitung: hitung, laporan: laporan, mentahan: mentahan, gambar: gambar, _uraiBuku: uraiBuku, _bacaBuku: bacaBuku, _bacaLembarXml: bacaLembarXml, _waktuSel: waktuSel, _susunLaporan: susunLaporan };
 })();

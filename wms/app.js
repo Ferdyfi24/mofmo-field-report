@@ -262,7 +262,7 @@
      (daftarSuratJalan, pesananTerbuka, persediaanBulanan, ...) tidak boleh
      ikut menandai: pagi 10 Okt satu klik Persediaan membuat seluruh papan
      membaca dari Apps Script. */
-  var POLA_BACA = /^(papan|daftar|data|kesehatan|persediaan|permintaan|pesanan|rencana|obd(Daftar|SpData|IuData)$|fap|laporan|baca|ambil|cari|lihat|pdg|hitung|cek|ringkas|riwayat|status|info|muat|wmsFoto|wmsShopeeData$)/;
+  var POLA_BACA = /^(papan|daftar|data|kesehatan|persediaan|permintaan|pesanan|rencana|obd(Daftar|SpData|IuData|ShpPratinjau)$|fap|laporan|baca|ambil|cari|lihat|pdg|hitung|cek|ringkas|riwayat|status|info|muat|wmsFoto|wmsShopeeData$)/;
   var LAMA_KOTOR = 15 * 60 * 1000;
   var PAPAN = { mentah: null, tema: '', siap: false, mulai: 0, jaga: null, catat: [] };
   function kotor() { var w = 0; try { w = Number(ss() && ss().getItem('wms_kotor')) || 0; } catch (e) { w = 0; } return Date.now() - w < LAMA_KOTOR; }
