@@ -1048,3 +1048,7 @@ html[data-theme="dark"] .jp-status.kuning{background:#4D4127;color:#F2DC9B}
 @media (max-width:900px){.ls-kisi2{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:760px){.ls-kartu .btn{align-self:stretch}}
 @media (max-width:520px){.ls-kartu{padding:12px}.ls-tabel{font-size:12px}.ls-tabel th,.ls-tabel td{padding:6px 5px}.ls-tabel th,.ls-tabel td:first-child{white-space:normal}}
+.ls-gerak{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1.5px dashed var(--line2);border-radius:16px;background:var(--soft)}
+.ls-gerak p{margin:0}
+.ls-gerak .btn{align-self:flex-start}
+.ls-gerak ul.ls-tolak{margin:0;padding:8px 12px 8px 28px}

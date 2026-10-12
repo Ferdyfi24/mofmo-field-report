@@ -177,7 +177,7 @@ elif mode == 'isi':
         if ws.cell(r, 1).value == '261012DDDDDDDD': ws.cell(r, 8).value = datetime.datetime(2026, 10, 12, 13, 0); ws.cell(r, 8).number_format = 'yyyy-mm-dd hh:mm'
     r = 6
     while ws.cell(r, 1).value: r += 1
-    for c, v in zip([1, 2, 5, 6, 7, 10], ['261012GGGGGGGG', '${PANDA}', 2, 300000, '2026-10-12 12:30', 'SPX Standard']): ws.cell(r, c).value = v
+    for c, v in zip([1, 2, 5, 6, 7, 13], ['261012GGGGGGGG', '${PANDA}', 2, 300000, '2026-10-12 12:30', 'SPX Standard']): ws.cell(r, c).value = v
     wb.save(sys.argv[3]); print(json.dumps({'baris': r}))
 elif mode == 'ops':
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = 'Pesanan Online'
@@ -297,10 +297,10 @@ async function bagianB() {
     const pe = ((mm.lembar || {}).Pesanan) || {};
     const isi = (pe.rows || []).slice(5).filter(r => r[0]).map(r => r[0].slice(-2) + ':' + r[1] + ':' + r[4]);
     const dv = (pe.dv || []).map(d => d[0].split(':')[0] + '=' + (d[1] || '').slice(0, 20)).sort().join(',');
-    c('B2 mentahan: nama berkas bertanggal, tab Pesanan/Produk/Petunjuk, terisi hanya pesanan terbuka P2 (2 barang) lalu P3, daftar pilihan barcode/jasa/status/alasan, SKU berupa rumus ke tab Produk',
+    c('B2 mentahan: nama berkas bertanggal, tab Pesanan/Produk/Petunjuk, terisi hanya pesanan terbuka P2 (2 barang) lalu P3, daftar pilihan barcode/jasa/alasan/batal (12 Okt sore: Excel gudang satu lembar, kolom Status diganti Batal), SKU berupa rumus ke tab Produk',
       m.u && m.u.suggestedFilename() === 'mentahan-shopee-harian-2026-10-12.xlsx' && (mm.nama || []).join(',') === 'Pesanan,Produk,Petunjuk' &&
       isi.join(',') === 'CC:' + TIGER + ':2,CC:' + PANDA + ':1,DD:' + BEAR + ':1' && (pe.rows[1] || [])[1] === '2026-10-12' && (pe.rows[4] || [])[0] === 'No Pesanan' &&
-      /B6=Produk!\$A\$2:\$A\$4/.test(dv) && /J6="SPX Standard/.test(dv) && /L6="Baru,Dikemas/.test(dv) && /Q6="Gagal kirim/.test(dv) &&
+      /B6=Produk!\$A\$2:\$A\$4/.test(dv) && /M6="SPX Standard/.test(dv) && /T6="Gagal kirim/.test(dv) && /V6="YA/.test(dv) &&
       (pe.rumus || []).some(x => x[0] === 'C6' && /INDEX\(Produk!\$B\$2:\$B\$4/.test(x[1])) && (((mm.lembar || {}).Produk || {}).rows || []).length === 4,
       JSON.stringify([m.u && m.u.suggestedFilename(), mm.nama, isi, dv, pe.rumus, mm.galat]));
 
@@ -321,7 +321,7 @@ async function bagianB() {
     c('B3 setor dari mentahan yang diisi di Excel: pratinjau 3 pesanan 4 baris, tanggal laporan dan penyetor terbaca dari berkas, terkirim ke wmsShopeeSetor dengan jam kemas yang diketik sebagai tanggal Excel jadi "2026-10-12 13:00"',
       /3 pesanan, 4 baris dibaca dari tab Pesanan/.test(t3.prat || '') && t3.oleh === 'Rina' && t3.tgl === '2026-10-11' && setor.length === 1 && (setor[0] || [])[0] === 'WMS-TIKET' &&
       kirim.tanggal === '2026-10-11' && kirim.oleh === 'Rina' && kirim.berkas === 'mentahan-terisi.xlsx' && bs.length === 4 &&
-      p2.no === '261011CCCCCCCC' && p2.qty === 2 && p2.harga === 120000 && p2.tKemas === '2026-10-12 09:00' && p2.status === 'Diserahkan kurir' && p2.rBagus === '' &&
+      p2.no === '261011CCCCCCCC' && p2.qty === 2 && p2.harga === 120000 && p2.tKemas === '2026-10-12 09:00' && p2.tSerah === '2026-10-12 11:00' && p2.rBagus === '' &&
       p3.tKemas === '2026-10-12 13:00' && p3.tPesan === '2026-10-12 08:00' && p6.barcode === PANDA && p6.qty === 2 && p6.harga === 300000 && p6.tPesan === '2026-10-12 12:30' && p6.jasa === 'SPX Standard' && p6.tKemas === '',
       JSON.stringify([t3, ii.galat, bs]).slice(0, 900));
     const t4 = await p.evaluate(() => ({ prat: (document.getElementById('lsPrat') || {}).innerText || '', simpan: (() => { try { return localStorage.getItem('wms_shopee_oleh'); } catch (e) { return ''; } })() }));
