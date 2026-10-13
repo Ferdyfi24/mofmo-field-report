@@ -507,6 +507,9 @@ body.alat-terbuka{overflow:hidden}
 .kb-saklar input{width:20px;height:20px;accent-color:var(--acc)}
 .kb-hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .kb-hgrid small{font-weight:700;color:var(--mut)}
+.kb-hgrid .kb-syarat{grid-column:1/-1}
+.kitabku-latar textarea{padding:10px 12px;border:1.5px solid var(--line2);border-radius:14px;background:var(--card);color:var(--ink);font:700 15px Nunito,sans-serif;resize:vertical;min-height:64px}
+.kitabku-latar textarea:focus{outline:2px solid var(--acc);outline-offset:1px}
 .kb-hbawah{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .kb-mut{margin-right:auto;color:var(--wInk);font-weight:700}
 .kb-qty{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px 14px;padding:4px 0 8px}
