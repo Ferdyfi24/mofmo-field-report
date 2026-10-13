@@ -144,6 +144,7 @@
       voucher: 'Voucher code', kuota: 'Quota', terpakai: 'claimed', aktif: 'On', simpan: 'Save', tersimpan: 'Saved', usulan: 'Add the mockup rewards (switched off)',
       j_kartu: 'Cards collected', j_bab: 'Chapter complete', j_bintang: 'Game stars', j_edisi: 'Edition cards', hadiahBaru: 'New reward', idHadiah: 'ID (letters, no spaces)',
       tanpaHadiah: 'No rewards yet.', kosongNominal: 'value not set',
+      berlakuSampai: 'Valid until', berlakuUntuk: 'Applies to', semuaProduk: 'All shop products', maksPembeli: 'Max. uses per buyer', syarat: 'Terms shown to the buyer', syaratPh: 'e.g. One use per Shopee account. Cannot be exchanged for cash.',
       cetakJudul: 'QR cards for Shopee parcels', ketCetak: 'One card per item packed. The code works once: the first book that scans it keeps it. Card size 85 x 55 mm, 10 per A4.',
       jumlah: 'Qty', total: 'Total', maks: 'max 500 per print', vJumlah: 'Cards with a bonus voucher', vKode: 'Voucher code', vTeks: 'Voucher text shown to the buyer',
       ketVoucher: 'Bonus vouchers are mixed randomly into the batch. The buyer only sees it after scanning.', buat: 'Create codes', buatCetak: 'Print', cetakLagi: 'Print again',
@@ -162,6 +163,7 @@
       voucher: 'Kode voucher', kuota: 'Kuota', terpakai: 'diambil', aktif: 'Nyala', simpan: 'Simpan', tersimpan: 'Tersimpan', usulan: 'Pasang hadiah dari mockup (nonaktif)',
       j_kartu: 'Jumlah kartu', j_bab: 'Bab lengkap', j_bintang: 'Bintang game', j_edisi: 'Kartu edisi', hadiahBaru: 'Hadiah baru', idHadiah: 'ID (huruf, tanpa spasi)',
       tanpaHadiah: 'Belum ada hadiah.', kosongNominal: 'nilai belum diisi',
+      berlakuSampai: 'Berlaku sampai', berlakuUntuk: 'Berlaku untuk', semuaProduk: 'Semua produk toko', maksPembeli: 'Maks. pakai per pembeli', syarat: 'Syarat dan ketentuan untuk pembeli', syaratPh: 'misal: Satu kali pakai per akun Shopee. Tidak dapat diuangkan.',
       cetakJudul: 'Kartu QR untuk paket Shopee', ketCetak: 'Satu kartu untuk setiap barang yang dikemas. Kode hanya berlaku sekali: buku pertama yang memindai yang memilikinya. Ukuran kartu 85 x 55 mm, 10 per A4.',
       jumlah: 'Jml', total: 'Total', maks: 'maks. 500 sekali cetak', vJumlah: 'Kartu dengan bonus voucher', vKode: 'Kode voucher', vTeks: 'Teks voucher untuk pembeli',
       ketVoucher: 'Bonus voucher diselipkan acak di antara kartu. Pembeli baru tahu setelah memindai.', buat: 'Buat kode', buatCetak: 'Cetak', cetakLagi: 'Cetak lagi',
@@ -276,6 +278,10 @@
       '<label>' + esc(t('minBelanja')) + inp('min_belanja', h.min_belanja, 'Rp…') + '</label>' +
       '<label>' + esc(t('voucher')) + inp('voucher', h.voucher) + '</label>' +
       '<label>' + esc(t('kuota')) + inp('kuota', h.kuota || 0, '', 'number') + (h.baru ? '' : '<small>' + nf(h.terpakai) + ' ' + esc(t('terpakai')) + '</small>') + '</label>' +
+      '<label>' + esc(t('berlakuSampai')) + inp('berlaku_sampai', h.berlaku_sampai ? String(h.berlaku_sampai).slice(0, 10) : '', '', 'date') + '</label>' +
+      '<label>' + esc(t('berlakuUntuk')) + inp('berlaku_untuk', h.berlaku_untuk || '', t('semuaProduk')) + '</label>' +
+      '<label>' + esc(t('maksPembeli')) + inp('maks_per_pembeli', h.maks_per_pembeli || 1, '', 'number') + '</label>' +
+      '<label class="kb-syarat">' + esc(t('syarat')) + '<textarea data-f="syarat" rows="2" maxlength="300" placeholder="' + esc(t('syaratPh')) + '">' + esc(h.syarat || '') + '</textarea></label>' +
       '</div><div class="kb-hbawah">' + (!h.baru && !h.nominal && h.voucher == null ? '<small class="kb-mut">' + esc(t('kosongNominal')) + '</small>' : '') +
       '<button type="button" class="btn" data-kb="hadiah" data-id="' + esc(k) + '">' + esc(A.simpanOk[k] ? t('tersimpan') : t('simpan')) + '</button></div></div>';
   }
@@ -289,6 +295,7 @@
     var h = { id: k === 'baru' ? '' : k };
     box.querySelectorAll('[data-f]').forEach(function (x) { var f = x.getAttribute('data-f'); h[f] = x.type === 'checkbox' ? x.checked : x.value; });
     h.angka = Number(h.angka || 0); h.kuota = Number(h.kuota || 0);
+    if ('maks_per_pembeli' in h) h.maks_per_pembeli = Number(h.maks_per_pembeli);
     if (!h.voucher) h.voucher = null;
     return h;
   }
