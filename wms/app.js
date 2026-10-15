@@ -252,7 +252,11 @@
      Bingkai, bukan document.write: menulis ulang dokumen 1,2 MB di halaman
      induk membekukan Chrome (dicoba 10 Okt pagi), di bingkai tidak. */
   var BACA_PAPAN = { dataPapan: 1, papanSummary: 1, papanInventory: 1, papanPenjualan: 1, papanKiriman: 1, papanKirimanUtama: 1, papanGerakStok: 1,
-    obdDaftar: 1, obdSpData: 1, obdIuData: 1, papanGudang: 1, kesehatanPersediaan: 1, papanPerformaSku: 1, dataAlokasi: 1, fapLaporanAtasan: 1 };
+    obdDaftar: 1, obdSpData: 1, obdIuData: 1, papanGudang: 1, kesehatanPersediaan: 1, papanPerformaSku: 1, dataAlokasi: 1, fapLaporanAtasan: 1,
+    /* 15 Okt 2026: Operational PIC (work log bulan berjalan, argumen bulan "")
+       dulu selalu ke Apps Script, 10-20 detik. Potretnya didorong cermin
+       sebagai papanKerja|["K",""]; bulan lain tetap ke Apps Script. */
+    papanKerja: 1 };
   /* Bacaan yang argumen pertamanya bukan kode akses (dicerminkan dengan
      kunci nama|[argumen apa adanya]), misalnya skrip halaman yang ditunda. */
   var BACA_TANPA_KODE = { pdgSkripTunda: 1 };
