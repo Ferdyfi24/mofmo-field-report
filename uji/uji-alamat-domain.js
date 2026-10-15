@@ -42,7 +42,7 @@ const hasil = bacaQr(m);
 c('A1 QR kartu Kitabku terbaca sebagai https://mofmofriends.id/#k=KODE', hasil === 'https://mofmofriends.id/#k=ABCDEFGHJK', hasil);
 /* Alamat baru lebih pendek, jadi QR turun ke versi 3 (29 x 29): modulnya lebih besar
    di kotak yang sama, lebih mudah dipindai. Syaratnya cuma tidak lebih besar dari versi 4. */
-c('A2 QR muat paling besar versi 4 (33 x 33) untuk kartu 85 x 55 mm', m.length >= 21 && m.length <= 33, m.length);
+c('A2 QR muat paling besar versi 4 (33 x 33) untuk QR 28 mm di kartu 14 x 6 cm', m.length >= 21 && m.length <= 33, m.length);
 const ketik = (srcKitab.match(/atauKetik: '([^']+)'/g) || []);
 c('A3 tulisan "ketik kodenya di" (en dan id) menyebut mofmofriends.id, bukan pages.dev',
   ketik.length === 2 && ketik.every(s => /mofmofriends\.id'$/.test(s) && !/pages\.dev/.test(s)), ketik.join(' | '));
