@@ -24,7 +24,7 @@ const { dbPalsu } = await import(SRV + '/kitab-tiruan.mjs');
 const require = createRequire('/home/claude/fieldreport/uji/uji-wms-alat.js');
 const { chromium } = require('playwright');
 
-let gagal = 0, jalan = 0; const DIHARAPKAN = 30;
+let gagal = 0, jalan = 0; const DIHARAPKAN = 32;
 const c = (n, ok, k) => { jalan++; if (!ok) gagal++; console.log((ok ? 'LULUS ' : 'GAGAL ') + n + (ok ? '' : '\n   -> ' + String(k).replace(/\s*\n\s*/g, ' | ').slice(0, 400))); };
 async function bagian(nama, fn) { console.log('\n=== ' + nama + ' ==='); try { await fn(); } catch (e) { gagal++; console.log('GAGAL ' + nama + ' MATI -> ' + (e && e.stack || e)); } }
 
@@ -112,35 +112,46 @@ await bagian('C. cetak kartu QR paket Shopee', async () => {
   await p.fill('[data-qty="' + KARTU[17][0] + '"]', '5');
   c('C1 total terhitung saat mengetik', (await p.textContent('#kbTotal')) === '12' && await p.evaluate(() => !document.querySelector('[data-kb=buat]').disabled));
   await p.fill('#kbVJml', '3'); await p.fill('#kbVKode', 'BONUS10'); await p.fill('#kbVTeks', 'Potongan Rp10.000');
-  await p.evaluate(() => { window.print = () => { const w = document.getElementById('lembarKitab'); window.__lembar = w ? w.outerHTML : ''; window.__kelas = document.body.className; }; });
-  await p.click('[data-kb=buat]'); await tunggu(800);
+  /* 15 Okt malam, Ferdy: "cetaknya bisa png high reso (cuma png)... soalnya vendor yg print bukan gua".
+     Hasil cetak = satu ZIP berisi PNG 300 dpi per kartu (14 x 6 cm = 1654 x 709 px), bukan print browser. */
+  const [unduhan] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('[data-kb=buat]')]);
+  const zipPath = path.join(os.tmpdir(), 'kartu-kitab-' + Date.now() + '.zip'); await unduhan.saveAs(zipPath);
   const kode = Object.entries(db.st.kode).filter(([, r]) => r.saluran === 'shopee');
   kodeCetak = kode;
   c('C2 12 kode dibuat di server untuk event aktif', kode.length === 12 && kode.every(([, r]) => r.acara === db.st.acara.id), kode.length);
   c('C3 tepat 3 kartu membawa voucher BONUS10', kode.filter(([, r]) => r.voucher === 'BONUS10').length === 3 && kode.filter(([, r]) => r.voucher_teks === 'Potongan Rp10.000').length === 3);
-  const lembar = await p.evaluate(() => window.__lembar), kelas = await p.evaluate(() => window.__kelas);
-  c('C4 lembar cetak dibuat saat print, 12 kartu', /cetak-kitab/.test(kelas) && (lembar.match(/class="kartu-kitab"/g) || []).length === 12, kelas + ' ' + lembar.length);
-  const produk = [...lembar.matchAll(/class="kk-produk">([^<]+)</g)].map((m) => m[1].replace(/&amp;/g, '&'));
-  c('C5 kartu urut per produk (7 Bear dulu, lalu 5 Key Charm Bear)', produk.slice(0, 7).every((x) => x === nama(KARTU[0][0])) && produk.slice(7).every((x) => x === nama(KARTU[17][0])), produk.join(','));
-  c('C6 lembar tidak membocorkan voucher ke pengemas', !/BONUS10/.test(lembar));
-  c('C7 lembar dibersihkan setelah print', await p.evaluate(() => !document.getElementById('lembarKitab') && !document.body.classList.contains('cetak-kitab')));
-  /* tampilkan lembar dengan media cetak, potret, baca QR kartu pertama dengan zxing */
-  await p.evaluate((h) => { document.body.insertAdjacentHTML('beforeend', h); document.body.classList.add('cetak-kitab'); }, lembar);
-  await p.emulateMedia({ media: 'print' });
-  const png = path.join(os.tmpdir(), 'kartu-kitab-' + Date.now() + '.png');
-  await p.locator('#lembarKitab .kartu-kitab').first().screenshot({ path: png, scale: 'device' });
-  const terbaca = execFileSync('python3', ['-c', 'import sys,zxingcpp\nfrom PIL import Image\nim=Image.open(sys.argv[1]).convert("L")\nim=im.resize((im.width*3,im.height*3))\nr=zxingcpp.read_barcodes(im)\nprint(r[0].text if r else "")', png]).toString().trim();
-  const kodeAda = kode.map(([k]) => k);
-  const m = /^https:\/\/mofmofriends-kitab\.pages\.dev\/#k=([A-Z0-9]{10})$/.exec(terbaca);
-  c('C8 QR kartu tercetak terbaca kamera dan menunjuk kode Bear yang sah', m && kodeAda.includes(m[1]) && db.st.kode[m[1]].kartu === KARTU[0][0], terbaca);
-  const ukuran = await p.evaluate(() => { const r = document.querySelector('#lembarKitab .kartu-kitab').getBoundingClientRect(); return [Math.round(r.width / 96 * 25.4), Math.round(r.height / 96 * 25.4)]; });
-  c('C9 ukuran kartu 85 x 55 mm', ukuran[0] === 85 && ukuran[1] === 55, JSON.stringify(ukuran));
-  const pdf = await p.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true });
-  const halaman = (pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
-  c('C10 12 kartu = 2 lembar A4 (10 per lembar)', halaman === 2, halaman);
-  await p.emulateMedia({ media: 'screen' });
-  await p.evaluate(() => { document.getElementById('lembarKitab').remove(); document.body.classList.remove('cetak-kitab'); });
-  c('C11 ringkasan hasil cetak + tombol cetak lagi', /12\s+kode dibuat/.test(await teks()) && !!(await p.$('[data-kb=cetakLagi]')));
+  /* isi ZIP dibaca python: nama, ukuran, QR (zxing), warna kotak bawah kanan, keragaman piksel di area foto */
+  const py = String.raw`
+import sys, json, io, zipfile, zxingcpp
+from PIL import Image, ImageStat
+z = zipfile.ZipFile(sys.argv[1]); out = []
+mm = 300 / 25.4
+for n in z.namelist():
+    im = Image.open(io.BytesIO(z.read(n))).convert('RGB')
+    q = zxingcpp.read_barcodes(im)
+    kotak = im.getpixel((int((70 + 6) * mm), int(50.6 * mm)))
+    foto = ImageStat.Stat(im.crop((int(18 * mm), int(14 * mm), int(52 * mm), int(40 * mm))).convert('L')).stddev[0]
+    out.append({'nama': n, 'ukuran': im.size, 'dpi': [round(x) for x in im.info.get('dpi', (0, 0))], 'qr': q[0].text if q else '', 'kotak': sum(kotak) / 3, 'foto': foto})
+print(json.dumps(out))`;
+  const isi = JSON.parse(execFileSync('python3', ['-c', py, zipPath]).toString());
+  const kodeDari = (n) => (/_([A-Z0-9]{10})\.png$/.exec(n) || [])[1];
+  c('C4 ZIP berisi 12 PNG, satu per kartu, tanpa berkas lain', isi.length === 12 && isi.every((x) => /\.png$/.test(x.nama) && kodeDari(x.nama)), isi.map((x) => x.nama).join(','));
+  const produk = isi.map((x) => (db.st.kode[kodeDari(x.nama)] || {}).kartu);
+  c('C5 berkas urut per produk (7 Bear dulu, lalu 5 Key Charm Bear) dan bernomor urut', produk.slice(0, 7).every((x) => x === KARTU[0][0]) && produk.slice(7).every((x) => x === KARTU[17][0]) && isi.every((x, i) => x.nama.startsWith(String(i + 1).padStart(3, '0') + '_')), isi.map((x) => x.nama).join(','));
+  c('C6 ZIP tidak membocorkan kode voucher', !isi.some((x) => /BONUS10/.test(x.nama)) && !/BONUS10/.test(fs.readFileSync(zipPath).toString('latin1')));
+  c('C9 tiap PNG 140 x 60 mm pada 300 dpi (1654 x 709 px, dpi tercatat 300)', isi.every((x) => x.ukuran[0] === 1654 && x.ukuran[1] === 709 && x.dpi[0] === 300), JSON.stringify(isi.map((x) => [x.ukuran, x.dpi])[0]));
+  c('C8 QR tiap PNG terbaca dan menunjuk kode di nama berkasnya sendiri', isi.every((x) => x.qr === 'https://mofmofriends.id/#k=' + kodeDari(x.nama)), JSON.stringify(isi.map((x) => [x.nama, x.qr]).slice(0, 2)));
+  const kodeVou = kode.filter(([, r]) => r.voucher).map(([k]) => k).sort().join();
+  c('C12 tepat 3 kartu berkotak krem "Ada voucher di dalam", dan itu kartu yang kodenya membawa voucher', isi.filter((x) => x.kotak > 180).map((x) => kodeDari(x.nama)).sort().join() === kodeVou && isi.filter((x) => x.kotak < 100).length === 9, JSON.stringify(isi.map((x) => Math.round(x.kotak))));
+  c('C13 tiap PNG memuat foto produk (area foto tidak polos; kartu tanpa foto sekitar 3)', isi.every((x) => x.foto > 10), JSON.stringify(isi.map((x) => Math.round(x.foto))));
+  c('C10 tidak ada sisa lembar cetak di halaman', await p.evaluate(() => !document.getElementById('lembarKitab') && !document.body.classList.contains('cetak-kitab')));
+  /* Ferdy 15 Okt malam: "qr card voucher buat lebih hd ya termasuk tulisan di kanannya".
+     Aturan ukuran dibaca dari CSS kartu yang sama yang dipakai PNG. */
+  await p.evaluate(() => { document.body.insertAdjacentHTML('beforeend', '<div id="lembarKitab" style="display:block;position:absolute;left:-9999px"><div class="kartu-kitab"><div class="kk-kanan"><div class="kk-qr"></div><div class="kk-teks"><span class="kk-kode">X</span><span class="kk-ajak"><b>X</b>x</span></div><div class="kk-bawah"><b>X</b><span>x</span></div></div></div></div>'); });
+  const kanan = await p.evaluate(() => { const k = document.querySelector('#lembarKitab .kartu-kitab'); const pt = (s) => Math.round(parseFloat(getComputedStyle(k.querySelector(s)).fontSize) * 0.75 * 10) / 10;
+    const r = { kode: pt('.kk-kode'), ajak: pt('.kk-ajak'), judulAjak: pt('.kk-ajak b'), bawah: pt('.kk-bawah span'), judulBawah: pt('.kk-bawah b'), qr: Math.round(k.querySelector('.kk-qr').getBoundingClientRect().width / 96 * 25.4) }; document.getElementById('lembarKitab').remove(); return r; });
+  c('C15 sisi kanan kartu terbaca: tulisan >= 7 pt, kode >= 9 pt, QR >= 32 mm', kanan.kode >= 9 && kanan.ajak >= 7 && kanan.judulAjak >= 7 && kanan.bawah >= 7 && kanan.judulBawah >= 7 && kanan.qr >= 32, JSON.stringify(kanan));
+  c('C11 ringkasan hasil + tombol unduh PNG lagi', /12\s+kode dibuat/.test(await teks()) && /Unduh PNG lagi/.test(await teks()) && !!(await p.$('[data-kb=cetakLagi]')));
 });
 
 await bagian('D. klaim struk', async () => {

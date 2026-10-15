@@ -13,7 +13,7 @@
   'use strict';
 
   var API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
-  var APP_LAPANGAN = 'https://mofmo-lapangan.pages.dev/lapangan/';
+  var APP_LAPANGAN = 'https://lapangan.mofmofriends.id/lapangan/';
   var PAPAN_LAMA = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec?lihat=1';
   var SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 
@@ -173,7 +173,7 @@
       '<label class="centang"><input type="checkbox" id="ingat">' + (id ? 'Tetap masuk 7 hari' : 'Keep me signed in for 7 days') + '</label>' +
       '<button type="submit" class="btn" id="tMasuk"><span id="tMasukTeks">' + (id ? 'Buka WMS' : 'Open the WMS') + '</span><span aria-hidden="true">→</span></button>' +
       '<div class="galat" id="galatMasuk" role="alert"></div><div id="capMasuk"></div></div>' +
-      '<div class="kaki">' + foto('kr_bear', 'kaki-boneka', '') + '<span>' + (id ? 'Operational PIC? Buka aplikasi lapangan di ' : 'Operational PIC? Open the field app at ') + '<a href="' + APP_LAPANGAN + '">mofmo-lapangan.pages.dev/lapangan</a></span></div></form>' +
+      '<div class="kaki">' + foto('kr_bear', 'kaki-boneka', '') + '<span>' + (id ? 'Operational PIC? Buka aplikasi lapangan di ' : 'Operational PIC? Open the field app at ') + '<a href="' + APP_LAPANGAN + '">lapangan.mofmofriends.id/lapangan</a></span></div></form>' +
       '</div></div>' +
       '</div>';
   }
@@ -252,7 +252,11 @@
      Bingkai, bukan document.write: menulis ulang dokumen 1,2 MB di halaman
      induk membekukan Chrome (dicoba 10 Okt pagi), di bingkai tidak. */
   var BACA_PAPAN = { dataPapan: 1, papanSummary: 1, papanInventory: 1, papanPenjualan: 1, papanKiriman: 1, papanKirimanUtama: 1, papanGerakStok: 1,
-    obdDaftar: 1, obdSpData: 1, obdIuData: 1, papanGudang: 1, kesehatanPersediaan: 1, papanPerformaSku: 1, dataAlokasi: 1, fapLaporanAtasan: 1 };
+    obdDaftar: 1, obdSpData: 1, obdIuData: 1, papanGudang: 1, kesehatanPersediaan: 1, papanPerformaSku: 1, dataAlokasi: 1, fapLaporanAtasan: 1,
+    /* 15 Okt 2026: Operational PIC (work log bulan berjalan, argumen bulan "")
+       dulu selalu ke Apps Script, 10-20 detik. Potretnya didorong cermin
+       sebagai papanKerja|["K",""]; bulan lain tetap ke Apps Script. */
+    papanKerja: 1 };
   /* Bacaan yang argumen pertamanya bukan kode akses (dicerminkan dengan
      kunci nama|[argumen apa adanya]), misalnya skrip halaman yang ditunda. */
   var BACA_TANPA_KODE = { pdgSkripTunda: 1 };

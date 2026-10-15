@@ -58,7 +58,14 @@
       d_laporan: function (b) { return 'Monthly report · ' + b; }, d_untuk: 'For Bu Ratih', d_ada: 'Rows in', d_belum: 'No rows yet', d_gerai: function (n) { return n + (n === 1 ? ' store' : ' stores'); },
       d_buka: 'Open monthly report', d_mitra: 'Partner reports', d_mitraKet: 'When each partner last sent sales rows.', d_telat: 'Late', d_aman: 'On time', d_terakhir: 'last row',
       p_alis: 'Shipments · PDF or photo of a partner PO', p_judul: 'Read PO', p_diHo: 'At HO', p_cek: 'Check', p_cukup: 'In stock', p_kurang: 'Short', p_kurangN: function (n) { return n + ' short at HO'; }, p_semua: 'All in stock at HO',
-      w_alis: 'Warehouse ops · USB scanner or phone camera', w_judul: 'Warehouse ops'
+      w_alis: 'Shipments · outbound · USB scanner or phone camera', w_judul: 'Outbound · Offline',
+      m_obdOff: 'Outbound · Offline', m_obdShp: 'Outbound · Shopee', m_kirim: 'Shipments', m_stok: 'Inventory',
+      j_judul: 'Outbound to stores', j_ket: 'Partner stores and manual delivery orders. Shopee orders are under Outbound · Shopee.',
+      j_tahap: { PICKING: 'Picking', PACKING: 'Packing', STAGING: 'Staging', TRANSIT: 'In transit', DELIVERED: 'Delivered' },
+      j_belum: function (n) { return n + ' pcs not yet at stores'; }, j_kolom: ['Document', 'Store', 'Date', 'Pcs', 'Stage', 'Delivery order'],
+      j_kosong: 'No shipments to stores yet. A new one shows up here as soon as a delivery plan is made.', j_buka: 'Open Outbound · Offline', j_bukaSj: 'Open delivery orders',
+      j_batal: 'cancelled', j_tanpaSj: 'not issued yet', j_lebih: function (n) { return n + ' older documents in Outbound · Offline'; },
+      b_judul: 'Picking and packing', b_ket: function (n) { return n === 0 ? 'Every outbound document has reached its store.' : n + (n === 1 ? ' outbound document is' : ' outbound documents are') + ' still on the way to stores.'; }, b_buka: 'Open Outbound · Offline'
     },
     id: {
       lama: 'Tampilan lama', baru: 'Kembali ke tampilan baru', muat: 'Membaca data…', gagal: 'Data belum bisa dibaca sekarang. Cek sinyal lalu muat ulang halaman.',
@@ -80,7 +87,14 @@
       d_laporan: function (b) { return 'Laporan bulanan · ' + b; }, d_untuk: 'Untuk Bu Ratih', d_ada: 'Baris masuk', d_belum: 'Belum ada baris', d_gerai: function (n) { return n + ' gerai'; },
       d_buka: 'Buka laporan bulanan', d_mitra: 'Laporan mitra', d_mitraKet: 'Kapan tiap mitra terakhir mengirim baris penjualan.', d_telat: 'Telat', d_aman: 'Tepat waktu', d_terakhir: 'baris terakhir',
       p_alis: 'Pengiriman · PDF atau foto PO mitra', p_judul: 'Baca PO', p_diHo: 'Di HO', p_cek: 'Cek', p_cukup: 'Cukup', p_kurang: 'Kurang', p_kurangN: function (n) { return n + ' kurang di HO'; }, p_semua: 'Semua cukup di HO',
-      w_alis: 'Operasi gudang · scanner USB atau kamera HP', w_judul: 'Operasi gudang'
+      w_alis: 'Pengiriman · outbound · scanner USB atau kamera HP', w_judul: 'Outbound · Offline',
+      m_obdOff: 'Outbound · Offline', m_obdShp: 'Outbound · Shopee', m_kirim: 'Pengiriman', m_stok: 'Persediaan',
+      j_judul: 'Kiriman ke gerai', j_ket: 'Gerai mitra dan surat jalan manual. Pesanan Shopee ada di Outbound · Shopee.',
+      j_tahap: { PICKING: 'Picking', PACKING: 'Packing', STAGING: 'Staging', TRANSIT: 'Di jalan', DELIVERED: 'Diterima' },
+      j_belum: function (n) { return n + ' pcs belum sampai gerai'; }, j_kolom: ['Dokumen', 'Gerai', 'Tanggal', 'Pcs', 'Tahap', 'Surat jalan'],
+      j_kosong: 'Belum ada kiriman ke gerai. Kiriman baru muncul di sini begitu rencana kirim dibuat.', j_buka: 'Buka Outbound · Offline', j_bukaSj: 'Buka surat jalan',
+      j_batal: 'batal', j_tanpaSj: 'belum terbit', j_lebih: function (n) { return n + ' dokumen lebih lama ada di Outbound · Offline'; },
+      b_judul: 'Picking dan packing', b_ket: function (n) { return n === 0 ? 'Semua dokumen outbound sudah sampai gerai.' : n + ' dokumen outbound masih dalam perjalanan ke gerai.'; }, b_buka: 'Buka Outbound · Offline'
     }
   };
   function t(k) { var d = TEKS[id() ? 'id' : 'en']; return d[k] != null ? d[k] : TEKS.en[k]; }
@@ -226,6 +240,10 @@
     '.l4t-langkah .beres i{background:var(--l4-mint);color:var(--l4-mintTeks)}',
     '.l4t-lapor{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}',
     '.l4t-lapor>div{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:18px;background:var(--l4-lembut)}',
+    '.l4t-tautan{background:none;border:0;padding:0;font:inherit;font-weight:800;color:var(--l4-aksenTeks);text-decoration:underline;text-underline-offset:3px;cursor:pointer}',
+    '.l4t-jalur .l4t-lapor{grid-template-columns:repeat(5,minmax(0,1fr))}.l4t-jalur .l4t-lapor>div{padding:10px 12px}',
+    '@media (max-width:700px){.l4t-jalur .l4t-lapor{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+    '.l4t-jalur .l4t-bawah{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}',
     '.l4t-lapor b{font-size:16px}.l4t-lapor strong{font-family:"Baloo 2",Nunito,sans-serif;font-size:26px;line-height:1.1}.l4t-lapor small{color:var(--l4-mut);font-size:13.5px}',
     /* halaman yang digambar ulang penuh: isi lama disembunyikan, bisa dibuka lagi */
     '#isi.l4t-ganti:not(.l4t-lihatlama)>:not(.l4t){display:none !important}',
@@ -497,9 +515,130 @@
     rapikan();
   }
 
+
+  /* ---------- Menu: Warehouse dibubarkan ke Inventory dan Shipments (15 Okt 2026) ----------
+     Ferdy: "warehouse dan inventory blm nyatu" dan "outbound offline dan shopee
+     bisa link ke shipment?". Skrip Gudang papan lama (pasangMenu, tiap 700 ms)
+     menyisipkan ulang grup "outbound" kalau grup itu hilang dari HALAMAN, jadi
+     HALAMAN asli TIDAK diubah. Yang diubah cuma salinan yang dipakai gambarPanel
+     selama menggambar: Outbound Offline dan Shopee jadi anak pertama Shipments,
+     Isi ulang rak jadi anak terakhir Inventory, grup Warehouse tidak digambar. */
+  function susunMenu(H) {
+    if (!H || !H.length) return H;
+    var iO = -1, iK = -1, iS = -1;
+    for (var i = 0; i < H.length; i++) { if (H[i][0] === 'outbound') iO = i; if (H[i][0] === 'rencana') iK = i; if (H[i][0] === 'stok') iS = i; }
+    if (iO < 0 || iK < 0 || iS < 0) return H;
+    var anakO = H[iO][3] || [], cari = function (k) { for (var j = 0; j < anakO.length; j++) if (anakO[j][0] === k) return anakO[j]; return null; };
+    var off = cari('outbound'), shp = cari('obdShopee'), iu = cari('obdIsiUlang');
+    var baru = [];
+    for (var g = 0; g < H.length; g++) if (g !== iO) baru.push([H[g][0], H[g][1], H[g][2], (H[g][3] || []).slice()]);
+    var K = null, S = null;
+    baru.forEach(function (x) { if (x[0] === 'rencana') K = x; if (x[0] === 'stok') S = x; });
+    var depan = [];
+    if (off) depan.push(['outbound', t('m_obdOff')]);
+    if (shp) depan.push([shp[0], t('m_obdShp')]);
+    K[3] = depan.concat(K[3].filter(function (c) { return c[0] !== 'outbound' && c[0] !== 'obdShopee'; }));
+    if (iu && !S[3].some(function (c) { return c[0] === iu[0]; })) S[3].push([iu[0], iu[1]]);
+    return baru;
+  }
+  function pasangMenuBaru(fw) {
+    var asli = fw.gambarPanel;
+    if (typeof asli === 'function' && !asli.__l4t) {
+      var bungkus = function () {
+        var H = fw.HALAMAN, B = H;
+        try { B = susunMenu(H); } catch (e) { B = H; }
+        if (B === H) return asli.apply(this, arguments);
+        fw.HALAMAN = B;
+        try { return asli.apply(this, arguments); } finally { fw.HALAMAN = H; }
+      };
+      bungkus.__l4t = true; fw.gambarPanel = bungkus;
+      try { bungkus(); } catch (e) {}
+    }
+    /* Subjudul "Warehouse · ..." dari skrip Gudang ikut nama menu barunya. Skrip
+       itu memanggil ulang tiap 700 ms selama teksnya beda dari versinya sendiri,
+       jadi kalau teks yang benar sudah terpasang, tidak ditulis ulang. */
+    var sj = fw.pasangSubJudul;
+    if (typeof sj === 'function' && !sj.__l4t) {
+      var sub = function (a, b) {
+        if (/^(Warehouse|Gudang)$/.test(String(a))) {
+          a = String(fw.HAL || '') === 'obdIsiUlang' ? t('m_stok') : t('m_kirim');
+          var el = fw.document.getElementById('subJudul');
+          if (el && el.textContent.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim() === a + ' · ' + b) return;
+        }
+        return sj.apply(this, [a, b].concat(Array.prototype.slice.call(arguments, 2)));
+      };
+      sub.__l4t = true; fw.pasangSubJudul = sub;
+    }
+  }
+
+  /* ---------- Shipments: jalur offline, dan tautan balik di surat jalan ---------- */
+  var OBD = { janji: null, waktu: 0 };
+  var TAHAP = ['PICKING', 'PACKING', 'STAGING', 'TRANSIT', 'DELIVERED'];
+  function muatObd() {
+    if (OBD.janji && Date.now() - OBD.waktu < 60 * 1000) return OBD.janji;
+    OBD.waktu = Date.now();
+    var m = M();
+    OBD.janji = (m.jalan ? m.jalan('obdDaftar', ['WMS-TIKET']) : Promise.reject(new Error('jalan'))).then(function (x) {
+      if (!x || x.ok === false || !Array.isArray(x.daftar)) throw new Error('obd');
+      return x;
+    }).catch(function (e) { OBD.janji = null; throw e; });
+    return OBD.janji;
+  }
+  /* pesanan marketplace (lajur online) punya jalurnya sendiri di Outbound · Shopee */
+  function dokOffline(x) { return (x.daftar || []).filter(function (d) { return d && d.lajur !== 'online'; }); }
+  function kartuJalur(x) {
+    var L = dokOffline(x), jml = {};
+    TAHAP.forEach(function (k) { jml[k] = 0; });
+    L.forEach(function (d) { if (jml[d.tahap] != null) jml[d.tahap]++; });
+    var nama = t('j_tahap');
+    var isi = '<p class="l4t-ket">' + esc(t('j_ket')) + '</p><div class="l4t-lapor">' + TAHAP.map(function (k) {
+      return '<div data-l4t-tahap="' + k + '"><b>' + esc(nama[k]) + '</b><strong>' + nf(jml[k]) + '</strong></div>';
+    }).join('') + '</div>';
+    if (!L.length) {
+      isi += '<p class="l4t-ket" data-l4t-kosong>' + esc(t('j_kosong')) + '</p>';
+    } else {
+      var belum = 0; L.forEach(function (d) { if (d.tahap !== 'DELIVERED') belum += Number(d.pcsPesan) || 0; });
+      var urut = L.slice().sort(function (p, q) {
+        var a = p.tahap === 'DELIVERED' ? 1 : 0, b = q.tahap === 'DELIVERED' ? 1 : 0;
+        if (a !== b) return a - b;
+        return String(q.tanggal || '') < String(p.tanggal || '') ? -1 : String(q.tanggal || '') > String(p.tanggal || '') ? 1 : 0;
+      });
+      var tampil = urut.slice(0, 8), kol = t('j_kolom');
+      isi += '<p class="l4t-ket" data-l4t-belum>' + esc(t('j_belum')(nf(belum))) + '</p>';
+      isi += '<div class="l4t-gulir"><table class="l4t-tabel"><thead><tr><th>' + esc(kol[0]) + '</th><th>' + esc(kol[1]) + '</th><th>' + esc(kol[2]) + '</th><th class="ka">' + esc(kol[3]) + '</th><th>' + esc(kol[4]) + '</th><th>' + esc(kol[5]) + '</th></tr></thead><tbody>' +
+        tampil.map(function (d) {
+          var sj = d.noSj ? '<button type="button" class="l4t-tautan" data-l4t-hal="kemas">' + esc(d.noSj) + '</button>' + (d.sjBatal ? ' <small>' + esc(t('j_batal')) + '</small>' : '') : '<small>' + esc(t('j_tanpaSj')) + '</small>';
+          return '<tr data-l4t-ref="' + esc(d.ref) + '"><td><button type="button" class="l4t-tautan" data-l4t-hal="outbound">' + esc(d.ref) + '</button></td><td>' + esc(d.tujuan || '') + '</td><td>' + esc(tglPendek(d.tanggal)) + '</td><td class="ka">' + nf(d.pcsPesan) + '</td>' +
+            '<td><span class="l4t-cip' + (d.tahap === 'DELIVERED' ? ' ok' : '') + '">' + esc(nama[d.tahap] || d.tahap || '') + '</span></td><td>' + sj + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+      if (urut.length > tampil.length) isi += '<p class="l4t-ket">' + esc(t('j_lebih')(urut.length - tampil.length)) + '</p>';
+    }
+    isi += '<div class="l4t-bawah"><button type="button" class="l4t-tombol dua" data-l4t-hal="outbound">' + esc(t('j_buka')) + '</button><button type="button" class="l4t-tombol dua" data-l4t-hal="kemas">' + esc(t('j_bukaSj')) + '</button></div>';
+    return '<div class="l4t-jalur" data-l4t-jalur="offline">' + kartu(t('j_judul'), 2, isi) + '</div>';
+  }
+  function tataKiriman(fw, isi) {
+    if (isi.querySelector(':scope > .l4t[data-l4t-hal-ini=rencana]')) return;
+    var sek = fw.document.createElement('div'); sek.className = 'l4t'; sek.setAttribute('data-l4t-hal-ini', 'rencana');
+    sek.innerHTML = '<p class="l4t-ket">' + esc(t('muat')) + '</p>';
+    isi.insertBefore(sek, isi.firstChild);
+    muatObd().then(function (x) { if (sek.isConnected && fw.HAL === 'rencana') sek.innerHTML = kartuJalur(x); },
+      function () { if (sek.isConnected) sek.innerHTML = '<p class="l4t-ket">' + esc(t('gagal')) + '</p>'; });
+  }
+  function tataSuratJalan(fw, isi) {
+    if (isi.querySelector(':scope > .l4t[data-l4t-hal-ini=kemas]')) return;
+    var sek = fw.document.createElement('div'); sek.className = 'l4t'; sek.setAttribute('data-l4t-hal-ini', 'kemas');
+    isi.insertBefore(sek, isi.firstChild);
+    muatObd().then(function (x) {
+      if (!sek.isConnected || fw.HAL !== 'kemas') return;
+      var n = dokOffline(x).filter(function (d) { return d.tahap !== 'DELIVERED'; }).length;
+      sek.innerHTML = '<div class="l4t-baris"><span class="l4t-dua-baris"><b>' + esc(t('b_judul')) + '</b><small>' + esc(t('b_ket')(n)) + '</small></span>' +
+        '<span class="l4t-kanan"><button type="button" class="l4t-tombol dua" data-l4t-hal="outbound" data-l4t-balik="outbound">' + esc(t('b_buka')) + '</button></span></div>';
+    }, function () { if (sek.parentNode) sek.parentNode.removeChild(sek); });
+  }
+
   /* ---------- pemasangan ---------- */
   var GANTI = { stokgerai: gambarGerai, mitra2: gambarKeuangan, sehat: gambarKualitas };
-  var TAMBAH = { dokumen: tataDokumen, bacapo: tataBacaPo, outbound: tataGudang };
+  var TAMBAH = { dokumen: tataDokumen, bacapo: tataBacaPo, outbound: tataGudang, rencana: tataKiriman, kemas: tataSuratJalan };
   function gambarGanti(fw, isi, hal) {
     var sek = fw.document.createElement('div');
     sek.className = 'l4t'; sek.setAttribute('data-l4t-hal-ini', hal);
@@ -511,6 +650,7 @@
   }
   function terapkan(fw) {
     var d = fw.document, isi = d.getElementById('isi'); if (!isi) return;
+    try { pasangMenuBaru(fw); } catch (e) { if (W.console) W.console.warn('tata menu', e); }
     var hal = String(fw.HAL || '');
     var lama = isi.querySelector(':scope > .l4t[data-l4t-hal-ini]');
     if (lama && lama.getAttribute('data-l4t-hal-ini') !== hal) {
