@@ -113,6 +113,17 @@
   var BAB = ['Forest Dwellers', 'Home Friends', 'Key Charm', 'Key Ring', 'Mascot Ball', 'Backpack', 'Cap'];
   var ROM = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
   var PER = {}; KARTU.forEach(function (k) { PER[k[0]] = k; });
+  /* Foto kartu cetak (wms/img/kartu, potongan dari foto Shopee resolusi penuh), dicari dari letak kitabku.js
+     supaya jalan di wms.mofmofriends.id maupun di halaman uji. */
+  var FOTO_KARTU = { '4582586962058': 'bear', '4582586963260': 'panda', '4582586963291': 'panda', '4582586966605': 'redpanda', '4582586966636': 'redpanda', '4582586966629': 'koala',
+    '4582586966612': 'elephant', '4582586966643': 'elephant', '4582586964403': 'reindeer', '4582586962737': 'otter', '4582586962126': 'collie', '4582586962225': 'angora',
+    '4582586962133': 'lamb', '4582586950512': 'shiba', '4582586950536': 'shiba', '4582586964434': 'pekingese',
+    '4582586966988': 'kc_rabbit', '4582586967015': 'kc_bear', '4582586966971': 'kc_bichon', '4582586966995': 'kc_bsh', '4582586966544': 'kc_shiba', '4582586964311': 'kc_lamb', '4582586964274': 'kc_tiger', '4582586964298': 'kc_cow',
+    '4582586966780': 'kr_rabbit', '4582586966810': 'kr_bear', '4582586966773': 'kr_bichon', '4582586966827': 'kr_tiger', '4582586966797': 'kr_bsh',
+    '4582586965714': 'mb_tiger', '4582586965721': 'mb_collie', '4582586965738': 'mb_lamb', '4582586965707': 'mb_panda',
+    '4589715755918': 'rs_rabbit', '4589715755925': 'rs_bsh', '4582586968333': 'bp_ivory', '4582586968357': 'bp_green', '4582586968364': 'bp_blue', '4582586968340': 'bp_pink',
+    '4582586961822': 'cap_rabbit', '4582586964014': 'cap_melon', '4582586964021': 'cap_banana', '4582586966360': 'cap_tomato' };
+  var DASAR = (function () { try { var s = document.currentScript && document.currentScript.src; return s ? s.replace(/[^\/]*$/, '') : ''; } catch (e) { return ''; } })();
   function namaKartu(bc) { var k = PER[bc]; if (!k) return bc; return k[2].replace(' (Key Charm)', '') + ' · ' + k[3]; }
   var KITAB = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/kitab';
   var SITUS = 'https://mofmofriends.id/#k=';
@@ -145,9 +156,9 @@
       j_kartu: 'Cards collected', j_bab: 'Chapter complete', j_bintang: 'Game stars', j_edisi: 'Edition cards', hadiahBaru: 'New reward', idHadiah: 'ID (letters, no spaces)',
       tanpaHadiah: 'No rewards yet.', kosongNominal: 'value not set',
       berlakuSampai: 'Valid until', berlakuUntuk: 'Applies to', semuaProduk: 'All shop products', maksPembeli: 'Max. uses per buyer', syarat: 'Terms shown to the buyer', syaratPh: 'e.g. One use per Shopee account. Cannot be exchanged for cash.',
-      cetakJudul: 'QR cards for Shopee parcels', ketCetak: 'One card per item packed. The code works once: the first book that scans it keeps it. Card size 85 x 55 mm, 10 per A4.',
+      cetakJudul: 'QR cards for Shopee parcels', ketCetak: 'One card per item packed. The code works once: the first book that scans it keeps it. Output: a ZIP of 300 dpi PNG files, one per card (140 x 60 mm), ready for the print vendor.',
       jumlah: 'Qty', total: 'Total', maks: 'max 500 per print', vJumlah: 'Cards with a bonus voucher', vKode: 'Voucher code', vTeks: 'Voucher text shown to the buyer',
-      ketVoucher: 'Bonus vouchers are mixed randomly into the batch. The buyer only sees it after scanning.', buat: 'Create codes', buatCetak: 'Print', cetakLagi: 'Print again',
+      ketVoucher: 'Bonus vouchers are mixed randomly into the batch. The buyer only sees it after scanning.', buat: 'Create codes', buatCetak: 'Download PNG', cetakLagi: 'Download PNG again', bikinPng: 'Making PNG', gagalPng: 'Could not make the PNG files: ',
       dibuat: 'codes created for', dariAcara: 'event', kartuUntuk: 'Collection card for', pindai: 'Scan to unlock your card in the Mofmofriends Book', atauKetik: 'or type the code at mofmofriends.id',
       strukJudul: 'Receipt claims', tanpaStruk: 'No receipts waiting.', lihatFoto: 'Show photo', setujui: 'Approve', tolak: 'Reject', yakinTolak: 'Reject for sure?', kartuDibuka: 'Cards to unlock',
       ketStruk: 'Check the store, date, and items on the photo. Untick items that are not on the receipt.', dibeli: 'bought', diputus: 'Done', pilihKartu: 'Pick at least one card.'
@@ -164,9 +175,9 @@
       j_kartu: 'Jumlah kartu', j_bab: 'Bab lengkap', j_bintang: 'Bintang game', j_edisi: 'Kartu edisi', hadiahBaru: 'Hadiah baru', idHadiah: 'ID (huruf, tanpa spasi)',
       tanpaHadiah: 'Belum ada hadiah.', kosongNominal: 'nilai belum diisi',
       berlakuSampai: 'Berlaku sampai', berlakuUntuk: 'Berlaku untuk', semuaProduk: 'Semua produk toko', maksPembeli: 'Maks. pakai per pembeli', syarat: 'Syarat dan ketentuan untuk pembeli', syaratPh: 'misal: Satu kali pakai per akun Shopee. Tidak dapat diuangkan.',
-      cetakJudul: 'Kartu QR untuk paket Shopee', ketCetak: 'Satu kartu untuk setiap barang yang dikemas. Kode hanya berlaku sekali: buku pertama yang memindai yang memilikinya. Ukuran kartu 85 x 55 mm, 10 per A4.',
+      cetakJudul: 'Kartu QR untuk paket Shopee', ketCetak: 'Satu kartu untuk setiap barang yang dikemas. Kode hanya berlaku sekali: buku pertama yang memindai yang memilikinya. Hasilnya ZIP berisi PNG 300 dpi, satu berkas per kartu (14 x 6 cm), siap dikirim ke vendor cetak.',
       jumlah: 'Jml', total: 'Total', maks: 'maks. 500 sekali cetak', vJumlah: 'Kartu dengan bonus voucher', vKode: 'Kode voucher', vTeks: 'Teks voucher untuk pembeli',
-      ketVoucher: 'Bonus voucher diselipkan acak di antara kartu. Pembeli baru tahu setelah memindai.', buat: 'Buat kode', buatCetak: 'Cetak', cetakLagi: 'Cetak lagi',
+      ketVoucher: 'Bonus voucher diselipkan acak di antara kartu. Pembeli baru tahu setelah memindai.', buat: 'Buat kode', buatCetak: 'Unduh PNG', cetakLagi: 'Unduh PNG lagi', bikinPng: 'Membuat PNG', gagalPng: 'PNG gagal dibuat: ',
       dibuat: 'kode dibuat untuk', dariAcara: 'event', kartuUntuk: 'Kartu koleksi untuk', pindai: 'Pindai untuk membuka kartumu di Kitab Mofmofriends', atauKetik: 'atau ketik kodenya di mofmofriends.id',
       strukJudul: 'Klaim struk', tanpaStruk: 'Tidak ada struk yang menunggu.', lihatFoto: 'Lihat foto', setujui: 'Setujui', tolak: 'Tolak', yakinTolak: 'Yakin tolak?', kartuDibuka: 'Kartu yang dibuka',
       ketStruk: 'Cek gerai, tanggal, dan barang di foto. Hapus centang barang yang tidak ada di struk.', dibeli: 'dibeli', diputus: 'Selesai', pilihKartu: 'Pilih minimal satu kartu.'
@@ -332,25 +343,129 @@
         KARTU.filter(function (k) { return k[1] === ci; }).map(function (k) { return '<label><span>' + esc(namaKartu(k[0])) + '</span><input type="number" min="0" max="500" inputmode="numeric" data-qty="' + k[0] + '" value="' + (A.qty[k[0]] || '') + '" placeholder="0"></label>'; }).join('') + '</div></details>';
     }).join('');
     var n = totalQty();
-    var hasil = A.hasilCetak ? '<div class="kb-hasil"><b>' + nf(A.hasilCetak.kode.length) + '</b> ' + esc(t('dibuat')) + ' ' + esc(t('dariAcara')) + ' <span class="kb-cap">' + esc(A.hasilCetak.acara.cap) + '</span> <button type="button" class="btn" data-kb="cetakLagi">' + esc(t('cetakLagi')) + '</button></div>' : '';
+    var hasil = A.hasilCetak ? '<div class="kb-hasil"><b>' + nf(A.hasilCetak.kode.length) + '</b> ' + esc(t('dibuat')) + ' ' + esc(t('dariAcara')) + ' <span class="kb-cap">' + esc(A.hasilCetak.acara.cap) + '</span> ' + (A.unduh ? '<span class="kb-cap">' + esc(t('bikinPng')) + ' ' + A.unduh + '</span>' : '<button type="button" class="btn" data-kb="cetakLagi">' + esc(t('cetakLagi')) + '</button>') + '</div>' : '';
     return (A.pesan ? '<div class="tolak-alat" role="alert">' + esc(A.pesan) + '</div>' : '') + hasil +
       '<section class="kb-kotak"><h3>' + esc(t('cetakJudul')) + (ac ? ' <span class="kb-cap">' + esc(ac.cap) + '</span>' : '') + '</h3><p class="ket-alat">' + esc(t('ketCetak')) + '</p>' + grup +
       '<p class="kb-total">' + esc(t('total')) + ' <b id="kbTotal">' + n + '</b> <small>' + esc(t('maks')) + '</small></p></section>' +
       '<section class="kb-kotak"><div class="kb-form4"><label>' + esc(t('vJumlah')) + '<input id="kbVJml" type="number" min="0" value="' + (A.v.jumlah || '') + '" placeholder="0"></label><label>' + esc(t('vKode')) + '<input id="kbVKode" value="' + esc(A.v.kode) + '"></label><label class="lebar">' + esc(t('vTeks')) + '<input id="kbVTeks" value="' + esc(A.v.teks) + '" placeholder="Potongan Rp…"></label></div><p class="ket-alat">' + esc(t('ketVoucher')) + '</p></section>' +
       '<button type="button" class="btn" data-kb="buat"' + (n < 1 || n > 500 || A.sibuk ? ' disabled' : '') + '>' + esc(t('buat')) + ' & ' + esc(t('buatCetak')) + '</button>';
   }
+  /* Kartu 14 x 6 cm (15 Okt 2026): kiri foto produk, kanan QR. Kode voucher TIDAK dicetak;
+     kartu yang kebagian voucher cuma bertulisan "Ada voucher di dalam" (keputusan Ferdy). */
   function htmlKartuCetak(r, cap) {
-    return '<div class="kartu-kitab"><div class="kk-qr">' + qrSvg(SITUS + r.kode) + '</div><div class="kk-teks"><small>MOFMOFRIENDS · ' + esc(cap) + '</small><span class="kk-untuk">' + esc(t('kartuUntuk')) + '</span><b class="kk-produk">' + esc(namaKartu(r.kartu)) + '</b>' +
-      '<span class="kk-kode">' + esc(kodeTampil(r.kode)) + '</span><span class="kk-ajak">' + esc(t('pindai')) + '</span><span class="kk-situs">' + esc(t('atauKetik')) + '</span></div></div>';
+    var k = PER[r.kartu] || [r.kartu, 0, r.kartu, ''], i = KARTU.indexOf(PER[r.kartu]);
+    var plush = /^Plush /.test(k[2]);
+    var judul = plush ? k[2].replace(/^Plush /, '') : k[3], jenis = plush ? 'Plush · Size ' + k[3] : k[2].replace(' (Key Charm)', '');
+    var no = (i > -1 ? (i < 9 ? '0' : '') + (i + 1) : '?') + '/' + KARTU.length;
+    var bawah = r.voucher
+      ? '<div class="kk-bawah vou"><b>ADA VOUCHER DI DALAM</b><span>Scan buat buka voucher Shopee-mu</span></div>'
+      : '<div class="kk-bawah"><b>KUMPULIN ' + KARTU.length + ' KARTU</b><span>Tiap 5 dan 10 kartu ada voucher Shopee, cek di Kitabku</span></div>';
+    return '<div class="kartu-kitab" data-kartu="' + esc(r.kartu) + '" data-kode="' + esc(r.kode) + '">' +
+      '<div class="kk-kiri"><span class="kk-merek">MOFMOFRIENDS</span><span class="kk-no">' + no + '</span><span class="kk-bab">Bab ' + ROM[k[1]] + ' · ' + esc(BAB[k[1]]) + '</span>' +
+      '<div class="kk-foto">' + (FOTO_KARTU[r.kartu] ? '<img src="' + DASAR + 'img/kartu/' + FOTO_KARTU[r.kartu] + '.webp" alt="">' : '') + '</div>' +
+      '<span class="kk-segel">' + esc(cap || '') + '</span><div class="kk-pita"><span class="kk-nama">' + esc(judul) + '</span><span class="kk-jenis">' + esc(jenis) + '</span></div></div>' +
+      '<div class="kk-kanan"><div class="kk-logo">Kitabku<small>MOFMOFRIENDS</small></div><div class="kk-qr">' + qrSvg(SITUS + r.kode) + '</div>' +
+      '<div class="kk-teks"><span class="kk-kode">' + esc(kodeTampil(r.kode)) + '</span><span class="kk-ajak"><b>SCAN BUAT BUKA KARTUMU</b>atau ketik kodenya di mofmofriends.id</span></div>' + bawah + '</div></div>';
+  }
+  /* PNG untuk vendor cetak (Ferdy 15 Okt malam: "cetaknya bisa png high reso (cuma png)... vendor yg
+     print bukan gua"). Tiap kartu digambar dari HTML dan CSS kartu yang sama ke kanvas 300 dpi
+     (140 x 60 mm = 1654 x 709 px) lewat SVG foreignObject. Foto dan huruf ditanam sebagai data URL
+     dulu, karena gambar SVG tidak boleh memuat berkas luar dan kanvas jadi tidak bisa diekspor.
+     Satu ZIP (JSZip dari vendor/pptxgen.bundle.js), berkas urut per produk, nama memuat kode. */
+  var MM = 96 / 25.4, DPI = 300, PNG_W = Math.round(140 * DPI / 25.4), PNG_H = Math.round(60 * DPI / 25.4);
+  function muatZip() {
+    if (W.JSZip) return Promise.resolve(W.JSZip);
+    return new Promise(function (ok, gagal) {
+      var s = document.createElement('script'); s.src = DASAR + 'vendor/pptxgen.bundle.js'; s.async = true;
+      s.onload = function () { if (W.JSZip) ok(W.JSZip); else gagal(new Error('JSZip')); };
+      s.onerror = function () { gagal(new Error('vendor/pptxgen.bundle.js')); };
+      document.head.appendChild(s);
+    });
+  }
+  var DATA_URL = {};
+  function keDataUrl(url) {
+    if (!DATA_URL[url]) DATA_URL[url] = fetch(url).then(function (r) { if (!r.ok) throw new Error(url + ' ' + r.status); return r.blob(); }).then(function (b) {
+      return new Promise(function (ok, gagal) { var f = new FileReader(); f.onload = function () { ok(f.result); }; f.onerror = function () { gagal(new Error(url)); }; f.readAsDataURL(b); });
+    });
+    return DATA_URL[url];
+  }
+  var CSS_KARTU = null;
+  function cssKartu() {
+    if (CSS_KARTU) return CSS_KARTU;
+    var aturan = [], huruf = [];
+    Array.prototype.forEach.call(document.styleSheets, function (sh) {
+      var rs; try { rs = sh.cssRules; } catch (e) { return; }
+      Array.prototype.forEach.call(rs || [], function (r) {
+        if (r.type === 5 && /KK /.test(r.cssText)) huruf.push(r);
+        else if (r.type === 1 && /#lembarKitab \.(kartu-kitab|kk-)/.test(r.selectorText || '')) aturan.push(r.cssText.replace(/#lembarKitab /g, ''));
+      });
+    });
+    CSS_KARTU = Promise.all(huruf.map(function (r) {
+      var m = /url\("?([^")]+)"?\)/.exec(r.cssText); if (!m) return '';
+      var abs = new URL(m[1], (r.parentStyleSheet && r.parentStyleSheet.href) || location.href).href;
+      return keDataUrl(abs).then(function (d) { return r.cssText.replace(m[0], 'url("' + d + '")'); }, function () { return ''; });
+    })).then(function (ff) { return ff.join('\n') + '\n' + aturan.join('\n') + '\n.kartu-kitab{margin:0 !important}'; });
+    return CSS_KARTU;
+  }
+  /* CRC32 dan potongan pHYs supaya PNG tercatat 300 dpi (vendor membaca ukuran cetak dari sini). */
+  var TABEL_CRC = null;
+  function crc32(b) {
+    if (!TABEL_CRC) { TABEL_CRC = []; for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; TABEL_CRC[n] = c >>> 0; } }
+    var x = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) x = TABEL_CRC[(x ^ b[i]) & 255] ^ (x >>> 8); return (x ^ 0xFFFFFFFF) >>> 0;
+  }
+  function pasangDpi(buf) {
+    var a = new Uint8Array(buf), ppm = Math.round(DPI / 0.0254), c = new Uint8Array(21), v = new DataView(c.buffer);
+    v.setUint32(0, 9); c.set([112, 72, 89, 115], 4); v.setUint32(8, ppm); v.setUint32(12, ppm); c[16] = 1;
+    v.setUint32(17, crc32(c.subarray(4, 17)));
+    var o = new Uint8Array(a.length + 21); o.set(a.subarray(0, 33)); o.set(c, 33); o.set(a.subarray(33), 54); return o;
+  }
+  function kartuKePng(html, css) {
+    var wadah = document.createElement('div'); wadah.innerHTML = html;
+    var imgs = Array.prototype.slice.call(wadah.querySelectorAll('img'));
+    return Promise.all(imgs.map(function (im) { return keDataUrl(new URL(im.getAttribute('src'), location.href).href).then(function (d) { im.setAttribute('src', d); }, function () { im.remove(); }); })).then(function () {
+      var w = 140 * MM, h = 60 * MM, isi = new XMLSerializer().serializeToString(wadah.firstChild);
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + PNG_W + '" height="' + PNG_H + '" viewBox="0 0 ' + w + ' ' + h + '"><foreignObject x="0" y="0" width="' + w + '" height="' + h + '">' +
+        '<div xmlns="http://www.w3.org/1999/xhtml"><style>' + css.replace(/<\/style/gi, '') + '</style>' + isi + '</div></foreignObject></svg>';
+      return new Promise(function (ok, gagal) {
+        var gb = new Image();
+        gb.onload = function () {
+          /* gambar dua kali: huruf data URL di dalam SVG kadang baru siap sesudah gambar pertama */
+          var kv = document.createElement('canvas'); kv.width = PNG_W; kv.height = PNG_H; var cx = kv.getContext('2d');
+          cx.drawImage(gb, 0, 0, PNG_W, PNG_H);
+          setTimeout(function () {
+            cx.clearRect(0, 0, PNG_W, PNG_H); cx.drawImage(gb, 0, 0, PNG_W, PNG_H);
+            kv.toBlob(function (b) { if (!b) return gagal(new Error('toBlob')); b.arrayBuffer().then(function (ab) { ok(pasangDpi(ab)); }, gagal); }, 'image/png');
+          }, 60);
+        };
+        gb.onerror = function () { gagal(new Error('SVG kartu')); };
+        gb.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      });
+    });
+  }
+  function namaBerkas(i, r) {
+    var n = namaKartu(r.kartu).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return String(i + 1).padStart(3, '0') + '_' + n + '_' + r.kode + '.png';
   }
   function cetakKartu() {
-    var h = A.hasilCetak; if (!h) return;
+    var h = A.hasilCetak; if (!h || A.unduh) return;
     /* urut per produk supaya pengemas tinggal ambil kartu sesuai barang */
     var urut = h.kode.slice().sort(function (a, b) { return KARTU.indexOf(PER[a.kartu]) - KARTU.indexOf(PER[b.kartu]); });
-    var w = document.createElement('div'); w.id = 'lembarKitab'; w.innerHTML = urut.map(function (r) { return htmlKartuCetak(r, h.acara.cap); }).join('');
-    document.body.appendChild(w); document.body.classList.add('cetak-kitab');
-    var beres = function () { document.body.classList.remove('cetak-kitab'); if (w.parentNode) w.parentNode.removeChild(w); };
-    try { W.print(); } finally { setTimeout(beres, 0); }
+    var cap = h.acara.cap, zip, css, i = 0;
+    A.unduh = '0/' + urut.length; A.pesan = ''; gambar();
+    return Promise.all([muatZip(), cssKartu()]).then(function (x) { zip = new x[0](); css = x[1]; }).then(function lanjut() {
+      if (i >= urut.length) return zip.generateAsync({ type: 'blob' });
+      var r = urut[i];
+      return kartuKePng(htmlKartuCetak(r, cap), css).then(function (png) {
+        zip.file(namaBerkas(i, r), png); i++; A.unduh = i + '/' + urut.length;
+        var el = document.querySelector('#kbIsi .kb-hasil .kb-cap:last-child'); if (el) el.textContent = t('bikinPng') + ' ' + A.unduh;
+        return lanjut();
+      });
+    }).then(function (blob) {
+      var a = document.createElement('a'), u = URL.createObjectURL(blob);
+      a.href = u; a.download = 'kartu-kitabku-' + String(cap || 'event').replace(/[^A-Za-z0-9.]+/g, '-') + '-' + urut.length + '-kartu.zip';
+      document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(u); a.remove(); }, 4000);
+      A.unduh = null; gambar();
+    }, function (e) { A.unduh = null; A.pesan = t('gagalPng') + (e && e.message || e); gambar(); });
   }
   function buatKode() {
     var item = Object.keys(A.qty).filter(function (k) { return Number(A.qty[k]) > 0; }).map(function (k) { return { kartu: k, qty: Number(A.qty[k]) }; });

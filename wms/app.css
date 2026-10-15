@@ -529,21 +529,49 @@ body.alat-terbuka{overflow:hidden}
 .kb-pilih{display:flex;flex-wrap:wrap}
 .kb-pilih input{accent-color:var(--acc)}
 #lembarKitab{display:none}
+/* Kartu Kitabku 14 x 6 cm (15 Okt 2026): kiri produk, kanan QR, 4 per A4.
+   Huruf Cinzel dan Cormorant Garamond (SIL OFL) dimuat dari wms/fonts hanya saat lembar dibuat. */
+@font-face{font-family:'KK Cinzel Deco';font-weight:900;src:url(fonts/cinzel-decorative-latin-900-normal.woff2) format('woff2')}
+@font-face{font-family:'KK Cinzel';font-weight:700;src:url(fonts/cinzel-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'KK Cinzel';font-weight:900;src:url(fonts/cinzel-latin-900-normal.woff2) format('woff2')}
+@font-face{font-family:'KK Cormorant';font-weight:600;src:url(fonts/cormorant-garamond-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'KK Cormorant';font-weight:700;src:url(fonts/cormorant-garamond-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'KK Cormorant';font-weight:700;font-style:italic;src:url(fonts/cormorant-garamond-latin-700-italic.woff2) format('woff2')}
+#lembarKitab .kartu-kitab{--kk-hijau:#1F3B2D;--kk-hijau2:#2D5040;--kk-krem:#F2E6CC;--kk-krem2:#EADCBD;--kk-tinta:#3B2A1A;--kk-tinta2:#6B5233;--kk-emas:#C9A24B;--kk-emas2:#F1D891;--kk-garis:#B08D3C;--kk-segel:#8E1F1F;--kk-segelteks:#F6E3B4;
+  box-sizing:border-box;width:140mm;height:60mm;position:relative;overflow:hidden;display:flex;border:.9mm solid var(--kk-emas);border-radius:3mm;background:var(--kk-krem);color:var(--kk-tinta);font-family:'KK Cormorant',Georgia,serif;break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0 auto 6mm}
+#lembarKitab .kartu-kitab:nth-child(4n){break-after:page;margin-bottom:0}
+#lembarKitab .kartu-kitab *{box-sizing:border-box}
+#lembarKitab .kartu-kitab:after{content:"";position:absolute;inset:1.4mm;border:.25mm solid var(--kk-garis);border-radius:2mm;pointer-events:none;z-index:5}
+#lembarKitab .kk-kiri{position:relative;width:70mm;height:100%;background:radial-gradient(110% 90% at 45% 45%,#FBF4E2 0%,var(--kk-krem) 55%,var(--kk-krem2) 100%)}
+#lembarKitab .kk-merek{position:absolute;top:3.4mm;left:4.5mm;font-family:'KK Cinzel',serif;font-weight:700;font-size:5pt;letter-spacing:1.5pt;color:var(--kk-tinta2)}
+#lembarKitab .kk-no{position:absolute;top:3.2mm;right:4mm;font-family:'KK Cinzel',serif;font-weight:700;font-size:5pt;color:var(--kk-garis)}
+#lembarKitab .kk-bab{position:absolute;top:6.8mm;left:4.5mm;font-weight:700;font-style:italic;font-size:6.4pt;color:var(--kk-segel)}
+#lembarKitab .kk-foto{position:absolute;top:10mm;left:3mm;right:3mm;height:34mm;display:flex;align-items:center;justify-content:center}
+#lembarKitab .kk-foto img{position:relative;max-width:46mm;max-height:33mm;object-fit:contain}
+#lembarKitab .kk-segel{position:absolute;z-index:3;right:4mm;bottom:12mm;width:10mm;height:10mm;border-radius:50%;background:radial-gradient(circle at 35% 30%,#B23030,var(--kk-segel) 60%,#5E1010);color:var(--kk-segelteks);display:flex;align-items:center;justify-content:center;font-family:'KK Cinzel',serif;font-weight:900;font-size:5.6pt;transform:rotate(-12deg)}
+#lembarKitab .kk-pita{position:absolute;left:3mm;right:3mm;bottom:3.4mm;height:10mm;background:var(--kk-hijau);color:var(--kk-emas2);display:flex;flex-direction:column;align-items:center;justify-content:center;clip-path:polygon(0 0,100% 0,97% 50%,100% 100%,0 100%,3% 50%)}
+#lembarKitab .kk-nama{font-family:'KK Cinzel',serif;font-weight:900;font-size:8pt;letter-spacing:.4pt;line-height:1}
+#lembarKitab .kk-jenis{font-weight:600;font-size:6.2pt;color:var(--kk-krem);margin-top:.5mm}
+#lembarKitab .kk-kanan{position:relative;width:70mm;height:100%;background:linear-gradient(160deg,var(--kk-hijau2),var(--kk-hijau) 60%,#16291F);color:var(--kk-krem);border-left:.5mm solid var(--kk-emas)}
+#lembarKitab .kk-logo{position:absolute;top:2.8mm;left:0;right:0;text-align:center;font-family:'KK Cinzel Deco',serif;font-weight:900;font-size:9pt;color:var(--kk-emas2)}
+#lembarKitab .kk-logo small{font-family:'KK Cinzel',serif;font-weight:700;font-size:5.4pt;letter-spacing:1.6pt;color:var(--kk-emas);margin-left:1.4mm}
+#lembarKitab .kk-qr{position:absolute;top:9.6mm;left:4.2mm;width:32mm;height:32mm;background:#fff;padding:1mm;border-radius:1mm;outline:.35mm solid var(--kk-emas);outline-offset:.5mm}
+#lembarKitab .kk-qr svg{width:100%;height:100%;display:block}
+#lembarKitab .kk-teks{position:absolute;top:10mm;left:39.4mm;right:3.4mm;display:flex;flex-direction:column;gap:2mm}
+#lembarKitab .kk-kode{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;font-size:9.4pt;letter-spacing:.2pt;color:#fff;line-height:1.15}
+#lembarKitab .kk-ajak{font-weight:700;font-size:7.8pt;line-height:1.15}
+#lembarKitab .kk-ajak b{display:block;font-family:'KK Cinzel',serif;font-weight:900;font-size:7pt;letter-spacing:.2pt;line-height:1.1;color:var(--kk-emas2);margin-bottom:.8mm}
+#lembarKitab .kk-bawah{position:absolute;left:4.2mm;right:3.4mm;bottom:3.2mm;height:12.4mm;border-radius:1.2mm;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:.3mm;border:.3mm solid var(--kk-garis)}
+#lembarKitab .kk-bawah b{font-family:'KK Cinzel',serif;font-weight:900;font-size:7pt;letter-spacing:.6pt;color:var(--kk-emas2)}
+#lembarKitab .kk-bawah span{font-weight:700;font-size:7.2pt;color:var(--kk-krem);padding:0 2mm;line-height:1.1}
+#lembarKitab .kk-bawah.vou{background:var(--kk-krem);border:.3mm dashed var(--kk-segel)}
+#lembarKitab .kk-bawah.vou b{font-weight:900;font-size:8pt;color:var(--kk-segel)}
+#lembarKitab .kk-bawah.vou span{font-weight:700;font-size:7.6pt;color:var(--kk-tinta2)}
 @media print{
   @page{size:A4;margin:10mm}
   body.cetak-kitab{background:#fff !important}
   body.cetak-kitab>*:not(#lembarKitab){display:none !important}
-  body.cetak-kitab #lembarKitab{display:grid !important;grid-template-columns:85mm 85mm;grid-auto-rows:55mm;gap:0;justify-content:center}
-  #lembarKitab .kartu-kitab{box-sizing:border-box;width:85mm;height:55mm;display:flex;align-items:center;gap:3mm;padding:3.5mm 4mm;border:.3mm dashed #999;break-inside:avoid;color:#2B221C;background:#FFF8EF;font-family:Nunito,Arial,sans-serif}
-  #lembarKitab .kk-qr{width:33mm;height:33mm;flex:none}
-  #lembarKitab .kk-qr svg{width:33mm;height:33mm;display:block}
-  #lembarKitab .kk-teks{display:flex;flex-direction:column;gap:1mm;min-width:0}
-  #lembarKitab small{font-size:6.5pt;font-weight:900;letter-spacing:.4pt;color:#A9501C}
-  #lembarKitab .kk-untuk{font-size:7pt;color:#6B5A4E}
-  #lembarKitab .kk-produk{font-size:11pt;line-height:1.1;font-weight:900}
-  #lembarKitab .kk-kode{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12pt;font-weight:700;letter-spacing:.6pt}
-  #lembarKitab .kk-ajak{font-size:7pt;line-height:1.2;font-weight:800}
-  #lembarKitab .kk-situs{font-size:6pt;line-height:1.2;color:#6B5A4E}
+  body.cetak-kitab #lembarKitab{display:block !important;padding-top:4mm}
 }
 
 /* ===== Katalog (katalog.js): semua SKU dan harga jual putus termasuk pajak =====
