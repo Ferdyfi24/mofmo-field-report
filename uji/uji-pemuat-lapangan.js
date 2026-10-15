@@ -23,7 +23,9 @@ const AKAR = '/home/claude/fieldreport';
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png' };
 let BEDA = null, LOKAL_MATI = false, TUNDA_LOKAL = 0;
-const CF = 'https://mofmo-lapangan.pages.dev';
+/* 15 Okt 2026: tujuan pindah ke lapangan.mofmofriends.id. Project Pages lama
+   (mofmo-lapangan.pages.dev) beku sejak repo pindah ke org mofmofriends-id. */
+const CF = 'https://lapangan.mofmofriends.id';
 const srv = http.createServer(async (q, s) => {
   if (LOKAL_MATI) return q.socket.destroy();
   if (TUNDA_LOKAL) await new Promise(x => setTimeout(x, TUNDA_LOKAL));
