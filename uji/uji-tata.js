@@ -288,7 +288,8 @@ const PALSU_AWAL = () => {
     /* ================= P13 Gudang ================= */
     await ke(p, 'outbound', () => !!document.querySelector('.l4t-hal'));
     const w = await fe(p, () => ({ n: document.querySelectorAll('#isi > .l4t').length, judul: document.querySelector('.l4t-hal h1').textContent, obd: !!document.getElementById('obdKotak').shadowRoot }));
-    c('T20 P13: kepala Warehouse ops sekali, aplikasi gudang di shadow root tetap ada', w.n === 1 && w.judul === 'Warehouse ops' && w.obd, JSON.stringify(w));
+    /* 15 Okt 2026: menu Warehouse dibubarkan, halaman ini jadi Shipments > Outbound · Offline (uji-menu-kiriman.js) */
+    c('T20 P13: kepala Outbound · Offline sekali, aplikasi gudang di shadow root tetap ada', w.n === 1 && w.judul === 'Outbound · Offline' && w.obd, JSON.stringify(w));
     await jeda(400);
     const w2 = await fe(p, () => { const sr = document.getElementById('obdKotak').shadowRoot; return { judul: getComputedStyle(sr.getElementById('obdJudul')).display, waktu: getComputedStyle(sr.getElementById('obdWaktu')).display }; });
     c('T27 P13: judul ganda aplikasi gudang ("Warehouse · Outbound") disembunyikan, baris waktu diperbarui tetap tampil', w2.judul === 'none' && w2.waktu !== 'none', JSON.stringify(w2));
