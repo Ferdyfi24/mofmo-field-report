@@ -24,7 +24,7 @@ const { dbPalsu } = await import(SRV + '/kitab-tiruan.mjs');
 const require = createRequire('/home/claude/fieldreport/uji/uji-wms-alat.js');
 const { chromium } = require('playwright');
 
-let gagal = 0, jalan = 0; const DIHARAPKAN = 36;
+let gagal = 0, jalan = 0; const DIHARAPKAN = 30;
 const c = (n, ok, k) => { jalan++; if (!ok) gagal++; console.log((ok ? 'LULUS ' : 'GAGAL ') + n + (ok ? '' : '\n   -> ' + String(k).replace(/\s*\n\s*/g, ' | ').slice(0, 400))); };
 async function bagian(nama, fn) { console.log('\n=== ' + nama + ' ==='); try { await fn(); } catch (e) { gagal++; console.log('GAGAL ' + nama + ' MATI -> ' + (e && e.stack || e)); } }
 
@@ -75,7 +75,10 @@ await bagian('A. pintu: tiket WMS', async () => {
   await pasangTiket(TIKET); await p.click('[data-kb=ulang]'); await tunggu(400);
   const t = await teks();
   c('A3 tiket sah: angka ringkas tampil', /Kolektor/.test(t) && /Kartu Shopee dicetak/.test(t), t.slice(0, 300));
-  c('A4 lencana tab struk = 2 menunggu', await p.evaluate(() => document.querySelector('[data-kbtab=struk] .kb-lencana').textContent) === '2');
+  /* 17 Okt, Ferdy: pembelian offline tidak dapat kartu, klaim struk dihapus dari web Kitab dan dari WMS.
+     Dulu A4 memeriksa lencana tab struk; sekarang tab dan kartu angka "Struk menunggu" harus hilang. */
+  const tabs = await p.evaluate(() => [...document.querySelectorAll('[data-kbtab]')].map((x) => x.getAttribute('data-kbtab')));
+  c('A4 tab Klaim struk dan kartu Struk menunggu tidak ada lagi', !tabs.includes('struk') && tabs.length === 4 && !/Struk menunggu/.test(t), JSON.stringify(tabs) + ' ' + t.slice(0, 200));
 });
 
 await bagian('B. event dan hadiah', async () => {
@@ -174,25 +177,10 @@ print(json.dumps(out))`;
   c('C14 ZIP tidak membocorkan kode voucher', !/BONUS10/.test(fs.readFileSync(zipPath).toString('latin1')));
 });
 
-await bagian('D. klaim struk', async () => {
-  await p.click('[data-kbtab=struk]'); await tunggu(500);
-  let t = await teks();
-  c('D1 dua struk menunggu dengan nama, gerai, produk', /Sari/.test(t) && /TK Margo City/.test(t) && /Doni/.test(t) && t.includes(nama(KARTU[16][0])), t.slice(0, 400));
-  c('D2 foto tidak ikut dimuat di daftar (hemat kuota)', !(await p.$('.kb-foto')) && !panggilan.includes('fotoStruk'));
-  await p.click('[data-struk="1"] [data-kb=foto]'); await tunggu(400);
-  c('D3 foto dimuat saat diminta', await p.evaluate(() => (document.querySelector('[data-struk="1"] .kb-foto') || {}).src || '').then((s) => /^data:image\/png/.test(s)));
-  await p.uncheck('[data-struk="1"] input[value="' + KARTU[16][0] + '"]');
-  await p.click('[data-struk="1"] [data-kb=setujui]'); await tunggu(500);
-  const kol = db.st.koleksi.filter((k) => k.pemain === 'pA');
-  c('D4 disetujui: hanya kartu yang dicentang masuk, saluran struk, cap event aktif', kol.length === 1 && kol[0].kartu === KARTU[0][0] && kol[0].saluran === 'struk' && kol[0].acara === db.st.acara.id && db.st.struk[0].status === 'disetujui', JSON.stringify(kol));
-  await p.click('[data-struk="2"] [data-kb=tolak]'); await tunggu(200);
-  c('D5 tolak butuh klik kedua', db.st.struk[1].status === 'menunggu' && /Yakin tolak/.test(await teks()));
-  await p.click('[data-struk="2"] [data-kb=tolak]'); await tunggu(400);
-  t = await teks();
-  c('D6 ditolak: tanpa kartu, antrean kosong, lencana hilang', db.st.struk[1].status === 'ditolak' && !db.st.koleksi.some((k) => k.pemain === 'pB') && /Tidak ada struk/.test(t) && !(await p.$('.kb-lencana')), t);
-  c('D7 tanpa galat halaman', errs.length === 0, errs.join(' | '));
-  await p.screenshot({ path: '/tmp/claude-0/-home-claude/734637d7-4ef4-5392-8862-4843ea5b65c8/scratchpad/kb-admin-struk.png' });
-  await p.click('[data-kbtab=ringkas]'); await tunggu(500); await p.screenshot({ path: '/tmp/claude-0/-home-claude/734637d7-4ef4-5392-8862-4843ea5b65c8/scratchpad/kb-admin-ringkas.png', fullPage: true });
+await bagian('D. tanpa klaim struk', async () => {
+  await p.click('[data-kbtab=ringkas]'); await tunggu(500);
+  c('D1 tanpa galat halaman sesudah semua tab dibuka', errs.length === 0, errs.join(' | '));
+  await p.screenshot({ path: '/tmp/claude-0/-home-claude/734637d7-4ef4-5392-8862-4843ea5b65c8/scratchpad/kb-admin-ringkas.png', fullPage: true });
   await p.click('[data-kbtab=cetak]'); await tunggu(300); await p.screenshot({ path: '/tmp/claude-0/-home-claude/734637d7-4ef4-5392-8862-4843ea5b65c8/scratchpad/kb-admin-cetak.png' });
 });
 
