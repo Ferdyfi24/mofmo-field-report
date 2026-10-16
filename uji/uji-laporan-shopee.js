@@ -177,7 +177,8 @@ elif mode == 'isi':
         if ws.cell(r, 1).value == '261012DDDDDDDD': ws.cell(r, 8).value = datetime.datetime(2026, 10, 12, 13, 0); ws.cell(r, 8).number_format = 'yyyy-mm-dd hh:mm'
     r = 6
     while ws.cell(r, 1).value: r += 1
-    for c, v in zip([1, 2, 5, 6, 7, 13], ['261012GGGGGGGG', '${PANDA}', 2, 300000, '2026-10-12 12:30', 'SPX Standard']): ws.cell(r, c).value = v
+    # 16 Okt 2026: kolom Kode Kartu QR (L) masuk sesudah Link Foto Kirim, Jasa Kirim pindah dari kolom 13 ke 14
+    for c, v in zip([1, 2, 5, 6, 7, 14], ['261012GGGGGGGG', '${PANDA}', 2, 300000, '2026-10-12 12:30', 'SPX Standard']): ws.cell(r, c).value = v
     wb.save(sys.argv[3]); print(json.dumps({'baris': r}))
 elif mode == 'ops':
     wb = openpyxl.Workbook(); ws = wb.active; ws.title = 'Pesanan Online'
@@ -300,7 +301,7 @@ async function bagianB() {
     c('B2 mentahan: nama berkas bertanggal, tab Pesanan/Produk/Petunjuk, terisi hanya pesanan terbuka P2 (2 barang) lalu P3, daftar pilihan barcode/jasa/alasan/batal (12 Okt sore: Excel gudang satu lembar, kolom Status diganti Batal), SKU berupa rumus ke tab Produk',
       m.u && m.u.suggestedFilename() === 'mentahan-shopee-harian-2026-10-12.xlsx' && (mm.nama || []).join(',') === 'Pesanan,Produk,Petunjuk' &&
       isi.join(',') === 'CC:' + TIGER + ':2,CC:' + PANDA + ':1,DD:' + BEAR + ':1' && (pe.rows[1] || [])[1] === '2026-10-12' && (pe.rows[4] || [])[0] === 'No Pesanan' &&
-      /B6=Produk!\$A\$2:\$A\$4/.test(dv) && /M6="SPX Standard/.test(dv) && /T6="Gagal kirim/.test(dv) && /V6="YA/.test(dv) &&
+      /B6=Produk!\$A\$2:\$A\$4/.test(dv) && /N6="SPX Standard/.test(dv) && /U6="Gagal kirim/.test(dv) && /W6="YA/.test(dv) &&
       (pe.rumus || []).some(x => x[0] === 'C6' && /INDEX\(Produk!\$B\$2:\$B\$4/.test(x[1])) && (((mm.lembar || {}).Produk || {}).rows || []).length === 4,
       JSON.stringify([m.u && m.u.suggestedFilename(), mm.nama, isi, dv, pe.rumus, mm.galat]));
 

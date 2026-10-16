@@ -48,7 +48,9 @@ const SH = { ok: true, hariIni: '2026-10-12', setoran: [], baris: [
 /* ================= A. urai dan rakit (Node) ================= */
 let LS = null;
 try { const k = { window: {}, console }; k.window.window = k.window; vm.createContext(k); vm.runInContext(fs.readFileSync(path.join(AKAR, 'wms/lapshopee.js'), 'utf8'), k); LS = k.window.WmsLapShopee; } catch (e) { c('A0 lapshopee.js termuat', false, e.message); }
-const KEP_BARU = ['No Pesanan', 'Barcode', 'SKU (otomatis)', 'Nama Produk (otomatis)', 'Qty', 'Harga Jual', 'Waktu Pesan', 'Waktu Kemas', 'Lokasi Ambil (rak)', 'Dikemas Oleh', 'Link Foto Kirim', 'Waktu Serah Kurir', 'Jasa Kirim', 'No Resi', 'Nama Kurir', 'Link Foto Serah', 'Waktu Diterima', 'Retur Bagus', 'Retur Rusak', 'Alasan Retur', 'Waktu Retur', 'Batal', 'Catatan'];
+/* 16 Okt 2026: kolom Kode Kartu QR (kartu QR paket diikat ke pesanan, uji-kartu-qr-setor.js) masuk sesudah Link Foto Kirim,
+   jadi daftar pilihan jasa, alasan, dan batal bergeser satu kolom (N, U, W). */
+const KEP_BARU = ['No Pesanan', 'Barcode', 'SKU (otomatis)', 'Nama Produk (otomatis)', 'Qty', 'Harga Jual', 'Waktu Pesan', 'Waktu Kemas', 'Lokasi Ambil (rak)', 'Dikemas Oleh', 'Link Foto Kirim', 'Kode Kartu QR', 'Waktu Serah Kurir', 'Jasa Kirim', 'No Resi', 'Nama Kurir', 'Link Foto Serah', 'Waktu Diterima', 'Retur Bagus', 'Retur Rusak', 'Alasan Retur', 'Waktu Retur', 'Batal', 'Catatan'];
 const baris = o => KEP_BARU.map(h => o[h] == null ? '' : o[h]);
 function bagianA() {
   if (!LS || !LS._uraiBuku || !LS._opsTabel) { c('A0 _uraiBuku dan _opsTabel ada', false, Object.keys(LS || {}).join(',')); return; }
@@ -171,7 +173,7 @@ async function bagianB() {
     const kosongDulu = (m.baris || [])[0] || [];
     c('B1 Excel gudang satu lembar: kepala kolom baru (lokasi, pengemas, dua foto, kurir, batal), baris pengelompokan PESANAN/KEMAS/SERAH KURIR/DITERIMA DAN RETUR, daftar pilihan jasa, alasan, batal; pesanan terbuka terisi lokasi dan foto lamanya',
       JSON.stringify(m.kepala) === JSON.stringify(KEP_BARU) && /PESANAN/.test((m.grup || []).join('|')) && /KEMAS/.test((m.grup || []).join('|')) && /SERAH/.test((m.grup || []).join('|')) && /RETUR/.test((m.grup || []).join('|')) &&
-      (m.dv || []).some(x => /^M6="SPX Standard/.test(x)) && (m.dv || []).some(x => /^T6="Gagal kirim/.test(x)) && (m.dv || []).some(x => /^V6="YA/.test(x)) && (m.dv || []).some(x => /^B6=Produk!\$A\$2/.test(x)) &&
+      (m.dv || []).some(x => /^N6="SPX Standard/.test(x)) && (m.dv || []).some(x => /^U6="Gagal kirim/.test(x)) && (m.dv || []).some(x => /^W6="YA/.test(x)) && (m.dv || []).some(x => /^B6=Produk!\$A\$2/.test(x)) &&
       kosongDulu[0] === '261011CCCCCCCC' && kosongDulu[8] === 'R1-4B' && kosongDulu[9] === 'Armand' && kosongDulu[10] === FK && (m.petunjuk || []).length <= 9,
       JSON.stringify(m).slice(0, 1200));
     /* isi dan setor */
