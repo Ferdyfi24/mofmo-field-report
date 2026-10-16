@@ -567,6 +567,17 @@ body.alat-terbuka{overflow:hidden}
 #lembarKitab .kk-bawah.vou{background:var(--kk-krem);border:.3mm dashed var(--kk-segel)}
 #lembarKitab .kk-bawah.vou b{font-weight:900;font-size:8pt;color:var(--kk-segel)}
 #lembarKitab .kk-bawah.vou span{font-weight:700;font-size:7.6pt;color:var(--kk-tinta2)}
+/* Kartu umum per paket (16 Okt 2026): kiri logo + ajakan + foto karakter, kanan QR. Dicetak sendiri di A4. */
+#lembarKitab .kk-p-logo{position:absolute;top:3.4mm;left:28mm;width:14mm;height:14mm;border-radius:50%;background:#F6ECD6;border:.35mm solid var(--kk-emas);padding:.8mm;object-fit:contain}
+#lembarKitab .kk-p-nama{position:absolute;top:18.4mm;left:0;right:0;text-align:center;font-family:'KK Cinzel Deco',serif;font-weight:900;font-size:13pt;line-height:1;color:var(--kk-tinta)}
+#lembarKitab .kk-p-ajak{position:absolute;top:24.6mm;left:2mm;right:2mm;text-align:center;font-weight:700;font-style:italic;font-size:8.6pt;line-height:1.1;color:var(--kk-segel)}
+#lembarKitab .kk-p-foto{position:absolute;top:30.6mm;left:4.5mm;right:4.5mm;height:11.6mm;display:grid;grid-template-columns:repeat(6,1fr);gap:.8mm;align-items:center}
+#lembarKitab .kk-p-foto img{width:100%;height:11.6mm;object-fit:contain}
+#lembarKitab .kk-paket .kk-pita{height:8.4mm}
+#lembarKitab .kk-paket .kk-pita .kk-nama{font-size:7.6pt;letter-spacing:.6pt}
+#lembarKitab .kk-p-judul{position:absolute;top:3.4mm;left:0;right:0;text-align:center;font-family:'KK Cinzel',serif;font-weight:900;font-size:8.6pt;letter-spacing:.5pt;line-height:1;color:var(--kk-emas2)}
+#lembarKitab .kk-paket .kk-teks{gap:2.6mm}
+#lembarKitab .kk-paket .kk-kode{font-size:9.4pt}
 @media print{
   @page{size:A4;margin:10mm}
   body.cetak-kitab{background:#fff !important}
