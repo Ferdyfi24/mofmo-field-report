@@ -139,7 +139,8 @@
     { id: 'bab3', judul: '', jenis: 'bab', angka: 2, saluran: 'online', hadiah: 'Potongan plush S' },
     { id: 'bab5', judul: '', jenis: 'bab', angka: 4, saluran: 'online', hadiah: 'Potongan Key Ring' },
     { id: 'bab7', judul: '', jenis: 'bab', angka: 6, saluran: 'online', hadiah: 'Potongan plush M' },
-    { id: 'bintang3', judul: '', jenis: 'bintang', angka: 3, saluran: 'semua', hadiah: 'Voucher Shopee' },
+    /* 16 Okt malam, Ferdy: hadiah game cuma lewat papan Total (akumulatif), bukan bintang per game */
+    { id: 'papanTotal', judul: '', jenis: 'papan', angka: 10, saluran: 'semua', hadiah: 'Voucher Shopee' },
     { id: 'edisi', judul: '', jenis: 'edisi', angka: 3, saluran: 'semua', hadiah: 'Hadiah edisi' }
   ];
 
@@ -153,7 +154,7 @@
       hadiah: 'Rewards', ketHadiah: 'Rewards switched on appear in every buyer\'s book. Voucher codes are created by hand in Shopee Seller Centre; paste the code here.',
       jenis: 'Type', angka: 'Target', saluran: 'Counts', semua: 'All cards', online: 'Shopee cards only', isi: 'Reward', nominal: 'Value', minBelanja: 'Min. spend',
       voucher: 'Voucher code', kuota: 'Quota', terpakai: 'claimed', aktif: 'On', simpan: 'Save', tersimpan: 'Saved', usulan: 'Add the mockup rewards (switched off)',
-      j_kartu: 'Cards collected', j_bab: 'Chapter complete', j_bintang: 'Game stars', j_edisi: 'Edition cards', hadiahBaru: 'New reward', idHadiah: 'ID (letters, no spaces)',
+      j_kartu: 'Cards collected', j_bab: 'Chapter complete', j_bintang: 'Game stars', j_edisi: 'Edition cards', j_papan: 'Total leaderboard', pemenang: 'Number of winners', ketPapan: 'Buyers ranked 1 to this number on the Total leaderboard can claim it after the edition ends. Set the quota to the same number. The voucher can be filled in later.', hadiahBaru: 'New reward', idHadiah: 'ID (letters, no spaces)',
       tanpaHadiah: 'No rewards yet.', kosongNominal: 'value not set',
       berlakuSampai: 'Valid until', berlakuUntuk: 'Applies to', semuaProduk: 'All shop products', maksPembeli: 'Max. uses per buyer', syarat: 'Terms shown to the buyer', syaratPh: 'e.g. One use per Shopee account. Cannot be exchanged for cash.',
       cetakJudul: 'QR cards for Shopee parcels', ketCetak: 'One card per item packed. The code works once: the first book that scans it keeps it. Output: a ZIP of 300 dpi PNG files, one per card (140 x 60 mm), ready for the print vendor.',
@@ -187,7 +188,7 @@
       hadiah: 'Hadiah', ketHadiah: 'Hadiah yang dinyalakan langsung tampil di buku setiap pembeli. Kode voucher dibuat manual di Shopee Seller Centre, lalu tempel kodenya di sini.',
       jenis: 'Jenis', angka: 'Target', saluran: 'Dihitung', semua: 'Semua kartu', online: 'Kartu Shopee saja', isi: 'Hadiah', nominal: 'Nilai', minBelanja: 'Min. belanja',
       voucher: 'Kode voucher', kuota: 'Kuota', terpakai: 'diambil', aktif: 'Nyala', simpan: 'Simpan', tersimpan: 'Tersimpan', usulan: 'Pasang hadiah dari mockup (nonaktif)',
-      j_kartu: 'Jumlah kartu', j_bab: 'Bab lengkap', j_bintang: 'Bintang game', j_edisi: 'Kartu edisi', hadiahBaru: 'Hadiah baru', idHadiah: 'ID (huruf, tanpa spasi)',
+      j_kartu: 'Jumlah kartu', j_bab: 'Bab lengkap', j_bintang: 'Bintang game', j_edisi: 'Kartu edisi', j_papan: 'Papan Total', pemenang: 'Jumlah pemenang', ketPapan: 'Pembeli peringkat 1 sampai angka ini di papan Total bisa klaim sesudah edisi selesai. Isi kuota sama dengan jumlah pemenang. Voucher boleh diisi belakangan.', hadiahBaru: 'Hadiah baru', idHadiah: 'ID (huruf, tanpa spasi)',
       tanpaHadiah: 'Belum ada hadiah.', kosongNominal: 'nilai belum diisi',
       berlakuSampai: 'Berlaku sampai', berlakuUntuk: 'Berlaku untuk', semuaProduk: 'Semua produk toko', maksPembeli: 'Maks. pakai per pembeli', syarat: 'Syarat dan ketentuan untuk pembeli', syaratPh: 'misal: Satu kali pakai per akun Shopee. Tidak dapat diuangkan.',
       cetakJudul: 'Kartu QR untuk paket Shopee', ketCetak: 'Satu kartu untuk setiap barang yang dikemas. Kode hanya berlaku sekali: buku pertama yang memindai yang memilikinya. Hasilnya ZIP berisi PNG 300 dpi, satu berkas per kartu (14 x 6 cm), siap dikirim ke vendor cetak.',
@@ -320,8 +321,8 @@
       '<label class="kb-saklar"><input type="checkbox" data-f="aktif"' + (h.aktif ? ' checked' : '') + '> ' + esc(t('aktif')) + '</label></div>' +
       '<div class="kb-hgrid">' +
       '<label>' + esc(t('judulH')) + inp('judul', h.judul) + '</label>' +
-      '<label>' + esc(t('jenis')) + sel('jenis', [['kartu', t('j_kartu')], ['bab', t('j_bab')], ['bintang', t('j_bintang')], ['edisi', t('j_edisi')]], h.jenis) + '</label>' +
-      '<label>' + esc(t('angka')) + (h.jenis === 'bab' ? sel('angka', BAB.map(function (b, i) { return [i, ROM[i] + ' · ' + b]; }), h.angka) : inp('angka', h.angka, '', 'number')) + '</label>' +
+      '<label>' + esc(t('jenis')) + sel('jenis', [['kartu', t('j_kartu')], ['bab', t('j_bab')], ['bintang', t('j_bintang')], ['edisi', t('j_edisi')], ['papan', t('j_papan')]], h.jenis) + '</label>' +
+      '<label>' + esc(t(h.jenis === 'papan' ? 'pemenang' : 'angka')) + (h.jenis === 'bab' ? sel('angka', BAB.map(function (b, i) { return [i, ROM[i] + ' · ' + b]; }), h.angka) : inp('angka', h.angka, '', 'number')) + '</label>' +
       '<label>' + esc(t('saluran')) + sel('saluran', [['semua', t('semua')], ['online', t('online')]], h.saluran) + '</label>' +
       '<label>' + esc(t('isi')) + inp('hadiah', h.hadiah) + '</label>' +
       '<label>' + esc(t('nominal')) + inp('nominal', h.nominal, 'Rp…') + '</label>' +
@@ -332,12 +333,12 @@
       '<label>' + esc(t('berlakuUntuk')) + inp('berlaku_untuk', h.berlaku_untuk || '', t('semuaProduk')) + '</label>' +
       '<label>' + esc(t('maksPembeli')) + inp('maks_per_pembeli', h.maks_per_pembeli || 1, '', 'number') + '</label>' +
       '<label class="kb-syarat">' + esc(t('syarat')) + '<textarea data-f="syarat" rows="2" maxlength="300" placeholder="' + esc(t('syaratPh')) + '">' + esc(h.syarat || '') + '</textarea></label>' +
-      '</div><div class="kb-hbawah">' + (!h.baru && !h.nominal && h.voucher == null ? '<small class="kb-mut">' + esc(t('kosongNominal')) + '</small>' : '') +
+      '</div>' + (h.jenis === 'papan' ? '<p class="ket-alat">' + esc(t('ketPapan')) + '</p>' : '') + '<div class="kb-hbawah">' + (!h.baru && !h.nominal && h.voucher == null ? '<small class="kb-mut">' + esc(t('kosongNominal')) + '</small>' : '') +
       '<button type="button" class="btn" data-kb="hadiah" data-id="' + esc(k) + '">' + esc(A.simpanOk[k] ? t('tersimpan') : t('simpan')) + '</button></div></div>';
   }
   function judulAdmin(h) {
     if (h.judul) return h.judul;
-    var n = h.jenis === 'bab' ? 'Bab ' + ROM[Number(h.angka)] + ' · ' + BAB[Number(h.angka)] : h.jenis === 'bintang' ? '★★★' : h.angka;
+    var n = h.jenis === 'bab' ? 'Bab ' + ROM[Number(h.angka)] + ' · ' + BAB[Number(h.angka)] : h.jenis === 'bintang' ? '★★★' : h.jenis === 'papan' ? '· top ' + h.angka : h.angka;
     return t('j_' + h.jenis) + ' ' + n;
   }
   function bacaHadiah(k) {
@@ -748,7 +749,7 @@
     if (e.type === 'change' && x.getAttribute('data-f') === 'jenis') {
       /* ganti jenis: kolom target berubah antara angka dan pilihan bab */
       var box = x.closest('[data-hadiah]'), k = box.getAttribute('data-hadiah'), h = bacaHadiah(k); h.baru = k === 'baru';
-      h.angka = h.jenis === 'bab' ? 0 : (h.jenis === 'bintang' ? 3 : h.angka || 3); box.outerHTML = htmlHadiah(h);
+      h.angka = h.jenis === 'bab' ? 0 : h.jenis === 'bintang' ? 3 : h.jenis === 'papan' ? 10 : h.angka || 3; box.outerHTML = htmlHadiah(h);
     }
   }
   W.WmsKitabku = { buka: buka, tutup: tutup, qrMatriks: qrMatriks, qrSvg: qrSvg, panggil: panggil };
