@@ -24,7 +24,7 @@ const { dbPalsu } = await import(SRV + '/kitab-tiruan.mjs');
 const require = createRequire('/home/claude/fieldreport/uji/uji-wms-alat.js');
 const { chromium } = require('playwright');
 
-let gagal = 0, jalan = 0; const DIHARAPKAN = 32;
+let gagal = 0, jalan = 0; const DIHARAPKAN = 33;
 const c = (n, ok, k) => { jalan++; if (!ok) gagal++; console.log((ok ? 'LULUS ' : 'GAGAL ') + n + (ok ? '' : '\n   -> ' + String(k).replace(/\s*\n\s*/g, ' | ').slice(0, 400))); };
 async function bagian(nama, fn) { console.log('\n=== ' + nama + ' ==='); try { await fn(); } catch (e) { gagal++; console.log('GAGAL ' + nama + ' MATI -> ' + (e && e.stack || e)); } }
 
@@ -40,7 +40,7 @@ db.st.struk.push({ id: 1, status: 'menunggu', pemain: 'pA', gerai: 'TK Margo Cit
   { id: 2, status: 'menunggu', pemain: 'pB', gerai: 'Kinokuniya PIK', tanggal: '2026-10-08', produk: [KARTU[5][0]], foto: FOTO, acara: null });
 const nama = (bc) => { const k = KARTU.find((x) => x[0] === bc); return k[2].replace(' (Key Charm)', '') + ' · ' + k[3]; };
 
-const AKAR = '/home/claude/fieldreport';
+const AKAR = process.env.WMS_AKAR || '/home/claude/fieldreport';
 let TIKET = tiketWms(Date.now() + 3600e3);
 const srv = http.createServer((q, s) => {
   const u = decodeURIComponent(q.url.split('?')[0]);
@@ -103,24 +103,44 @@ await bagian('B. event dan hadiah', async () => {
   c('B8 hadiah baru per bab tersimpan (Bab IV = angka 3)', h4 && h4.jenis === 'bab' && h4.angka === 3 && h4.hadiah === 'Potongan Mascot Ball', JSON.stringify(h4));
 });
 
-let kodeCetak = [];
-await bagian('C. cetak kartu QR paket Shopee', async () => {
+await bagian('C. kartu QR umum per paket: kode kosong, cetak A4 sendiri, PNG cadangan', async () => {
+  /* 16 Okt 2026, Ferdy: "krtunya jdi kita print senditi aja", alur kartu per paket disetujui.
+     Kartu tidak terikat SKU (SKU baru diikat waktu packing), voucher di SEMUA kartu.
+     Dulu bagian ini menguji kartu per produk untuk vendor (ZIP PNG, voucher acak); jalur itu
+     diganti. Yang diperiksa: lembar A4 yang benar-benar dikirim ke print, isinya kartu umum
+     dengan kode dari server, gambar dan huruf sudah siap waktu print, lalu PNG cadangan. */
   await p.click('[data-kbtab=cetak]'); await tunggu(200);
-  await p.click('.kb-det >> nth=0'); await tunggu(100);
-  await p.fill('[data-qty="' + KARTU[0][0] + '"]', '7');
-  await p.click('.kb-det >> nth=2'); await tunggu(100);
-  await p.fill('[data-qty="' + KARTU[17][0] + '"]', '5');
-  c('C1 total terhitung saat mengetik', (await p.textContent('#kbTotal')) === '12' && await p.evaluate(() => !document.querySelector('[data-kb=buat]').disabled));
-  await p.fill('#kbVJml', '3'); await p.fill('#kbVKode', 'BONUS10'); await p.fill('#kbVTeks', 'Potongan Rp10.000');
-  /* 15 Okt malam, Ferdy: "cetaknya bisa png high reso (cuma png)... soalnya vendor yg print bukan gua".
-     Hasil cetak = satu ZIP berisi PNG 300 dpi per kartu (14 x 6 cm = 1654 x 709 px), bukan print browser. */
-  const [unduhan] = await Promise.all([p.waitForEvent('download', { timeout: 60000 }), p.click('[data-kb=buat]')]);
-  const zipPath = path.join(os.tmpdir(), 'kartu-kitab-' + Date.now() + '.zip'); await unduhan.saveAs(zipPath);
-  const kode = Object.entries(db.st.kode).filter(([, r]) => r.saluran === 'shopee');
-  kodeCetak = kode;
-  c('C2 12 kode dibuat di server untuk event aktif', kode.length === 12 && kode.every(([, r]) => r.acara === db.st.acara.id), kode.length);
-  c('C3 tepat 3 kartu membawa voucher BONUS10', kode.filter(([, r]) => r.voucher === 'BONUS10').length === 3 && kode.filter(([, r]) => r.voucher_teks === 'Potongan Rp10.000').length === 3);
-  /* isi ZIP dibaca python: nama, ukuran, QR (zxing), warna kotak bawah kanan, keragaman piksel di area foto */
+  await p.evaluate(() => { window.__cetak = []; window.print = () => {
+    const l = document.getElementById('lembarKitab'), ks = l ? [...l.querySelectorAll('.kartu-kitab')] : [];
+    let ukur = null;
+    if (l && ks.length) { const lama = l.style.cssText; l.style.cssText = 'display:block;position:absolute;left:0;top:0';
+      const k = ks[0], mm = (px) => Math.round(px / 96 * 25.4 * 10) / 10, r = k.getBoundingClientRect(), q = k.querySelector('.kk-qr');
+      const pt = [...k.querySelectorAll('*')].filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())).map((e) => parseFloat(getComputedStyle(e).fontSize) * 0.75);
+      ukur = { w: mm(r.width), h: mm(r.height), qr: q ? mm(q.getBoundingClientRect().width) : 0, ptMin: Math.round(Math.min(...pt) * 10) / 10 }; l.style.cssText = lama; }
+    window.__cetak.push({ kelas: document.body.classList.contains('cetak-kitab'), n: ks.length, kode: ks.map((k) => k.getAttribute('data-kode')), teks: l ? l.innerText || l.textContent : '',
+      gambar: l ? [...l.querySelectorAll('img')].map((i) => i.complete && i.naturalWidth > 0) : [], huruf: ["900 9pt 'KK Cinzel Deco'", "900 9pt 'KK Cinzel'", "700 9pt 'KK Cinzel'", "700 9pt 'KK Cormorant'", "italic 700 9pt 'KK Cormorant'"].every((f) => [...document.fonts].some((ff) => ff.status === 'loaded' && ff.family.replace(/"/g, '') === f.split("'")[1] && String(ff.weight) === f.match(/\d00/)[0] && ff.style === (f.startsWith('italic') ? 'italic' : 'normal'))), ukur });
+    /* 16 Okt: tulisan miring di kartu kosong di PDF karena huruf miringnya belum dimuat saat print. Semua wajah huruf yang dipakai kartu harus SUDAH termuat. */
+    setTimeout(() => window.dispatchEvent(new Event('afterprint')), 50); }; });
+  const kunci = () => p.evaluate(() => { const b = document.querySelector('[data-kb=buatPaket]'); return !b || b.disabled; });
+  const k0 = await kunci(); await p.fill('#kbPJml', '12'); const k1 = await kunci();
+  await p.fill('#kbPVKode', 'BONUS10'); await p.fill('#kbPVTeks', 'Potongan Rp10.000, min. belanja Rp150.000'); const k2 = await kunci();
+  c('C1 tombol buat terkunci sampai jumlah DAN kode voucher diisi', k0 && k1 && !k2, JSON.stringify([k0, k1, k2]));
+  await p.click('[data-kb=buatPaket]'); await p.waitForFunction(() => window.__cetak.length > 0, null, { timeout: 30000 });
+  const kode = Object.entries(db.st.kode).filter(([, r]) => r.jenis === 'paket');
+  c('C2 12 kode kosong untuk event aktif, semua bervoucher BONUS10, tanpa SKU', kode.length === 12 && kode.every(([, r]) => r.acara === db.st.acara.id && r.voucher === 'BONUS10' && r.kartu == null), kode.length);
+  const ct = await p.evaluate(() => window.__cetak[0]);
+  c('C3 yang dikirim ke print: 12 kartu dengan kode persis dari server', ct.kelas && ct.n === 12 && ct.kode.slice().sort().join() === kode.map(([k]) => k).sort().join(), JSON.stringify([ct.kelas, ct.n]));
+  const jml = (re) => (ct.teks.match(re) || []).length;
+  c('C4 kartu umum: tiap kartu ada "Ada voucher di dalam", kodenya, dan ajakan scan; tidak menyebut produk', jml(/ADA VOUCHER DI DALAM/gi) === 12 && kode.every(([k]) => ct.teks.replace(/\s/g, '').includes(k)) && jml(/SCAN SETELAH PAKET SAMPAI/gi) === 12 && !/Plush|Key Charm|Bab I/.test(ct.teks), ct.teks.slice(0, 300));
+  c('C5 logo dan foto karakter sudah termuat dan huruf kartu siap waktu print', ct.gambar.length >= 12 * 7 && ct.gambar.every(Boolean) && ct.huruf, JSON.stringify([ct.gambar.length, ct.gambar.filter((x) => !x).length, ct.huruf]));
+  c('C6 kode voucher tidak ikut tercetak di kartu', !ct.teks.includes('BONUS10'));
+  c('C7 ukuran kartu 140 x 60 mm, QR >= 30 mm, tulisan >= 7 pt', ct.ukur && Math.abs(ct.ukur.w - 140) <= 0.5 && Math.abs(ct.ukur.h - 60) <= 0.5 && ct.ukur.qr >= 30 && ct.ukur.ptMin >= 7, JSON.stringify(ct.ukur));
+  await tunggu(400);
+  c('C8 sesudah print, lembar cetak dibersihkan', await p.evaluate(() => !document.getElementById('lembarKitab') && !document.body.classList.contains('cetak-kitab')));
+  c('C9 ringkasan hasil + tombol cetak A4 lagi dan unduh PNG', /12\s+kode dibuat/.test(await teks()) && !!(await p.$('[data-kb=cetakPaketLagi]')) && !!(await p.$('[data-kb=pngPaket]')), await teks());
+  const [unduhan] = await Promise.all([p.waitForEvent('download', { timeout: 90000 }), p.click('[data-kb=pngPaket]')]);
+  const zipPath = path.join(os.tmpdir(), 'kartu-paket-' + Date.now() + '.zip'); await unduhan.saveAs(zipPath);
+  /* isi ZIP dibaca python: nama, ukuran, dpi, QR (zxing), keragaman piksel di strip foto karakter kiri bawah */
   const py = String.raw`
 import sys, json, io, zipfile, zxingcpp
 from PIL import Image, ImageStat
@@ -129,29 +149,16 @@ mm = 300 / 25.4
 for n in z.namelist():
     im = Image.open(io.BytesIO(z.read(n))).convert('RGB')
     q = zxingcpp.read_barcodes(im)
-    kotak = im.getpixel((int((70 + 6) * mm), int(50.6 * mm)))
-    foto = ImageStat.Stat(im.crop((int(18 * mm), int(14 * mm), int(52 * mm), int(40 * mm))).convert('L')).stddev[0]
-    out.append({'nama': n, 'ukuran': im.size, 'dpi': [round(x) for x in im.info.get('dpi', (0, 0))], 'qr': q[0].text if q else '', 'kotak': sum(kotak) / 3, 'foto': foto})
+    foto = ImageStat.Stat(im.crop((int(6 * mm), int(31 * mm), int(64 * mm), int(42 * mm))).convert('L')).stddev[0]
+    out.append({'nama': n, 'ukuran': im.size, 'dpi': [round(x) for x in im.info.get('dpi', (0, 0))], 'qr': q[0].text if q else '', 'foto': foto})
 print(json.dumps(out))`;
   const isi = JSON.parse(execFileSync('python3', ['-c', py, zipPath]).toString());
   const kodeDari = (n) => (/_([A-Z0-9]{10})\.png$/.exec(n) || [])[1];
-  c('C4 ZIP berisi 12 PNG, satu per kartu, tanpa berkas lain', isi.length === 12 && isi.every((x) => /\.png$/.test(x.nama) && kodeDari(x.nama)), isi.map((x) => x.nama).join(','));
-  const produk = isi.map((x) => (db.st.kode[kodeDari(x.nama)] || {}).kartu);
-  c('C5 berkas urut per produk (7 Bear dulu, lalu 5 Key Charm Bear) dan bernomor urut', produk.slice(0, 7).every((x) => x === KARTU[0][0]) && produk.slice(7).every((x) => x === KARTU[17][0]) && isi.every((x, i) => x.nama.startsWith(String(i + 1).padStart(3, '0') + '_')), isi.map((x) => x.nama).join(','));
-  c('C6 ZIP tidak membocorkan kode voucher', !isi.some((x) => /BONUS10/.test(x.nama)) && !/BONUS10/.test(fs.readFileSync(zipPath).toString('latin1')));
-  c('C9 tiap PNG 140 x 60 mm pada 300 dpi (1654 x 709 px, dpi tercatat 300)', isi.every((x) => x.ukuran[0] === 1654 && x.ukuran[1] === 709 && x.dpi[0] === 300), JSON.stringify(isi.map((x) => [x.ukuran, x.dpi])[0]));
-  c('C8 QR tiap PNG terbaca dan menunjuk kode di nama berkasnya sendiri', isi.every((x) => x.qr === 'https://mofmofriends.id/#k=' + kodeDari(x.nama)), JSON.stringify(isi.map((x) => [x.nama, x.qr]).slice(0, 2)));
-  const kodeVou = kode.filter(([, r]) => r.voucher).map(([k]) => k).sort().join();
-  c('C12 tepat 3 kartu berkotak krem "Ada voucher di dalam", dan itu kartu yang kodenya membawa voucher', isi.filter((x) => x.kotak > 180).map((x) => kodeDari(x.nama)).sort().join() === kodeVou && isi.filter((x) => x.kotak < 100).length === 9, JSON.stringify(isi.map((x) => Math.round(x.kotak))));
-  c('C13 tiap PNG memuat foto produk (area foto tidak polos; kartu tanpa foto sekitar 3)', isi.every((x) => x.foto > 10), JSON.stringify(isi.map((x) => Math.round(x.foto))));
-  c('C10 tidak ada sisa lembar cetak di halaman', await p.evaluate(() => !document.getElementById('lembarKitab') && !document.body.classList.contains('cetak-kitab')));
-  /* Ferdy 15 Okt malam: "qr card voucher buat lebih hd ya termasuk tulisan di kanannya".
-     Aturan ukuran dibaca dari CSS kartu yang sama yang dipakai PNG. */
-  await p.evaluate(() => { document.body.insertAdjacentHTML('beforeend', '<div id="lembarKitab" style="display:block;position:absolute;left:-9999px"><div class="kartu-kitab"><div class="kk-kanan"><div class="kk-qr"></div><div class="kk-teks"><span class="kk-kode">X</span><span class="kk-ajak"><b>X</b>x</span></div><div class="kk-bawah"><b>X</b><span>x</span></div></div></div></div>'); });
-  const kanan = await p.evaluate(() => { const k = document.querySelector('#lembarKitab .kartu-kitab'); const pt = (s) => Math.round(parseFloat(getComputedStyle(k.querySelector(s)).fontSize) * 0.75 * 10) / 10;
-    const r = { kode: pt('.kk-kode'), ajak: pt('.kk-ajak'), judulAjak: pt('.kk-ajak b'), bawah: pt('.kk-bawah span'), judulBawah: pt('.kk-bawah b'), qr: Math.round(k.querySelector('.kk-qr').getBoundingClientRect().width / 96 * 25.4) }; document.getElementById('lembarKitab').remove(); return r; });
-  c('C15 sisi kanan kartu terbaca: tulisan >= 7 pt, kode >= 9 pt, QR >= 32 mm', kanan.kode >= 9 && kanan.ajak >= 7 && kanan.judulAjak >= 7 && kanan.bawah >= 7 && kanan.judulBawah >= 7 && kanan.qr >= 32, JSON.stringify(kanan));
-  c('C11 ringkasan hasil + tombol unduh PNG lagi', /12\s+kode dibuat/.test(await teks()) && /Unduh PNG lagi/.test(await teks()) && !!(await p.$('[data-kb=cetakLagi]')));
+  c('C10 ZIP berisi 12 PNG bernama urut NNN_paket_KODE.png', isi.length === 12 && isi.every((x, i) => new RegExp('^' + String(i + 1).padStart(3, '0') + '_paket_[A-Z0-9]{10}\\.png$').test(x.nama) && db.st.kode[kodeDari(x.nama)]), isi.map((x) => x.nama).join(','));
+  c('C11 tiap PNG 140 x 60 mm pada 300 dpi', isi.every((x) => x.ukuran[0] === 1654 && x.ukuran[1] === 709 && x.dpi[0] === 300), JSON.stringify(isi[0] && [isi[0].ukuran, isi[0].dpi]));
+  c('C12 QR tiap PNG terbaca dan menunjuk kodenya sendiri', isi.every((x) => x.qr === 'https://mofmofriends.id/#k=' + kodeDari(x.nama)), JSON.stringify(isi.map((x) => [x.nama, x.qr]).slice(0, 2)));
+  c('C13 strip foto karakter tampil di tiap PNG', isi.every((x) => x.foto > 10), JSON.stringify(isi.map((x) => Math.round(x.foto))));
+  c('C14 ZIP tidak membocorkan kode voucher', !/BONUS10/.test(fs.readFileSync(zipPath).toString('latin1')));
 });
 
 await bagian('D. klaim struk', async () => {
