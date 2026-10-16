@@ -24,7 +24,7 @@ const { dbPalsu } = await import(SRV + '/kitab-tiruan.mjs');
 const require = createRequire('/home/claude/fieldreport/uji/uji-wms-alat.js');
 const { chromium } = require('playwright');
 
-let gagal = 0, jalan = 0; const DIHARAPKAN = 33;
+let gagal = 0, jalan = 0; const DIHARAPKAN = 35;
 const c = (n, ok, k) => { jalan++; if (!ok) gagal++; console.log((ok ? 'LULUS ' : 'GAGAL ') + n + (ok ? '' : '\n   -> ' + String(k).replace(/\s*\n\s*/g, ' | ').slice(0, 400))); };
 async function bagian(nama, fn) { console.log('\n=== ' + nama + ' ==='); try { await fn(); } catch (e) { gagal++; console.log('GAGAL ' + nama + ' MATI -> ' + (e && e.stack || e)); } }
 
@@ -116,7 +116,10 @@ await bagian('C. kartu QR umum per paket: kode kosong, cetak A4 sendiri, PNG cad
     if (l && ks.length) { const lama = l.style.cssText; l.style.cssText = 'display:block;position:absolute;left:0;top:0';
       const k = ks[0], mm = (px) => Math.round(px / 96 * 25.4 * 10) / 10, r = k.getBoundingClientRect(), q = k.querySelector('.kk-qr');
       const pt = [...k.querySelectorAll('*')].filter((e) => [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())).map((e) => parseFloat(getComputedStyle(e).fontSize) * 0.75);
-      ukur = { w: mm(r.width), h: mm(r.height), qr: q ? mm(q.getBoundingClientRect().width) : 0, ptMin: Math.round(Math.min(...pt) * 10) / 10 }; l.style.cssText = lama; }
+      /* jumlah baris = tinggi / tinggi satu baris; pita juga harus muat di antara ujung pita yang terpotong miring (3% kiri-kanan) */
+      const baris = (e) => Math.round(e.getBoundingClientRect().height / (parseFloat(getComputedStyle(e).lineHeight) || parseFloat(getComputedStyle(e).fontSize)));
+      const muat = (sel, maks) => { const e = k.querySelector(sel); if (!e) return false; const r = document.createRange(); r.selectNodeContents(e); const lebar = r.getBoundingClientRect().width, wadah = e.parentElement.getBoundingClientRect().width; return baris(e) <= maks && lebar <= (sel.indexOf('pita') > -1 ? wadah * 0.94 : wadah); };
+      ukur = { w: mm(r.width), h: mm(r.height), qr: q ? mm(q.getBoundingClientRect().width) : 0, ptMin: Math.round(Math.min(...pt) * 10) / 10, pitaMuat: muat('.kk-pita .kk-nama', 1), ajakMuat: muat('.kk-p-ajak', 2), kodeBebas: (() => { const kd = k.querySelector('.kk-kode'), vb = k.querySelector('.kk-bawah'); if (!kd || !vb) return false; const a = kd.getBoundingClientRect(), b2 = vb.getBoundingClientRect(); return a.bottom <= b2.top + 0.5; })() }; l.style.cssText = lama; }
     window.__cetak.push({ kelas: document.body.classList.contains('cetak-kitab'), n: ks.length, kode: ks.map((k) => k.getAttribute('data-kode')), teks: l ? l.innerText || l.textContent : '',
       gambar: l ? [...l.querySelectorAll('img')].map((i) => i.complete && i.naturalWidth > 0) : [], huruf: ["900 9pt 'KK Cinzel Deco'", "900 9pt 'KK Cinzel'", "700 9pt 'KK Cinzel'", "700 9pt 'KK Cormorant'", "italic 700 9pt 'KK Cormorant'"].every((f) => [...document.fonts].some((ff) => ff.status === 'loaded' && ff.family.replace(/"/g, '') === f.split("'")[1] && String(ff.weight) === f.match(/\d00/)[0] && ff.style === (f.startsWith('italic') ? 'italic' : 'normal'))), ukur });
     /* 16 Okt: tulisan miring di kartu kosong di PDF karena huruf miringnya belum dimuat saat print. Semua wajah huruf yang dipakai kartu harus SUDAH termuat. */
@@ -134,6 +137,11 @@ await bagian('C. kartu QR umum per paket: kode kosong, cetak A4 sendiri, PNG cad
   c('C4 kartu umum: tiap kartu ada "Ada voucher di dalam", kodenya, dan ajakan scan; tidak menyebut produk', jml(/ADA VOUCHER DI DALAM/gi) === 12 && kode.every(([k]) => ct.teks.replace(/\s/g, '').includes(k)) && jml(/SCAN SETELAH PAKET SAMPAI/gi) === 12 && !/Plush|Key Charm|Bab I/.test(ct.teks), ct.teks.slice(0, 300));
   c('C5 logo dan foto karakter sudah termuat dan huruf kartu siap waktu print', ct.gambar.length >= 12 * 7 && ct.gambar.every(Boolean) && ct.huruf, JSON.stringify([ct.gambar.length, ct.gambar.filter((x) => !x).length, ct.huruf]));
   c('C6 kode voucher tidak ikut tercetak di kartu', !ct.teks.includes('BONUS10'));
+  /* 16 Okt sore: teks kanan yang jadi dua baris mendorong kode kartu ke bawah sampai tertutup kotak ADA VOUCHER (terlihat di PDF). Kode itu cadangan kalau QR gagal, jadi wajib utuh. */
+  c('C16 kode kartu di bawah QR tidak tertutup kotak ADA VOUCHER', ct.ukur && ct.ukur.kodeBebas, JSON.stringify(ct.ukur));
+  /* 16 Okt sore, Ferdy pilih opsi 1: Kitabku diganti Mofmo Collection, kalimat kartu fokus hadiah */
+  c('C15 kartu pakai nama Mofmo Collection: "Kumpulin kartunya, buka hadiahnya", pita "43 KARTU · MOFMO COLLECTION" satu baris tanpa terpotong, tanpa kata Kitabku',
+    jml(/Kumpulin kartunya, buka hadiahnya/g) === 12 && jml(/43 KARTU · MOFMO COLLECTION/g) === 12 && !/kitabku/i.test(ct.teks) && ct.ukur && ct.ukur.pitaMuat && ct.ukur.ajakMuat, JSON.stringify([ct.teks.slice(0, 300), ct.ukur]));
   c('C7 ukuran kartu 140 x 60 mm, QR >= 30 mm, tulisan >= 7 pt', ct.ukur && Math.abs(ct.ukur.w - 140) <= 0.5 && Math.abs(ct.ukur.h - 60) <= 0.5 && ct.ukur.qr >= 30 && ct.ukur.ptMin >= 7, JSON.stringify(ct.ukur));
   await tunggu(400);
   c('C8 sesudah print, lembar cetak dibersihkan', await p.evaluate(() => !document.getElementById('lembarKitab') && !document.body.classList.contains('cetak-kitab')));
