@@ -396,11 +396,11 @@
   var FOTO_PAKET = ['koala', 'collie', 'redpanda', 'shiba', 'pekingese', 'panda'];
   function htmlKartuPaket(r) {
     return '<div class="kartu-kitab kk-paket" data-kode="' + esc(r.kode) + '">' +
-      '<div class="kk-kiri"><img class="kk-p-logo" src="' + DASAR + 'img/logo-mofmo.png" alt=""><span class="kk-p-nama">Mofmofriends</span><span class="kk-p-ajak">Kumpulin karakter Mofmofriends di Kitabku</span>' +
+      '<div class="kk-kiri"><img class="kk-p-logo" src="' + DASAR + 'img/logo-mofmo.png" alt=""><span class="kk-p-nama">Mofmofriends</span><span class="kk-p-ajak">Kumpulin kartunya, buka hadiahnya</span>' +
       '<div class="kk-p-foto">' + FOTO_PAKET.map(function (f) { return '<img src="' + DASAR + 'img/kartu/' + f + '.webp" alt="">'; }).join('') + '</div>' +
-      '<div class="kk-pita"><span class="kk-nama">KUMPULIN ' + KARTU.length + ' KARTU DI KITABKU</span></div></div>' +
+      '<div class="kk-pita"><span class="kk-nama">' + KARTU.length + ' KARTU · MOFMO COLLECTION</span></div></div>' +
       '<div class="kk-kanan"><div class="kk-p-judul">SCAN SETELAH PAKET SAMPAI</div><div class="kk-qr">' + qrSvg(SITUS + r.kode) + '</div>' +
-      '<div class="kk-teks"><span class="kk-ajak"><b>ISI PAKET MASUK BUKU</b>Jadi kartu di Kitabku</span><span class="kk-ajak"><b>VOUCHER SHOPEE</b>Langsung muncul, tinggal salin</span><span class="kk-kode">' + esc(kodeTampil(r.kode)) + '</span></div>' +
+      '<div class="kk-teks"><span class="kk-ajak"><b>ISI PAKET MASUK BUKU</b>Jadi kartu koleksimu</span><span class="kk-ajak"><b>VOUCHER SHOPEE</b>Langsung muncul, tinggal salin</span><span class="kk-kode">' + esc(kodeTampil(r.kode)) + '</span></div>' +
       '<div class="kk-bawah vou"><b>ADA VOUCHER DI DALAM</b><span>atau ketik kodenya di mofmofriends.id</span></div></div></div>';
   }
   function siapCetak(d) {
