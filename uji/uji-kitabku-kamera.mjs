@@ -37,7 +37,7 @@ const EXP = Date.now() + 3600e3, TIKET = EXP + '.' + b64url(createHmac('sha256',
 const db = dbPalsu(); db.st.akses = { rahasia: RAHASIA, sidik: SIDIK };
 const adm = (isi) => tangani(Object.assign({ fn: 'admin', tiket: TIKET }, isi), db, Date.now(), {});
 await adm({ aksi: 'acara', acara: { nama: '11.11 Big Sale', cap: '11.11', mulai: '2026-10-25', selesai: '2026-11-15' } });
-const K = (await adm({ aksi: 'cetakPaket', jumlah: 3, voucherKode: 'MOFMO11NOV' })).kode.map((x) => x.kode);
+const K = (await adm({ aksi: 'cetakPaket', jumlah: 3, voucherSampai: '2030-12-31', voucherKode: 'MOFMO11NOV' })).kode.map((x) => x.kode);
 const QR = (k) => 'https://mofmofriends.id/#k=' + k;
 const pesananDari = (k) => db.st.kode[k].pesanan || null;
 

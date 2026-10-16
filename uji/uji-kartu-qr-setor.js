@@ -50,7 +50,7 @@ async function utama() {
   const db = dbPalsu(); db.st.akses = { rahasia: RAHASIA, sidik: SIDIK };
   const adm = (isi) => tangani(Object.assign({ fn: 'admin', tiket: TIKET }, isi), db, Date.now(), {});
   await adm({ aksi: 'acara', acara: { nama: '11.11 Big Sale', cap: '11.11', mulai: '2026-10-25', selesai: '2026-11-15' } });
-  const K = (await adm({ aksi: 'cetakPaket', jumlah: 4, voucherKode: 'MOFMO11NOV' })).kode.map((x) => x.kode);
+  const K = (await adm({ aksi: 'cetakPaket', jumlah: 4, voucherSampai: '2030-12-31', voucherKode: 'MOFMO11NOV' })).kode.map((x) => x.kode);
   const pesananDari = (k) => db.st.kode[k].pesanan || null;
 
   /* ================= A. urai (Node) ================= */
