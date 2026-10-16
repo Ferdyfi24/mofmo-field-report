@@ -22,7 +22,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm'), http = require('http'), { execFileSync } = require('child_process'), { createHmac } = require('crypto');
 const AKAR = process.env.AKAR || process.env.WMS_AKAR || path.resolve(__dirname, '..');
 const SRV = process.env.KITAB_SERVER || '/home/claude/wms-supabase';
-const DIHARAPKAN = 9;
+const DIHARAPKAN = 12;
 const cek = []; const c = (n, ok, k) => cek.push([n, !!ok, k]);
 const SEMENTARA = fs.mkdtempSync('/tmp/uji-kartu-qr-setor-');
 
@@ -69,6 +69,8 @@ async function utama() {
       { no: 'D4', kartu: '' }]);
     c('K2 satu kartu per pesanan (scan dan ketikan kode yang sama dianggap sama); pesanan berisi dua kartu berbeda ditahan dan disebut; pesanan batal dan tanpa kartu dilewati',
       JSON.stringify(ps.item) === JSON.stringify([{ kode: QR(K[0]), pesanan: 'A1' }]) && ps.masalah.length === 1 && ps.masalah[0].no === 'B2', JSON.stringify(ps));
+    const ip = LS._isiPesananDari([{ no: 'A1', barcode: BEAR, qty: 1 }, { no: 'A1', barcode: BEAR, qty: 2 }, { no: 'A1', barcode: PANDA, qty: 1 }, { no: 'C3', barcode: TIGER, qty: 1, status: 'Batal' }, { no: 'D4', barcode: TIGER, qty: 1 }]);
+    c('K11 isi pesanan untuk Mofmo Collection: barcode sama dijumlah, pesanan batal tidak dikirim', JSON.stringify(ip) === JSON.stringify([{ no: 'A1', isi: [{ barcode: BEAR, qty: 3 }, { barcode: PANDA, qty: 1 }] }, { no: 'D4', isi: [{ barcode: TIGER, qty: 1 }] }]), JSON.stringify(ip));
   } catch (e) { c('A MATI', false, e.stack); }
 
   /* ================= B. layar (Playwright) ================= */
@@ -106,7 +108,7 @@ elif mode == 'isi':
   const PORT = srv.address().port;
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }).catch(() => chromium.launch());
   const galat = [], panggil = [], kitab = [];
-  let setorGagal = false;
+  let setorGagal = false, isiDitolak = false;
   const jeda = (ms) => new Promise((x) => setTimeout(x, ms));
   try {
     const ctx = await b.newContext({ viewport: { width: 1360, height: 900 }, acceptDownloads: true });
@@ -133,7 +135,8 @@ elif mode == 'isi':
     });
     await ctx.route('**/functions/v1/kitab', async (r) => {
       const m = JSON.parse(r.request().postData() || 'null'); kitab.push(m);
-      const h = await tangani(m, db, Date.now(), { ip: '1.1.1.1' });
+      /* server lama (Edge Function sebelum tahap 3) tidak kenal isiPesanan */
+      const h = isiDitolak && m.aksi === 'isiPesanan' ? { ok: false, pesan: 'Aksi tidak dikenal.' } : await tangani(m, db, Date.now(), { ip: '1.1.1.1' });
       await r.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(h) });
     });
     const p = await ctx.newPage();
@@ -179,19 +182,36 @@ elif mode == 'isi':
     c('K4 setor: laporan Apps Script tidak menerima kode kartu; sesudah laporan tersimpan, kartu dipasang sekali kirim (satu baris per pesanan)',
       brs.length === 4 && brs.every((x) => !('kartu' in x)) && ps.length === 1 && ps[0].item.length === 3 && ps[0].ganti !== true &&
       pesananDari(K[0]) === '261105PPPPPPPP' && pesananDari(K[1]) === '261105SSSSSSSS', JSON.stringify([brs.map(Object.keys), ps, pesananDari(K[0]), pesananDari(K[1])]).slice(0, 900));
+    /* tahap 3 (16 Okt): isi pesanan ikut dikirim supaya pembeli yang scan kartu dapat kartu sesuai barangnya */
+    const isiK = kitab.filter((x) => x.aksi === 'isiPesanan'), iIsi = kitab.findIndex((x) => x.aksi === 'isiPesanan'), iPas = kitab.findIndex((x) => x.aksi === 'pasangKartu');
+    const pp = isiK[0] ? isiK[0].pesanan.find((x) => x.no === '261105PPPPPPPP') : null;
+    c('K10 isi semua pesanan di berkas dikirim sekali, sebelum kartu dipasang (P: Bear 1 + Panda 2; Q dan S ikut walau tanpa kartu baru)',
+      isiK.length === 1 && iIsi > -1 && iIsi < iPas && isiK[0].pesanan.length === 3 && pp && JSON.stringify(pp.isi.map((x) => x.barcode + ':' + x.qty).sort()) === JSON.stringify([BEAR + ':1', PANDA + ':2'].sort()),
+      JSON.stringify(isiK).slice(0, 700));
     c('K5 hasil tampil: jumlah terpasang, dan bentrok disebut dengan pesanannya (kartu yang sama di pesanan lain) beserta arahan membetulkan',
       /2 kartu terpasang/i.test(h1.teks) && h1.teks.includes('261105QQQQQQQQ') && h1.teks.includes('261105PPPPPPPP') && /Kitabku > Pasang kartu/.test(h1.teks), JSON.stringify(h1));
     const h2 = await setor();
     c('K6 setor ulang berkas yang sama: kartu yang sudah terpasang dibilang sudah terpasang sebelumnya, bukan galat; tidak ada yang berubah',
       /2 sudah terpasang sebelumnya/i.test(h2.teks) && !/2 kartu terpasang/i.test(h2.teks) && pesananDari(K[0]) === '261105PPPPPPPP', JSON.stringify(h2));
-    setorGagal = true; const nPs = kitab.filter((x) => x.aksi === 'pasangKartu').length;
+    setorGagal = true; const nPs = kitab.length;
     const h3 = await setor();
-    c('K7 laporan gagal tersimpan: kartu tidak dipasang sama sekali', kitab.filter((x) => x.aksi === 'pasangKartu').length === nPs && /dikunci/.test(h3.semua), JSON.stringify(h3));
+    c('K7 laporan gagal tersimpan: Edge Function kitab tidak dipanggil sama sekali (kartu dan isi pesanan)', kitab.length === nPs && /dikunci/.test(h3.semua), JSON.stringify(h3));
     setorGagal = false;
     const polos = path.join(SEMENTARA, 'polos.xlsx'); py('isi', mf, polos, JSON.stringify([{ 'No Pesanan': '261105TTTTTTTT', Barcode: BEAR, Qty: 1, 'Waktu Pesan': '2026-11-05 12:00' }]));
     const nK = kitab.length;
     await p.setInputFiles('#lsBerkas', polos); await p.waitForSelector('#lsPrat [data-ls=setor]', { timeout: 10000 }); await p.click('#lsPrat [data-ls=setor]'); await jeda(2500);
-    c('K8 berkas tanpa kartu: Edge Function kitab tidak dipanggil', kitab.length === nK && !(await p.$('#lsPrat [data-ls-kartu-hasil]')), JSON.stringify(kitab.slice(nK)));
+    c('K8 berkas tanpa kartu: isi pesanan tetap dikirim (cadangan No Pesanan pembeli), tidak ada pasang kartu, tidak ada kotak hasil kartu',
+      kitab.slice(nK).length === 1 && kitab[nK].aksi === 'isiPesanan' && kitab[nK].pesanan[0].no === '261105TTTTTTTT' && !(await p.$('#lsPrat [data-ls-kartu-hasil]')), JSON.stringify(kitab.slice(nK)));
+    /* WMS bisa ter-merge lebih dulu daripada server tahap 3. Isi pesanan yang ditolak tidak boleh menahan kartu terpasang:
+       kartu tetap tersambung (voucher jalan), kartunya menyusul begitu isi dikirim lagi. */
+    isiDitolak = true;
+    const lama = path.join(SEMENTARA, 'lama.xlsx'); py('isi', mf, lama, JSON.stringify([{ 'No Pesanan': '261105UUUUUUUU', Barcode: BEAR, Qty: 1, 'Waktu Pesan': '2026-11-05 13:00', 'Waktu Kemas': '2026-11-05 14:00', 'Lokasi Ambil (rak)': 'R2-1B-1', 'Dikemas Oleh': 'Armand', 'Link Foto Kirim': FK, 'Kode Kartu QR': QR(K[2]) }]));
+    await p.setInputFiles('#lsBerkas', lama); await p.waitForSelector('#lsPrat [data-ls=setor]', { timeout: 10000 }); await p.click('#lsPrat [data-ls=setor]');
+    await p.waitForFunction(() => !!document.querySelector('#lsPrat [data-ls-kartu-hasil]'), null, { timeout: 15000 }).catch(() => {}); await jeda(800);
+    const h4 = await p.evaluate(() => { const x = document.querySelector('#lsPrat [data-ls-kartu-hasil]'); return x ? x.innerText : ''; });
+    c('K12 server menolak isi pesanan: kartu tetap terpasang, kotak hasil bilang isi pesanan belum terkirim',
+      pesananDari(K[2]) === '261105UUUUUUUU' && /1 kartu terpasang/i.test(h4) && /isi pesanan belum terkirim/i.test(h4), JSON.stringify([pesananDari(K[2]), h4]));
+    isiDitolak = false;
     await ctx.close();
   } catch (e) { c('B MATI di tengah jalan', false, e.stack); }
   c('K9 tidak ada galat JavaScript', galat.length === 0, galat.join(' | '));
