@@ -174,7 +174,9 @@
       ps_tidak: 'Card code not recognised. Scan again or check the letters on the card.', ps_salah: 'The order number or the card code could not be read. Order numbers use only letters and digits.',
       ps_dipakai: 'This card was already opened by a buyer, so it cannot be moved.', ps_terbuka: function (l) { return 'The old card ' + l + ' on this order was already opened by the buyer, so it cannot be replaced.'; },
       psPindah: 'Move card to this order', psGanti: 'Replace with this card', ps_cek: function (k, p) { return p ? 'Card ' + k + ' is linked to order ' + p + '.' : 'Card ' + k + ' is not linked to any order yet.'; },
-      ps_cekBuka: ' The buyer has opened it.', ps_cekLama: 'This is a per-product card (the old kind).'
+      ps_cekBuka: ' The buyer has opened it.', ps_cekLama: 'This is a per-product card (the old kind).',
+      kamera: 'Camera', kamTutup: 'Close camera', kamArahKartu: 'Point the camera at the card QR.', kamArahPesanan: 'Point the camera at the order number barcode on the label.', kamMuat: 'Opening the camera…',
+      kamGagal: 'The camera could not be opened. Allow camera access for this site in the browser settings, or use the scanner or type the code.'
     },
     id: {
       judul: 'Kitabku', judulH: 'Judul', tabRingkas: 'Event & hadiah', tabCetak: 'Cetak kartu QR', tabStruk: 'Klaim struk', tabPasang: 'Pasang kartu', tutup: 'Tutup',
@@ -206,7 +208,9 @@
       ps_tidak: 'Kode kartu tidak dikenal. Scan ulang atau cek huruf di kartunya.', ps_salah: 'No Pesanan atau kode kartu belum terbaca. No Pesanan hanya berisi huruf dan angka.',
       ps_dipakai: 'Kartu ini sudah dibuka pembeli, jadi tidak bisa dipindah.', ps_terbuka: function (l) { return 'Kartu lama ' + l + ' di pesanan ini sudah dibuka pembeli, jadi tidak bisa diganti.'; },
       psPindah: 'Pindahkan ke pesanan ini', psGanti: 'Ganti dengan kartu ini', ps_cek: function (k, p) { return p ? 'Kartu ' + k + ' terpasang ke pesanan ' + p + '.' : 'Kartu ' + k + ' belum terpasang ke pesanan mana pun.'; },
-      ps_cekBuka: ' Sudah dibuka pembeli.', ps_cekLama: 'Ini kartu per produk (cara lama).'
+      ps_cekBuka: ' Sudah dibuka pembeli.', ps_cekLama: 'Ini kartu per produk (cara lama).',
+      kamera: 'Kamera', kamTutup: 'Tutup kamera', kamArahKartu: 'Arahkan kamera ke QR kartu.', kamArahPesanan: 'Arahkan kamera ke barcode No Pesanan di label.', kamMuat: 'Membuka kamera…',
+      kamGagal: 'Kamera tidak bisa dibuka. Beri izin kamera untuk situs ini di pengaturan browser, atau pakai scanner atau ketik kodenya.'
     }
   };
   var BULAN = { en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], id: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'] };
@@ -222,7 +226,7 @@
   function kodeTampil(k) { return String(k).replace(/^(.{4})(.{4})(.*)$/, '$1 $2 $3'); }
 
   var A = { tab: 'ringkas', ringkas: null, galat: '', sibuk: false, struk: null, foto: {}, pilih: {}, tolakYakin: 0, p: { jumlah: '', kode: '', teks: '' }, hasilPaket: null, mencetak: false, simpanOk: {}, pesan: '', dari: null,
-    ps: { pesanan: '', kartu: '', hasil: null, tunda: null, log: [], sibuk: false } };
+    ps: { pesanan: '', kartu: '', hasil: null, tunda: null, log: [], sibuk: false }, kam: { aliran: null, v: null, t: null, sasaran: '', det: null, gagal: false } };
   function panggil(aksi, isi) {
     var badan = Object.assign({ fn: 'admin', aksi: aksi, tiket: (M().S && M().S.tiket) || '' }, isi || {});
     return fetch(KITAB, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(badan), credentials: 'omit', cache: 'no-store' })
@@ -268,11 +272,14 @@
   }
   function tutup() {
     var d = el('kitabkuAdmin'); if (!d) return;
+    matikanKamera();
     d.classList.remove('buka'); d.setAttribute('aria-hidden', 'true'); document.body.classList.remove('alat-terbuka');
     try { if (A.dari && A.dari.focus) A.dari.focus(); } catch (e) {}
   }
   function gambar() {
     var d = el('kitabkuAdmin'); if (!d) return;
+    /* menggambar ulang membuang elemen video, jadi kamera yang masih menyala dimatikan dulu */
+    if (A.kam && A.kam.aliran) matikanKamera();
     d.querySelector('.tab-alat').innerHTML = ['ringkas', 'cetak', 'pasang', 'struk'].map(function (m) {
       var on = A.tab === m, n = m === 'struk' && A.ringkas && A.ringkas.angka ? A.ringkas.angka.struk : 0;
       return '<button type="button" role="tab" data-kbtab="' + m + '" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '">' + esc(t(m === 'ringkas' ? 'tabRingkas' : m === 'cetak' ? 'tabCetak' : m === 'pasang' ? 'tabPasang' : 'tabStruk')) + (n ? ' <b class="kb-lencana">' + n + '</b>' : '') + '</button>';
@@ -548,10 +555,100 @@
     var log = ps.log.length ? '<ol class="kb-ps-log" id="kbPsLog">' + ps.log.map(function (x) { return '<li><b>' + esc(x.pesanan) + '</b><span>' + esc(kodeTampil(x.kode)) + '</span><small>' + esc(x.jam) + '</small></li>'; }).join('') + '</ol>' : '<p class="ket-alat" id="kbPsLog">' + esc(t('psKosong')) + '</p>';
     return (A.pesan ? '<div class="tolak-alat" role="alert">' + esc(A.pesan) + '</div>' : '') +
       '<section class="kb-kotak"><h3>' + esc(t('psJudul')) + '</h3><p class="ket-alat">' + esc(t('psKet')) + '</p>' +
-      '<div class="kb-ps"><label>' + esc(t('psPesanan')) + '<input id="kbPsPesanan" value="' + esc(ps.pesanan) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next"></label>' +
-      '<label>' + esc(t('psKartu')) + '<input id="kbPsKartu" value="' + esc(ps.kartu) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"></label>' +
-      '<button type="button" class="btn" data-kb="pasang"' + (ps.sibuk ? ' disabled aria-busy="true"' : '') + '>' + esc(t('psTombol')) + '</button></div>' + hasil + '</section>' +
+      '<div class="kb-ps"><label>' + esc(t('psPesanan')) + '<span class="kb-ps-isi"><input id="kbPsPesanan" value="' + esc(ps.pesanan) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next">' +
+        (bisaVideo() && adaDetektor() ? tombolKamera('kamPesanan') : '') + '</span></label>' +
+      '<label>' + esc(t('psKartu')) + '<span class="kb-ps-isi"><input id="kbPsKartu" value="' + esc(ps.kartu) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done">' +
+        (bisaVideo() ? tombolKamera('kamKartu') : '') + '</span></label>' +
+      '<button type="button" class="btn" data-kb="pasang"' + (ps.sibuk ? ' disabled aria-busy="true"' : '') + '>' + esc(t('psTombol')) + '</button></div><div id="kbPsKamera" aria-live="polite">' + (A.kam.gagal ? '<p class="tolak-alat">' + esc(t('kamGagal')) + '</p>' : '') + '</div>' + hasil + '</section>' +
       '<section class="kb-kotak"><h3>' + esc(t('psLog')) + '</h3>' + log + '</section>';
+  }
+  /* ---------- kamera HP (16 Okt 2026, Ferdy minta scan pakai kamera HP) ----------
+     QR kartu dibaca BarcodeDetector kalau peramban punya (Chrome Android), kalau tidak jsQR
+     (Safari iPhone), yang baru diunduh saat kamera pertama kali dipakai. No Pesanan di label berupa
+     barcode garis, jadi kameranya cuma ditawarkan kalau BarcodeDetector ada. QR yang bukan kartu
+     Mofmofriends diabaikan, kamera terus mencari. Sesudah No Pesanan terbaca, kamera kartu menyala
+     sendiri. Kamera selalu dimatikan sampai track-nya berhenti (lampu kamera HP padam). */
+  var IKON_KAMERA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
+  function bisaVideo() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
+  function adaDetektor() { return typeof W.BarcodeDetector === 'function'; }
+  function tombolKamera(a) { return '<button type="button" class="btn dua kb-kam" data-kb="' + a + '" aria-label="' + esc(t('kamera')) + '" title="' + esc(t('kamera')) + '">' + IKON_KAMERA + '</button>'; }
+  /* aturan sama dengan kodeDariScan di Edge Function kitab: alamat lengkap QR atau kode 10 huruf */
+  function kodeKartuSah(s) {
+    var k = String(s == null ? '' : s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (k.length > 10 && /MOFMOFRIENDS/.test(k)) k = k.slice(-10);
+    return k.length === 10 && k.split('').every(function (x) { return 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'.indexOf(x) > -1; });
+  }
+  var JSQR = null;
+  function muatJsqr() {
+    if (W.jsQR) return Promise.resolve(W.jsQR);
+    if (JSQR) return JSQR;
+    JSQR = new Promise(function (ok, gagal) {
+      var sc = document.createElement('script'); sc.src = DASAR + 'vendor/jsQR.min.js'; sc.async = true;
+      sc.onload = function () { if (W.jsQR) ok(W.jsQR); else gagal(new Error('jsQR')); };
+      sc.onerror = function () { JSQR = null; gagal(new Error('jsQR')); };
+      document.head.appendChild(sc);
+    });
+    return JSQR;
+  }
+  function nyalakanKamera(sasaran) {
+    matikanKamera(); A.kam.gagal = false;
+    var kotak = el('kbPsKamera'); if (!kotak || !bisaVideo()) return;
+    var token = A.kam.token = {};
+    A.kam.sasaran = sasaran;
+    kotak.innerHTML = '<p class="ket-alat">' + esc(t('kamMuat')) + '</p>';
+    var pakaiDet = adaDetektor();
+    var siap = pakaiDet ? Promise.resolve(W.BarcodeDetector.getSupportedFormats ? W.BarcodeDetector.getSupportedFormats() : ['qr_code', 'code_128']).then(function (ada) {
+      var mau = sasaran === 'pesanan' ? ['code_128', 'code_39', 'qr_code', 'ean_13'] : ['qr_code'];
+      var f = mau.filter(function (x) { return (ada || []).indexOf(x) > -1; });
+      if (!f.length) { if (sasaran === 'kartu') { pakaiDet = false; return muatJsqr(); } throw new Error('format'); }
+      A.kam.det = new W.BarcodeDetector({ formats: f });
+    }) : muatJsqr();
+    siap.then(function () { return navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }); }).then(function (aliran) {
+      if (A.kam.token !== token || A.tab !== 'pasang' || !el('kbPsKamera')) { aliran.getTracks().forEach(function (tr) { tr.stop(); }); return; }
+      A.kam.aliran = aliran;
+      el('kbPsKamera').innerHTML = '<div class="kamera-alat"><video playsinline muted autoplay></video><i class="bidik" aria-hidden="true"></i><p class="kb-kam-arah">' + esc(t(sasaran === 'pesanan' ? 'kamArahPesanan' : 'kamArahKartu')) + '</p><button type="button" class="btn dua" data-kb="kamTutup">' + esc(t('kamTutup')) + '</button></div>';
+      var v = el('kbPsKamera').querySelector('video'); v.srcObject = aliran; var pl = v.play && v.play(); if (pl && pl.catch) pl.catch(function () {});
+      A.kam.v = v; A.kam.pakaiDet = pakaiDet;
+      lingkarKamera(token);
+    }).catch(function () {
+      if (A.kam.token !== token) return;
+      matikanKamera(); A.kam.gagal = true;
+      var k = el('kbPsKamera'); if (k) k.innerHTML = '<p class="tolak-alat">' + esc(t('kamGagal')) + '</p>';
+      bunyi('scanTolak');
+    });
+  }
+  function bacaBingkai() {
+    var v = A.kam.v;
+    if (A.kam.pakaiDet) return A.kam.det.detect(v).then(function (r) { return (r || []).map(function (x) { return String(x.rawValue || ''); }); });
+    if (!v || !v.videoWidth) return Promise.resolve([]);
+    var w = Math.min(640, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth);
+    var kv = A.kam.kanvas || (A.kam.kanvas = document.createElement('canvas')); kv.width = w; kv.height = h;
+    var cx = kv.getContext('2d', { willReadFrequently: true }); cx.drawImage(v, 0, 0, w, h);
+    var g = cx.getImageData(0, 0, w, h), q = W.jsQR(g.data, w, h, { inversionAttempts: 'dontInvert' });
+    return Promise.resolve(q && q.data ? [q.data] : []);
+  }
+  function lingkarKamera(token) {
+    if (!A.kam.aliran || A.kam.token !== token) return;
+    bacaBingkai().then(function (isi) {
+      if (!A.kam.aliran || A.kam.token !== token) return;
+      var sasaran = A.kam.sasaran, dapat = null;
+      isi.forEach(function (x) {
+        if (dapat) return; x = String(x).trim();
+        if (sasaran === 'kartu' ? kodeKartuSah(x) : (/^#?\s*[A-Za-z0-9]{6,30}$/.test(x) && !kodeKartuSah(x))) dapat = x;
+      });
+      if (!dapat) { A.kam.t = setTimeout(function () { lingkarKamera(token); }, 200); return; }
+      matikanKamera(); bunyi('scanOk');
+      if (sasaran === 'pesanan') { A.ps.pesanan = dapat; var ip = el('kbPsPesanan'); if (ip) ip.value = dapat; nyalakanKamera('kartu'); return; }
+      A.ps.kartu = dapat; var ik = el('kbPsKartu'); if (ik) ik.value = dapat; pasangKartu(false);
+    }, function () { if (A.kam.aliran && A.kam.token === token) A.kam.t = setTimeout(function () { lingkarKamera(token); }, 400); });
+  }
+  function matikanKamera() {
+    A.kam.token = null;
+    if (A.kam.t) { clearTimeout(A.kam.t); A.kam.t = null; }
+    if (A.kam.aliran) { try { A.kam.aliran.getTracks().forEach(function (tr) { try { tr.stop(); } catch (e) {} }); } catch (e) {} }
+    if (A.kam.v) { try { A.kam.v.srcObject = null; } catch (e) {} }
+    A.kam.aliran = null; A.kam.v = null; A.kam.det = null;
+    var k = el('kbPsKamera'); if (k && !A.kam.gagal) k.innerHTML = '';
   }
   function tombolScan(e) {
     if (e.key !== 'Enter' || !e.target) return;
@@ -619,12 +716,15 @@
     var d = el('kitabkuAdmin');
     if (e.target === d) { tutup(); return; }
     var x = e.target.closest ? e.target.closest('[data-kb],[data-kbtab]') : null; if (!x) return;
-    if (x.hasAttribute('data-kbtab')) { bunyi('klik'); A.tab = x.getAttribute('data-kbtab'); A.pesan = ''; A.tolakYakin = 0; if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else if (!A.ringkas) muatRingkas(); else gambar(); return; }
+    if (x.hasAttribute('data-kbtab')) { matikanKamera(); bunyi('klik'); A.tab = x.getAttribute('data-kbtab'); A.pesan = ''; A.tolakYakin = 0; if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else if (!A.ringkas) muatRingkas(); else gambar(); return; }
     var a = x.getAttribute('data-kb'), id = Number(x.getAttribute('data-id'));
     if (a !== 'tolak') A.tolakYakin = 0;
     if (a === 'tutup') tutup();
     else if (a === 'ulang') { if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else muatRingkas(); }
-    else if (a === 'pasang') pasangKartu(false);
+    else if (a === 'pasang') { matikanKamera(); pasangKartu(false); }
+    else if (a === 'kamKartu') { bunyi('klik'); A.ps.pesanan = (el('kbPsPesanan') || {}).value || A.ps.pesanan; nyalakanKamera('kartu'); }
+    else if (a === 'kamPesanan') { bunyi('klik'); nyalakanKamera('pesanan'); }
+    else if (a === 'kamTutup') { bunyi('klik'); matikanKamera(); }
     else if (a === 'pasangGanti') pasangKartu(true);
     else if (a === 'acara') simpanAcara();
     else if (a === 'hadiah') simpanHadiah(x.getAttribute('data-id'));
