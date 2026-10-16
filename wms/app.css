@@ -1112,3 +1112,13 @@ html[data-theme="dark"] .jp-status.kuning{background:#4D4127;color:#F2DC9B}
 #kbPsKamera:empty{display:none}
 #kbPsKamera .kamera-alat{margin-top:4px}
 .kb-kam-arah{position:absolute;left:12px;right:12px;top:10px;margin:0;padding:6px 10px;border-radius:12px;background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:13.5px;text-align:center}
+/* Kitabku > Template (arsip desain di Google Drive) */
+.kb-tp-berkas{display:flex;flex-direction:column;gap:6px;font-weight:700}
+.kb-tp-berkas input{max-width:100%}
+.kb-tp-daftar{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.kb-tp-daftar li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px dashed var(--line);min-width:0}
+.kb-tp-daftar li>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.kb-tp-daftar a{font-weight:800;overflow-wrap:anywhere}
+.kb-tp-daftar small{opacity:.75}
+.kb-tp-daftar li[data-tp-final="1"]{background:color-mix(in srgb,var(--acc) 12%,transparent);border-radius:12px;padding-left:8px;padding-right:8px}
+.kb-tp-daftar .kb-cap{align-self:flex-start;transform:none}
