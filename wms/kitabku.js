@@ -281,7 +281,8 @@
     var d = el('kitabkuAdmin'); if (!d) return;
     /* menggambar ulang membuang elemen video, jadi kamera yang masih menyala dimatikan dulu */
     if (A.kam && A.kam.aliran) matikanKamera();
-    d.querySelector('.tab-alat').innerHTML = ['ringkas', 'cetak', 'pasang', 'struk', 'template'].map(function (m) {
+    /* 17 Okt, Ferdy: pembelian offline tidak dapat kartu, tab Klaim struk dihapus (htmlStruk dibiarkan, tidak terjangkau) */
+    d.querySelector('.tab-alat').innerHTML = ['ringkas', 'cetak', 'pasang', 'template'].map(function (m) {
       var on = A.tab === m, n = m === 'struk' && A.ringkas && A.ringkas.angka ? A.ringkas.angka.struk : 0;
       return '<button type="button" role="tab" data-kbtab="' + m + '" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '">' + esc(t(m === 'ringkas' ? 'tabRingkas' : m === 'cetak' ? 'tabCetak' : m === 'pasang' ? 'tabPasang' : m === 'template' ? 'tabTemplate' : 'tabStruk')) + (n ? ' <b class="kb-lencana">' + n + '</b>' : '') + '</button>';
     }).join('');
@@ -361,7 +362,7 @@
   function htmlRingkas() {
     var r = A.ringkas; if (!r) return '<p class="ket-alat">' + esc(t('muat')) + '</p>';
     var a = r.angka || {}, ac = r.acara;
-    var kpi = [['kKartu', a.kartu], ['kPemain', a.pemain], ['kStruk', a.struk], ['kKlaim', a.klaim], ['kKode', a.kode, a.dipakai]].map(function (x) {
+    var kpi = [['kKartu', a.kartu], ['kPemain', a.pemain], ['kKlaim', a.klaim], ['kKode', a.kode, a.dipakai]].map(function (x) {
       return '<div class="kb-kpi"><span>' + esc(t(x[0])) + '</span><b>' + nf(x[1]) + '</b>' + (x[2] != null ? '<small>' + nf(x[2]) + ' ' + esc(t('kDipakai')) + '</small>' : '') + '</div>';
     }).join('');
     var acara = '<section class="kb-kotak"><h3>' + esc(t('acara')) + '</h3>' + (ac ? '<p class="kb-acara"><b>' + esc(ac.nama) + '</b> <span class="kb-cap">' + esc(ac.cap) + '</span> ' + tgl(ac.mulai) + ' – ' + tgl(ac.selesai) + '</p>' : '<p class="ket-alat">' + esc(t('tanpaAcara')) + '</p>') +
