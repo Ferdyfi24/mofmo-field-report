@@ -1094,3 +1094,21 @@ html[data-theme="dark"] .jp-status.kuning{background:#4D4127;color:#F2DC9B}
 .ls-gerak p{margin:0}
 .ls-gerak .btn{align-self:flex-start}
 .ls-gerak ul.ls-tolak{margin:0;padding:8px 12px 8px 28px}
+/* Kitabku: tab Pasang kartu ke pesanan (16 Okt 2026) */
+.kb-ps{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:10px;align-items:end}
+.kb-ps label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:800;color:var(--mut);min-width:0}
+.kb-ps .btn{height:42px}
+#kbPsHasil{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#kbPsHasil span{flex:1 1 240px}
+.kb-ps-log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.kb-ps-log li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 12px;border:1.5px solid var(--line);border-radius:14px;font-size:14px}
+.kb-ps-log li b{overflow-wrap:anywhere}
+.kb-ps-log li span{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800}
+.kb-ps-log li small{color:var(--mut)}
+@media (max-width:640px){.kb-ps{grid-template-columns:1fr}.kb-ps .btn{width:100%}.kb-ps-log li{grid-template-columns:1fr auto}.kb-ps-log li small{grid-column:1/-1}}
+.kb-ps-isi{display:flex;gap:6px;align-items:center;min-width:0}
+.kb-ps-isi input{flex:1;min-width:0}
+.kb-ps-isi .kb-kam{flex:none;width:42px;height:42px;padding:0;display:inline-flex;align-items:center;justify-content:center}
+#kbPsKamera:empty{display:none}
+#kbPsKamera .kamera-alat{margin-top:4px}
+.kb-kam-arah{position:absolute;left:12px;right:12px;top:10px;margin:0;padding:6px 10px;border-radius:12px;background:rgba(0,0,0,.55);color:#fff;font-weight:800;font-size:13.5px;text-align:center}
