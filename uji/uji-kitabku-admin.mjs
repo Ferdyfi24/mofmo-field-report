@@ -24,7 +24,7 @@ const { dbPalsu } = await import(SRV + '/kitab-tiruan.mjs');
 const require = createRequire('/home/claude/fieldreport/uji/uji-wms-alat.js');
 const { chromium } = require('playwright');
 
-let gagal = 0, jalan = 0; const DIHARAPKAN = 35;
+let gagal = 0, jalan = 0; const DIHARAPKAN = 36;
 const c = (n, ok, k) => { jalan++; if (!ok) gagal++; console.log((ok ? 'LULUS ' : 'GAGAL ') + n + (ok ? '' : '\n   -> ' + String(k).replace(/\s*\n\s*/g, ' | ').slice(0, 400))); };
 async function bagian(nama, fn) { console.log('\n=== ' + nama + ' ==='); try { await fn(); } catch (e) { gagal++; console.log('GAGAL ' + nama + ' MATI -> ' + (e && e.stack || e)); } }
 
@@ -127,10 +127,15 @@ await bagian('C. kartu QR umum per paket: kode kosong, cetak A4 sendiri, PNG cad
   const kunci = () => p.evaluate(() => { const b = document.querySelector('[data-kb=buatPaket]'); return !b || b.disabled; });
   const k0 = await kunci(); await p.fill('#kbPJml', '12'); const k1 = await kunci();
   await p.fill('#kbPVKode', 'BONUS10'); await p.fill('#kbPVTeks', 'Potongan Rp10.000, min. belanja Rp150.000'); const k2 = await kunci();
-  c('C1 tombol buat terkunci sampai jumlah DAN kode voucher diisi', k0 && k1 && !k2, JSON.stringify([k0, k1, k2]));
+  /* 16 Okt malam, Ferdy: voucher di akun pembeli harus menampilkan masa berlakunya, jadi tanggalnya wajib diisi di sini */
+  const SAMPAI = new Date(Date.now() + 30 * 864e5 + 7 * 3600e3).toISOString().slice(0, 10);
+  const lbl = await p.evaluate(() => { const i = document.getElementById('kbPVSampai'); return i ? { t: i.type, lbl: i.closest('label').textContent, min: i.min } : null; });
+  await p.fill('#kbPVSampai', SAMPAI); const k3 = await kunci();
+  c('C1 tombol buat terkunci sampai jumlah, kode voucher, DAN tanggal berlaku diisi', k0 && k1 && k2 && !k3, JSON.stringify([k0, k1, k2, k3]));
+  c('C17 kolom tanggal "Berlaku sampai", tidak bisa memilih tanggal yang sudah lewat', lbl && lbl.t === 'date' && /Berlaku sampai/i.test(lbl.lbl) && lbl.min === new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10), JSON.stringify(lbl));
   await p.click('[data-kb=buatPaket]'); await p.waitForFunction(() => window.__cetak.length > 0, null, { timeout: 30000 });
   const kode = Object.entries(db.st.kode).filter(([, r]) => r.jenis === 'paket');
-  c('C2 12 kode kosong untuk event aktif, semua bervoucher BONUS10, tanpa SKU', kode.length === 12 && kode.every(([, r]) => r.acara === db.st.acara.id && r.voucher === 'BONUS10' && r.kartu == null), kode.length);
+  c('C2 12 kode kosong untuk event aktif, semua bervoucher BONUS10 dengan tanggal berlakunya, tanpa SKU', kode.length === 12 && kode.every(([, r]) => r.acara === db.st.acara.id && r.voucher === 'BONUS10' && r.voucher_sampai === SAMPAI && r.kartu == null), JSON.stringify(kode[0]));
   const ct = await p.evaluate(() => window.__cetak[0]);
   c('C3 yang dikirim ke print: 12 kartu dengan kode persis dari server', ct.kelas && ct.n === 12 && ct.kode.slice().sort().join() === kode.map(([k]) => k).sort().join(), JSON.stringify([ct.kelas, ct.n]));
   const jml = (re) => (ct.teks.match(re) || []).length;

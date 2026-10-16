@@ -161,7 +161,7 @@
       jumlah: 'Qty', total: 'Total', maks: 'max 500 per print', vJumlah: 'Cards with a bonus voucher', vKode: 'Voucher code', vTeks: 'Voucher text shown to the buyer',
       ketVoucher: 'Bonus vouchers are mixed randomly into the batch. The buyer only sees it after scanning.', buat: 'Create codes', buatCetak: 'Download PNG', cetakLagi: 'Download PNG again', bikinPng: 'Making PNG', gagalPng: 'Could not make the PNG files: ',
       paketJudul: 'Shopee parcel QR cards (print in-house)', ketPaket: 'One card per parcel. The card is not tied to a product: its contents are linked at packing, in the Kode Kartu QR column of the warehouse Excel or in the Link card tab. Every card carries a voucher. Print on A4, 4 cards per sheet (140 x 60 mm), then cut.',
-      pJumlah: 'Number of cards', pVKode: 'Shopee voucher code (required)', pVTeks: 'Voucher text shown to the buyer', pVTeksPh: 'e.g. Rp15,000 off, min. spend Rp150,000', buatPaket: 'Create codes & print A4', cetakA4Lagi: 'Print A4 again', unduhPng: 'Download PNG', siapCetak: 'Preparing the print sheet…',
+      pJumlah: 'Number of cards', pVKode: 'Shopee voucher code (required)', pVSampai: 'Valid until (required)', pVSampaiKet: 'Same as the voucher end date on Shopee. Buyers see it with the days left.', pVTeks: 'Voucher text shown to the buyer', pVTeksPh: 'e.g. Rp15,000 off, min. spend Rp150,000', buatPaket: 'Create codes & print A4', cetakA4Lagi: 'Print A4 again', unduhPng: 'Download PNG', siapCetak: 'Preparing the print sheet…',
       dibuat: 'codes created for', dariAcara: 'event', kartuUntuk: 'Collection card for', pindai: 'Scan to unlock your card in the Mofmofriends Book', atauKetik: 'or type the code at mofmofriends.id',
       strukJudul: 'Receipt claims', tanpaStruk: 'No receipts waiting.', lihatFoto: 'Show photo', setujui: 'Approve', tolak: 'Reject', yakinTolak: 'Reject for sure?', kartuDibuka: 'Cards to unlock',
       ketStruk: 'Check the store, date, and items on the photo. Untick items that are not on the receipt.', dibeli: 'bought', diputus: 'Done', pilihKartu: 'Pick at least one card.',
@@ -195,7 +195,7 @@
       jumlah: 'Jml', total: 'Total', maks: 'maks. 500 sekali cetak', vJumlah: 'Kartu dengan bonus voucher', vKode: 'Kode voucher', vTeks: 'Teks voucher untuk pembeli',
       ketVoucher: 'Bonus voucher diselipkan acak di antara kartu. Pembeli baru tahu setelah memindai.', buat: 'Buat kode', buatCetak: 'Unduh PNG', cetakLagi: 'Unduh PNG lagi', bikinPng: 'Membuat PNG', gagalPng: 'PNG gagal dibuat: ',
       paketJudul: 'Kartu QR paket Shopee (cetak sendiri)', ketPaket: 'Satu kartu untuk satu paket. Kartu tidak terikat produk: isinya diikat saat packing, lewat kolom Kode Kartu QR di Excel gudang atau tab Pasang kartu. Semua kartu membawa voucher. Cetak di kertas A4, 4 kartu per lembar (14 x 6 cm), lalu potong.',
-      pJumlah: 'Jumlah kartu', pVKode: 'Kode voucher Shopee (wajib)', pVTeks: 'Teks voucher untuk pembeli', pVTeksPh: 'misal: Potongan Rp15.000, min. belanja Rp150.000', buatPaket: 'Buat kode & cetak A4', cetakA4Lagi: 'Cetak A4 lagi', unduhPng: 'Unduh PNG', siapCetak: 'Menyiapkan lembar cetak…',
+      pJumlah: 'Jumlah kartu', pVKode: 'Kode voucher Shopee (wajib)', pVSampai: 'Berlaku sampai (wajib)', pVSampaiKet: 'Samakan dengan tanggal akhir voucher di Shopee. Pembeli melihatnya beserta sisa hari.', pVTeks: 'Teks voucher untuk pembeli', pVTeksPh: 'misal: Potongan Rp15.000, min. belanja Rp150.000', buatPaket: 'Buat kode & cetak A4', cetakA4Lagi: 'Cetak A4 lagi', unduhPng: 'Unduh PNG', siapCetak: 'Menyiapkan lembar cetak…',
       dibuat: 'kode dibuat untuk', dariAcara: 'event', kartuUntuk: 'Kartu koleksi untuk', pindai: 'Pindai untuk membuka kartumu di Kitab Mofmofriends', atauKetik: 'atau ketik kodenya di mofmofriends.id',
       strukJudul: 'Klaim struk', tanpaStruk: 'Tidak ada struk yang menunggu.', lihatFoto: 'Lihat foto', setujui: 'Setujui', tolak: 'Tolak', yakinTolak: 'Yakin tolak?', kartuDibuka: 'Kartu yang dibuka',
       ketStruk: 'Cek gerai, tanggal, dan barang di foto. Hapus centang barang yang tidak ada di struk.', dibeli: 'dibeli', diputus: 'Selesai', pilihKartu: 'Pilih minimal satu kartu.',
@@ -226,7 +226,7 @@
   function tgl(s) { var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[3]) + ' ' + BULAN[bhs()][Number(m[2]) - 1] + ' ' + m[1] : esc(s); }
   function kodeTampil(k) { return String(k).replace(/^(.{4})(.{4})(.*)$/, '$1 $2 $3'); }
 
-  var A = { tab: 'ringkas', ringkas: null, galat: '', sibuk: false, struk: null, foto: {}, pilih: {}, tolakYakin: 0, p: { jumlah: '', kode: '', teks: '' }, hasilPaket: null, mencetak: false, simpanOk: {}, pesan: '', dari: null,
+  var A = { tab: 'ringkas', ringkas: null, galat: '', sibuk: false, struk: null, foto: {}, pilih: {}, tolakYakin: 0, p: { jumlah: '', kode: '', teks: '', sampai: '' }, hasilPaket: null, mencetak: false, simpanOk: {}, pesan: '', dari: null,
     ps: { pesanan: '', kartu: '', hasil: null, tunda: null, log: [], sibuk: false }, kam: { aliran: null, v: null, t: null, sasaran: '', det: null, gagal: false } };
   function panggil(aksi, isi) {
     var badan = Object.assign({ fn: 'admin', aksi: aksi, tiket: (M().S && M().S.tiket) || '' }, isi || {});
@@ -440,7 +440,9 @@
   /* 16 Okt 2026, Ferdy: kartu dicetak sendiri dan tidak terikat SKU ("alurnya gua setuju").
      Satu kartu = satu paket; isinya diikat waktu packing. Voucher di semua kartu, jadi kodenya wajib.
      Kartu per produk untuk vendor (ZIP PNG) tidak lagi ditawarkan di layar ini. */
-  function paketSiap() { var n = Number(A.p.jumlah); return Number.isInteger(n) && n >= 1 && n <= 500 && !!String(A.p.kode || '').trim() && !A.sibuk; }
+  /* tanggal hari ini menurut WIB, batas bawah tanggal berlaku voucher */
+  function hariIniWib() { return new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10); }
+  function paketSiap() { var n = Number(A.p.jumlah); return Number.isInteger(n) && n >= 1 && n <= 500 && !!String(A.p.kode || '').trim() && /^\d{4}-\d{2}-\d{2}$/.test(A.p.sampai || '') && A.p.sampai >= hariIniWib() && !A.sibuk; }
   function htmlCetak() {
     var ac = A.ringkas && A.ringkas.acara;
     if (A.ringkas && !ac) return '<div class="tolak-alat">' + esc(t('tanpaAcara')) + '</div>';
@@ -452,6 +454,7 @@
       '<section class="kb-kotak"><h3>' + esc(t('paketJudul')) + (ac ? ' <span class="kb-cap">' + esc(ac.cap) + '</span>' : '') + '</h3><p class="ket-alat">' + esc(t('ketPaket')) + '</p>' +
       '<div class="kb-form4"><label>' + esc(t('pJumlah')) + '<input id="kbPJml" type="number" min="1" max="500" inputmode="numeric" value="' + esc(A.p.jumlah) + '" placeholder="0"><small>' + esc(t('maks')) + '</small></label>' +
       '<label>' + esc(t('pVKode')) + '<input id="kbPVKode" value="' + esc(A.p.kode) + '" autocomplete="off"></label>' +
+      '<label>' + esc(t('pVSampai')) + '<input id="kbPVSampai" type="date" min="' + hariIniWib() + '" value="' + esc(A.p.sampai) + '"><small>' + esc(t('pVSampaiKet')) + '</small></label>' +
       '<label class="lebar">' + esc(t('pVTeks')) + '<input id="kbPVTeks" value="' + esc(A.p.teks) + '" placeholder="' + esc(t('pVTeksPh')) + '"></label></div></section>' +
       '<button type="button" class="btn" data-kb="buatPaket"' + (paketSiap() ? '' : ' disabled') + '>' + esc(t('buatPaket')) + '</button>';
   }
@@ -490,10 +493,10 @@
   function buatPaket() {
     if (!paketSiap()) return;
     A.sibuk = true; A.pesan = ''; gambar();
-    panggil('cetakPaket', { jumlah: Number(A.p.jumlah), voucherKode: String(A.p.kode).trim(), voucherTeks: A.p.teks }).then(function (r) {
+    panggil('cetakPaket', { jumlah: Number(A.p.jumlah), voucherKode: String(A.p.kode).trim(), voucherTeks: A.p.teks, voucherSampai: A.p.sampai }).then(function (r) {
       A.sibuk = false;
       if (!r.ok) { A.pesan = r.pesan; bunyi('scanTolak'); gambar(); return; }
-      A.hasilPaket = r; A.p = { jumlah: '', kode: '', teks: '' }; bunyi('scanOk'); gambar(); cetakA4();
+      A.hasilPaket = r; A.p = { jumlah: '', kode: '', teks: '', sampai: '' }; bunyi('scanOk'); gambar(); cetakA4();
     }, function (e) { A.sibuk = false; A.pesan = e.message; gambar(); });
   }
   function pngPaket() {
@@ -804,8 +807,8 @@
   }
   function ketik(e) {
     var x = e.target;
-    if (x.id === 'kbPJml' || x.id === 'kbPVKode' || x.id === 'kbPVTeks') {
-      A.p[x.id === 'kbPJml' ? 'jumlah' : x.id === 'kbPVKode' ? 'kode' : 'teks'] = x.value;
+    if (x.id === 'kbPJml' || x.id === 'kbPVKode' || x.id === 'kbPVTeks' || x.id === 'kbPVSampai') {
+      A.p[{ kbPJml: 'jumlah', kbPVKode: 'kode', kbPVTeks: 'teks', kbPVSampai: 'sampai' }[x.id]] = x.value;
       var bp = document.querySelector('[data-kb=buatPaket]'); if (bp) bp.disabled = !paketSiap();
     }
     if (x.id === 'kbTpAcara') A.tp.acara = x.value;

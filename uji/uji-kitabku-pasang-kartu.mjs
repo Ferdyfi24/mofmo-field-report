@@ -38,7 +38,7 @@ const db = dbPalsu();
 db.st.akses = { rahasia: RAHASIA, sidik: SIDIK };
 const adm = (isi) => tangani(Object.assign({ fn: 'admin', tiket: TIKET }, isi), db, Date.now(), {});
 await adm({ aksi: 'acara', acara: { nama: '11.11 Big Sale', cap: '11.11', mulai: '2026-10-25', selesai: '2026-11-15' } });
-const K = (await adm({ aksi: 'cetakPaket', jumlah: 4, voucherKode: 'MOFMO11NOV', voucherTeks: 'Potongan Rp15.000' })).kode.map((x) => x.kode);
+const K = (await adm({ aksi: 'cetakPaket', jumlah: 4, voucherSampai: '2030-12-31', voucherKode: 'MOFMO11NOV', voucherTeks: 'Potongan Rp15.000' })).kode.map((x) => x.kode);
 const LAMA = (await adm({ aksi: 'cetak', item: [{ kartu: '4582586962058', qty: 1 }] })).kode[0].kode;
 const QR = (k) => 'https://mofmofriends.id/#k=' + k;
 const tampil = (k) => k.slice(0, 4) + ' ' + k.slice(4, 8) + ' ' + k.slice(8);
