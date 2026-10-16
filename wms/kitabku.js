@@ -145,7 +145,7 @@
 
   var TEKS = {
     en: {
-      judul: 'Kitabku', judulH: 'Title', tabRingkas: 'Event & rewards', tabCetak: 'Print QR cards', tabStruk: 'Receipt claims', tutup: 'Close',
+      judul: 'Kitabku', judulH: 'Title', tabRingkas: 'Event & rewards', tabCetak: 'Print QR cards', tabStruk: 'Receipt claims', tabPasang: 'Link card', tutup: 'Close',
       muat: 'Loading…', gagal: 'The Kitabku server could not be reached. Check the signal and try again.', ulang: 'Try again', sesiHabis: 'Your WMS session has ended. Sign in again.',
       kKartu: 'Cards unlocked', kPemain: 'Collectors', kStruk: 'Receipts waiting', kKlaim: 'Rewards claimed', kKode: 'Shopee cards printed', kDipakai: 'scanned',
       acara: 'Active event', tanpaAcara: 'No event yet. Create one before printing cards.', acaraBaru: 'New event', nama: 'Name', cap: 'Stamp', mulai: 'Start', selesai: 'End',
@@ -159,14 +159,25 @@
       cetakJudul: 'QR cards for Shopee parcels', ketCetak: 'One card per item packed. The code works once: the first book that scans it keeps it. Output: a ZIP of 300 dpi PNG files, one per card (140 x 60 mm), ready for the print vendor.',
       jumlah: 'Qty', total: 'Total', maks: 'max 500 per print', vJumlah: 'Cards with a bonus voucher', vKode: 'Voucher code', vTeks: 'Voucher text shown to the buyer',
       ketVoucher: 'Bonus vouchers are mixed randomly into the batch. The buyer only sees it after scanning.', buat: 'Create codes', buatCetak: 'Download PNG', cetakLagi: 'Download PNG again', bikinPng: 'Making PNG', gagalPng: 'Could not make the PNG files: ',
-      paketJudul: 'Shopee parcel QR cards (print in-house)', ketPaket: 'One card per parcel. The card is not tied to a product: its contents are linked at packing, when the card is scanned on the Packing screen. Every card carries a voucher. Print on A4, 4 cards per sheet (140 x 60 mm), then cut.',
+      paketJudul: 'Shopee parcel QR cards (print in-house)', ketPaket: 'One card per parcel. The card is not tied to a product: its contents are linked at packing, in the Kode Kartu QR column of the warehouse Excel or in the Link card tab. Every card carries a voucher. Print on A4, 4 cards per sheet (140 x 60 mm), then cut.',
       pJumlah: 'Number of cards', pVKode: 'Shopee voucher code (required)', pVTeks: 'Voucher text shown to the buyer', pVTeksPh: 'e.g. Rp15,000 off, min. spend Rp150,000', buatPaket: 'Create codes & print A4', cetakA4Lagi: 'Print A4 again', unduhPng: 'Download PNG', siapCetak: 'Preparing the print sheet…',
       dibuat: 'codes created for', dariAcara: 'event', kartuUntuk: 'Collection card for', pindai: 'Scan to unlock your card in the Mofmofriends Book', atauKetik: 'or type the code at mofmofriends.id',
       strukJudul: 'Receipt claims', tanpaStruk: 'No receipts waiting.', lihatFoto: 'Show photo', setujui: 'Approve', tolak: 'Reject', yakinTolak: 'Reject for sure?', kartuDibuka: 'Cards to unlock',
-      ketStruk: 'Check the store, date, and items on the photo. Untick items that are not on the receipt.', dibeli: 'bought', diputus: 'Done', pilihKartu: 'Pick at least one card.'
+      ketStruk: 'Check the store, date, and items on the photo. Untick items that are not on the receipt.', dibeli: 'bought', diputus: 'Done', pilihKartu: 'Pick at least one card.',
+      psJudul: 'Link a parcel card to a Shopee order', psKet: 'Daily work goes through the Kode Kartu QR column in the warehouse Excel. Use this tab as a backup, or to fix a card linked to the wrong order. Scan the order number, then scan the card. A card scanned without an order number is only checked.',
+      psPesanan: 'Order number', psKartu: 'Card code (scan the QR)', psTombol: 'Link', psLog: 'Linked on this device', psKosong: 'Nothing linked yet.',
+      ps_ok: function (k, p) { return 'Card ' + k + ' is now linked to order ' + p + '.'; }, ps_pindah: function (l) { return ' Released: ' + l + '.'; },
+      ps_sudah: function (k, p) { return 'Card ' + k + ' was already linked to order ' + p + '. Nothing changed.'; },
+      ps_lain: function (k, l) { return 'Card ' + k + ' is already linked to order ' + l + '. If this card really belongs in this parcel, move it.'; },
+      ps_penuh: function (p, l) { return 'Order ' + p + ' already has card ' + l + '. One parcel holds one card. Replace it only if the old card is not in the parcel.'; },
+      ps_bukan: 'This is a per-product card (the old kind), not a parcel card. It cannot be linked to an order.',
+      ps_tidak: 'Card code not recognised. Scan again or check the letters on the card.', ps_salah: 'The order number or the card code could not be read. Order numbers use only letters and digits.',
+      ps_dipakai: 'This card was already opened by a buyer, so it cannot be moved.', ps_terbuka: function (l) { return 'The old card ' + l + ' on this order was already opened by the buyer, so it cannot be replaced.'; },
+      psPindah: 'Move card to this order', psGanti: 'Replace with this card', ps_cek: function (k, p) { return p ? 'Card ' + k + ' is linked to order ' + p + '.' : 'Card ' + k + ' is not linked to any order yet.'; },
+      ps_cekBuka: ' The buyer has opened it.', ps_cekLama: 'This is a per-product card (the old kind).'
     },
     id: {
-      judul: 'Kitabku', judulH: 'Judul', tabRingkas: 'Event & hadiah', tabCetak: 'Cetak kartu QR', tabStruk: 'Klaim struk', tutup: 'Tutup',
+      judul: 'Kitabku', judulH: 'Judul', tabRingkas: 'Event & hadiah', tabCetak: 'Cetak kartu QR', tabStruk: 'Klaim struk', tabPasang: 'Pasang kartu', tutup: 'Tutup',
       muat: 'Memuat…', gagal: 'Server Kitabku belum bisa dihubungi. Cek sinyal lalu coba lagi.', ulang: 'Coba lagi', sesiHabis: 'Sesi WMS sudah habis. Masuk lagi.',
       kKartu: 'Kartu terbuka', kPemain: 'Kolektor', kStruk: 'Struk menunggu', kKlaim: 'Hadiah diambil', kKode: 'Kartu Shopee dicetak', kDipakai: 'dipindai',
       acara: 'Event aktif', tanpaAcara: 'Belum ada event. Buat dulu sebelum mencetak kartu.', acaraBaru: 'Event baru', nama: 'Nama', cap: 'Cap', mulai: 'Mulai', selesai: 'Selesai',
@@ -180,11 +191,22 @@
       cetakJudul: 'Kartu QR untuk paket Shopee', ketCetak: 'Satu kartu untuk setiap barang yang dikemas. Kode hanya berlaku sekali: buku pertama yang memindai yang memilikinya. Hasilnya ZIP berisi PNG 300 dpi, satu berkas per kartu (14 x 6 cm), siap dikirim ke vendor cetak.',
       jumlah: 'Jml', total: 'Total', maks: 'maks. 500 sekali cetak', vJumlah: 'Kartu dengan bonus voucher', vKode: 'Kode voucher', vTeks: 'Teks voucher untuk pembeli',
       ketVoucher: 'Bonus voucher diselipkan acak di antara kartu. Pembeli baru tahu setelah memindai.', buat: 'Buat kode', buatCetak: 'Unduh PNG', cetakLagi: 'Unduh PNG lagi', bikinPng: 'Membuat PNG', gagalPng: 'PNG gagal dibuat: ',
-      paketJudul: 'Kartu QR paket Shopee (cetak sendiri)', ketPaket: 'Satu kartu untuk satu paket. Kartu tidak terikat produk: isinya diikat saat packing, ketika kartu dipindai di layar Packing. Semua kartu membawa voucher. Cetak di kertas A4, 4 kartu per lembar (14 x 6 cm), lalu potong.',
+      paketJudul: 'Kartu QR paket Shopee (cetak sendiri)', ketPaket: 'Satu kartu untuk satu paket. Kartu tidak terikat produk: isinya diikat saat packing, lewat kolom Kode Kartu QR di Excel gudang atau tab Pasang kartu. Semua kartu membawa voucher. Cetak di kertas A4, 4 kartu per lembar (14 x 6 cm), lalu potong.',
       pJumlah: 'Jumlah kartu', pVKode: 'Kode voucher Shopee (wajib)', pVTeks: 'Teks voucher untuk pembeli', pVTeksPh: 'misal: Potongan Rp15.000, min. belanja Rp150.000', buatPaket: 'Buat kode & cetak A4', cetakA4Lagi: 'Cetak A4 lagi', unduhPng: 'Unduh PNG', siapCetak: 'Menyiapkan lembar cetak…',
       dibuat: 'kode dibuat untuk', dariAcara: 'event', kartuUntuk: 'Kartu koleksi untuk', pindai: 'Pindai untuk membuka kartumu di Kitab Mofmofriends', atauKetik: 'atau ketik kodenya di mofmofriends.id',
       strukJudul: 'Klaim struk', tanpaStruk: 'Tidak ada struk yang menunggu.', lihatFoto: 'Lihat foto', setujui: 'Setujui', tolak: 'Tolak', yakinTolak: 'Yakin tolak?', kartuDibuka: 'Kartu yang dibuka',
-      ketStruk: 'Cek gerai, tanggal, dan barang di foto. Hapus centang barang yang tidak ada di struk.', dibeli: 'dibeli', diputus: 'Selesai', pilihKartu: 'Pilih minimal satu kartu.'
+      ketStruk: 'Cek gerai, tanggal, dan barang di foto. Hapus centang barang yang tidak ada di struk.', dibeli: 'dibeli', diputus: 'Selesai', pilihKartu: 'Pilih minimal satu kartu.',
+      psJudul: 'Pasang kartu paket ke pesanan Shopee', psKet: 'Kerja harian lewat kolom Kode Kartu QR di Excel gudang. Tab ini untuk cadangan, atau membetulkan kartu yang salah pasang. Scan No Pesanan, lalu scan kartunya. Kartu yang discan tanpa No Pesanan hanya dicek.',
+      psPesanan: 'No Pesanan', psKartu: 'Kode kartu (scan QR)', psTombol: 'Pasang', psLog: 'Terpasang dari perangkat ini', psKosong: 'Belum ada yang dipasang.',
+      ps_ok: function (k, p) { return 'Kartu ' + k + ' terpasang ke pesanan ' + p + '.'; }, ps_pindah: function (l) { return ' Dilepas: ' + l + '.'; },
+      ps_sudah: function (k, p) { return 'Kartu ' + k + ' memang sudah terpasang ke pesanan ' + p + '. Tidak ada yang berubah.'; },
+      ps_lain: function (k, l) { return 'Kartu ' + k + ' sudah terpasang ke pesanan ' + l + '. Kalau kartu ini memang masuk paket ini, pindahkan.'; },
+      ps_penuh: function (p, l) { return 'Pesanan ' + p + ' sudah punya kartu ' + l + '. Satu paket satu kartu. Ganti hanya kalau kartu lama tidak ada di paket.'; },
+      ps_bukan: 'Ini kartu per produk (cara lama), bukan kartu paket. Tidak bisa dipasang ke pesanan.',
+      ps_tidak: 'Kode kartu tidak dikenal. Scan ulang atau cek huruf di kartunya.', ps_salah: 'No Pesanan atau kode kartu belum terbaca. No Pesanan hanya berisi huruf dan angka.',
+      ps_dipakai: 'Kartu ini sudah dibuka pembeli, jadi tidak bisa dipindah.', ps_terbuka: function (l) { return 'Kartu lama ' + l + ' di pesanan ini sudah dibuka pembeli, jadi tidak bisa diganti.'; },
+      psPindah: 'Pindahkan ke pesanan ini', psGanti: 'Ganti dengan kartu ini', ps_cek: function (k, p) { return p ? 'Kartu ' + k + ' terpasang ke pesanan ' + p + '.' : 'Kartu ' + k + ' belum terpasang ke pesanan mana pun.'; },
+      ps_cekBuka: ' Sudah dibuka pembeli.', ps_cekLama: 'Ini kartu per produk (cara lama).'
     }
   };
   var BULAN = { en: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], id: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'] };
@@ -199,7 +221,8 @@
   function tgl(s) { var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[3]) + ' ' + BULAN[bhs()][Number(m[2]) - 1] + ' ' + m[1] : esc(s); }
   function kodeTampil(k) { return String(k).replace(/^(.{4})(.{4})(.*)$/, '$1 $2 $3'); }
 
-  var A = { tab: 'ringkas', ringkas: null, galat: '', sibuk: false, struk: null, foto: {}, pilih: {}, tolakYakin: 0, p: { jumlah: '', kode: '', teks: '' }, hasilPaket: null, mencetak: false, simpanOk: {}, pesan: '', dari: null };
+  var A = { tab: 'ringkas', ringkas: null, galat: '', sibuk: false, struk: null, foto: {}, pilih: {}, tolakYakin: 0, p: { jumlah: '', kode: '', teks: '' }, hasilPaket: null, mencetak: false, simpanOk: {}, pesan: '', dari: null,
+    ps: { pesanan: '', kartu: '', hasil: null, tunda: null, log: [], sibuk: false } };
   function panggil(aksi, isi) {
     var badan = Object.assign({ fn: 'admin', aksi: aksi, tiket: (M().S && M().S.tiket) || '' }, isi || {});
     return fetch(KITAB, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(badan), credentials: 'omit', cache: 'no-store' })
@@ -229,6 +252,9 @@
     d.addEventListener('click', klik);
     d.addEventListener('input', ketik);
     d.addEventListener('change', ketik);
+    d.addEventListener('keydown', tombolScan);
+    /* scan berikutnya menimpa isi lama, bukan menyambung di belakangnya */
+    d.addEventListener('focusin', function (e) { var x = e.target; if (x && (x.id === 'kbPsPesanan' || x.id === 'kbPsKartu') && x.select) x.select(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && d.classList.contains('buka')) { e.preventDefault(); tutup(); } });
     return d;
   }
@@ -238,7 +264,7 @@
     A.tab = tab || A.tab || 'ringkas';
     d.classList.add('buka'); d.setAttribute('aria-hidden', 'false'); document.body.classList.add('alat-terbuka');
     var l = d.querySelector('.lembar'); try { l.focus({ preventScroll: true }); } catch (e) { l.focus(); }
-    if (A.tab === 'struk') muatStruk(); else muatRingkas();
+    if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else muatRingkas();
   }
   function tutup() {
     var d = el('kitabkuAdmin'); if (!d) return;
@@ -247,14 +273,16 @@
   }
   function gambar() {
     var d = el('kitabkuAdmin'); if (!d) return;
-    d.querySelector('.tab-alat').innerHTML = ['ringkas', 'cetak', 'struk'].map(function (m) {
+    d.querySelector('.tab-alat').innerHTML = ['ringkas', 'cetak', 'pasang', 'struk'].map(function (m) {
       var on = A.tab === m, n = m === 'struk' && A.ringkas && A.ringkas.angka ? A.ringkas.angka.struk : 0;
-      return '<button type="button" role="tab" data-kbtab="' + m + '" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '">' + esc(t(m === 'ringkas' ? 'tabRingkas' : m === 'cetak' ? 'tabCetak' : 'tabStruk')) + (n ? ' <b class="kb-lencana">' + n + '</b>' : '') + '</button>';
+      return '<button type="button" role="tab" data-kbtab="' + m + '" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '">' + esc(t(m === 'ringkas' ? 'tabRingkas' : m === 'cetak' ? 'tabCetak' : m === 'pasang' ? 'tabPasang' : 'tabStruk')) + (n ? ' <b class="kb-lencana">' + n + '</b>' : '') + '</button>';
     }).join('');
+    /* tab aktif selalu kelihatan di HP (deretan tab digeser ke samping) */
+    var on = d.querySelector('.tab-alat .on'); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
     var tt = d.querySelector('.tutup-alat'); tt.setAttribute('aria-label', t('tutup')); tt.title = t('tutup');
     tt.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     var isi = A.galat ? '<div class="tolak-alat" role="alert">' + esc(A.galat) + '</div><button type="button" class="btn dua" data-kb="ulang">' + esc(t('ulang')) + '</button>' : '';
-    if (!A.galat) isi = A.tab === 'cetak' ? htmlCetak() : A.tab === 'struk' ? htmlStruk() : htmlRingkas();
+    if (!A.galat) isi = A.tab === 'cetak' ? htmlCetak() : A.tab === 'struk' ? htmlStruk() : A.tab === 'pasang' ? htmlPasang() : htmlRingkas();
     el('kbIsi').innerHTML = isi;
   }
 
@@ -494,6 +522,70 @@
       A.unduh = null; gambar();
     }, function (e) { A.unduh = null; A.pesan = t('gagalPng') + (e && e.message || e); gambar(); });
   }
+
+  /* ---------- pasang kartu ke pesanan (tahap 2, 16 Okt 2026) ----------
+     Ferdy: "dua-duanya". Kerja harian lewat kolom Kode Kartu QR di Excel gudang (lapshopee.js);
+     tab ini cadangan dan tempat membetulkan salah pasang. Dipakai dengan scanner: scanner mengetik
+     isi QR (https://mofmofriends.id/#k=KODE) lalu Enter. Server yang membaca kodenya (kodeDariScan)
+     dan memutus aturan satu kartu satu pesanan (SQL kitab_pasang). ganti cuma dikirim lewat tombol
+     yang menyebut pesanan atau kartu yang bentrok, jadi tidak pernah terjadi tanpa sengaja. */
+  function fokusPs() { setTimeout(function () { var i = el('kbPsPesanan'); if (i && A.tab === 'pasang') i.focus(); }, 0); }
+  function kalimatPs(h) {
+    /* lama = pesanan lain (lain) atau kartu lain (penuh, terbuka); sesudah ganti, lamaKartu menandai yang mana */
+    var k = kodeTampil(h.kode || ''), p = h.pesanan || '', l = h.lama ? (h.status === 'penuh' || h.status === 'terbuka' ? kodeTampil(h.lama) : h.lama) : '';
+    if (h.status === 'ok') return t('ps_ok')(k, p) + (h.lama ? t('ps_pindah')(h.lamaKartu ? kodeTampil(h.lama) : h.lama) : '');
+    if (h.status === 'sudah') return t('ps_sudah')(k, p);
+    if (h.status === 'lain') return t('ps_lain')(k, l);
+    if (h.status === 'penuh') return t('ps_penuh')(p, l);
+    if (h.status === 'terbuka') return t('ps_terbuka')(l);
+    if (h.status === 'cek') return h.jenis === 'kartu' ? t('ps_cekLama') : t('ps_cek')(k, h.pesanan) + (h.dibuka ? t('ps_cekBuka') : '');
+    return t('ps_' + h.status) || t('gagal');
+  }
+  function htmlPasang() {
+    var ps = A.ps, h = ps.hasil, baik = h && (h.status === 'ok' || h.status === 'sudah' || h.status === 'cek');
+    var tombolGanti = h && (h.status === 'lain' || h.status === 'penuh') ? '<button type="button" class="btn" data-kb="pasangGanti">' + esc(t(h.status === 'lain' ? 'psPindah' : 'psGanti')) + '</button>' : '';
+    var hasil = h ? '<div id="kbPsHasil" class="' + (baik ? 'kb-hasil' : 'tolak-alat kb-ps-tolak') + '" role="' + (baik ? 'status' : 'alert') + '" data-ps-status="' + esc(h.status) + '"><span>' + esc(kalimatPs(h)) + '</span>' + tombolGanti + '</div>' : '';
+    var log = ps.log.length ? '<ol class="kb-ps-log" id="kbPsLog">' + ps.log.map(function (x) { return '<li><b>' + esc(x.pesanan) + '</b><span>' + esc(kodeTampil(x.kode)) + '</span><small>' + esc(x.jam) + '</small></li>'; }).join('') + '</ol>' : '<p class="ket-alat" id="kbPsLog">' + esc(t('psKosong')) + '</p>';
+    return (A.pesan ? '<div class="tolak-alat" role="alert">' + esc(A.pesan) + '</div>' : '') +
+      '<section class="kb-kotak"><h3>' + esc(t('psJudul')) + '</h3><p class="ket-alat">' + esc(t('psKet')) + '</p>' +
+      '<div class="kb-ps"><label>' + esc(t('psPesanan')) + '<input id="kbPsPesanan" value="' + esc(ps.pesanan) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="next"></label>' +
+      '<label>' + esc(t('psKartu')) + '<input id="kbPsKartu" value="' + esc(ps.kartu) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"></label>' +
+      '<button type="button" class="btn" data-kb="pasang"' + (ps.sibuk ? ' disabled aria-busy="true"' : '') + '>' + esc(t('psTombol')) + '</button></div>' + hasil + '</section>' +
+      '<section class="kb-kotak"><h3>' + esc(t('psLog')) + '</h3>' + log + '</section>';
+  }
+  function tombolScan(e) {
+    if (e.key !== 'Enter' || !e.target) return;
+    if (e.target.id === 'kbPsPesanan') { e.preventDefault(); A.ps.pesanan = e.target.value; var k = el('kbPsKartu'); if (k) k.focus(); }
+    else if (e.target.id === 'kbPsKartu') { e.preventDefault(); A.ps.kartu = e.target.value; pasangKartu(false); }
+  }
+  function pasangKartu(ganti) {
+    var ps = A.ps; if (ps.sibuk) return;
+    var tunda = ganti ? ps.tunda : null;
+    if (!tunda) { var ip = el('kbPsPesanan'), ik = el('kbPsKartu'); if (ip) ps.pesanan = ip.value; if (ik) ps.kartu = ik.value; }
+    var pesanan = tunda ? tunda.pesanan : String(ps.pesanan || '').trim(), kartu = tunda ? tunda.kode : String(ps.kartu || '').trim();
+    if (!kartu) { var f = el(pesanan ? 'kbPsKartu' : 'kbPsPesanan'); if (f) f.focus(); return; }
+    ps.sibuk = true; A.pesan = ''; gambar();
+    var janji = pesanan ? panggil('pasangKartu', ganti ? { item: [{ kode: kartu, pesanan: pesanan }], ganti: true } : { item: [{ kode: kartu, pesanan: pesanan }] })
+      : panggil('cekKartu', { kode: kartu });
+    janji.then(function (r) {
+      ps.sibuk = false;
+      if (!pesanan) {
+        ps.hasil = r.ok ? { status: 'cek', kode: r.kode, pesanan: r.pesanan, jenis: r.jenis, dibuka: r.dibuka } : { status: 'tidak', kode: kartu };
+        bunyi(r.ok ? 'scanOk' : 'scanTolak'); ps.kartu = ''; gambar(); var ik2 = el('kbPsKartu'); if (ik2) ik2.focus(); return;
+      }
+      if (!r.ok || !r.hasil || !r.hasil[0]) { A.pesan = r.pesan || t('gagal'); bunyi('scanTolak'); gambar(); return; }
+      var h = r.hasil[0]; h.lamaKartu = h.status === 'ok' && ganti && tunda && tunda.status === 'penuh';
+      ps.hasil = h;
+      if (h.status === 'ok' || h.status === 'sudah') {
+        bunyi('scanOk'); ps.tunda = null; ps.pesanan = ''; ps.kartu = '';
+        /* sesudah pindah/ganti, baris lama pesanan atau kartu itu tidak berlaku lagi */
+        if (h.status === 'ok') { ps.log = ps.log.filter(function (x) { return x.pesanan !== h.pesanan && x.kode !== h.kode; }); var j = new Date(); ps.log.unshift({ pesanan: h.pesanan, kode: h.kode, jam: ('0' + j.getHours()).slice(-2) + ':' + ('0' + j.getMinutes()).slice(-2) }); ps.log = ps.log.slice(0, 50); }
+        gambar(); fokusPs(); return;
+      }
+      bunyi('scanTolak'); ps.tunda = (h.status === 'lain' || h.status === 'penuh') ? { kode: h.kode, pesanan: h.pesanan, status: h.status } : null;
+      ps.kartu = ''; gambar(); var ik3 = el('kbPsKartu'); if (ik3) ik3.focus();
+    }, function (e) { ps.sibuk = false; A.pesan = e.message; bunyi('scanTolak'); gambar(); });
+  }
   /* ---------- klaim struk ---------- */
   function htmlStruk() {
     if (!A.struk) return '<p class="ket-alat">' + esc(t('muat')) + '</p>';
@@ -527,11 +619,13 @@
     var d = el('kitabkuAdmin');
     if (e.target === d) { tutup(); return; }
     var x = e.target.closest ? e.target.closest('[data-kb],[data-kbtab]') : null; if (!x) return;
-    if (x.hasAttribute('data-kbtab')) { bunyi('klik'); A.tab = x.getAttribute('data-kbtab'); A.pesan = ''; A.tolakYakin = 0; if (A.tab === 'struk') muatStruk(); else if (!A.ringkas) muatRingkas(); else gambar(); return; }
+    if (x.hasAttribute('data-kbtab')) { bunyi('klik'); A.tab = x.getAttribute('data-kbtab'); A.pesan = ''; A.tolakYakin = 0; if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else if (!A.ringkas) muatRingkas(); else gambar(); return; }
     var a = x.getAttribute('data-kb'), id = Number(x.getAttribute('data-id'));
     if (a !== 'tolak') A.tolakYakin = 0;
     if (a === 'tutup') tutup();
-    else if (a === 'ulang') { if (A.tab === 'struk') muatStruk(); else muatRingkas(); }
+    else if (a === 'ulang') { if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else muatRingkas(); }
+    else if (a === 'pasang') pasangKartu(false);
+    else if (a === 'pasangGanti') pasangKartu(true);
     else if (a === 'acara') simpanAcara();
     else if (a === 'hadiah') simpanHadiah(x.getAttribute('data-id'));
     else if (a === 'usulan') pasangUsulan();
@@ -548,6 +642,8 @@
       A.p[x.id === 'kbPJml' ? 'jumlah' : x.id === 'kbPVKode' ? 'kode' : 'teks'] = x.value;
       var bp = document.querySelector('[data-kb=buatPaket]'); if (bp) bp.disabled = !paketSiap();
     }
+    if (x.id === 'kbPsPesanan') A.ps.pesanan = x.value;
+    if (x.id === 'kbPsKartu') A.ps.kartu = x.value;
     if (x.hasAttribute('data-pilih')) { var sid = x.getAttribute('data-pilih'); A.pilih[sid] = A.pilih[sid] || {}; A.pilih[sid][x.value] = x.checked; }
     if (e.type === 'change' && x.getAttribute('data-f') === 'jenis') {
       /* ganti jenis: kolom target berubah antara angka dan pilihan bab */
@@ -555,5 +651,5 @@
       h.angka = h.jenis === 'bab' ? 0 : (h.jenis === 'bintang' ? 3 : h.angka || 3); box.outerHTML = htmlHadiah(h);
     }
   }
-  W.WmsKitabku = { buka: buka, tutup: tutup, qrMatriks: qrMatriks, qrSvg: qrSvg };
+  W.WmsKitabku = { buka: buka, tutup: tutup, qrMatriks: qrMatriks, qrSvg: qrSvg, panggil: panggil };
 })();

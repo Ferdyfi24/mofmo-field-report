@@ -108,9 +108,9 @@
     tSerah: ['waktu serah kurir'], jasa: ['jasa kirim', 'kurir'], resi: ['no resi'], status: ['status'], tTerima: ['waktu diterima'], tRetur: ['waktu retur'], rBagus: ['retur bagus'], rRusak: ['retur rusak'],
     alasan: ['alasan retur'], catatan: ['catatan'], saluran: ['saluran'],
     lokasi: ['lokasi ambil (rak)', 'lokasi staging', 'lokasi'], pengemas: ['dikemas oleh', 'dipacking oleh'], fotoKirim: ['link foto kirim'], namaKurir: ['nama kurir', 'nama kurir penjemput'],
-    fotoSerah: ['link foto serah', 'link foto serah kurir'], batal: ['batal'] };
+    fotoSerah: ['link foto serah', 'link foto serah kurir'], batal: ['batal'], kartu: ['kode kartu qr', 'kartu qr', 'kode kartu'] };
   /* isian per pesanan: cukup ditulis di baris pertama pesanan, barang berikutnya ikut */
-  var ISIAN_PESANAN = ['tKemas', 'lokasi', 'pengemas', 'fotoKirim', 'tSerah', 'jasa', 'resi', 'namaKurir', 'fotoSerah', 'tTerima'];
+  var ISIAN_PESANAN = ['tKemas', 'lokasi', 'pengemas', 'fotoKirim', 'kartu', 'tSerah', 'jasa', 'resi', 'namaKurir', 'fotoSerah', 'tTerima'];
   function cariKepala(rows) {
     for (var i = 0; i < Math.min(rows.length, 15); i++) {
       var r = (rows[i] || []).map(function (v) { return String(v == null ? '' : v).trim().toLowerCase(); });
@@ -144,7 +144,7 @@
       if (K.saluran != null && String(r[K.saluran] || '').trim().toUpperCase() !== 'SHOPEE') { hasil.lewat++; return; }
       var b = { no: no, barcode: teksSel(r[K.barcode]).replace(/\.0+$/, ''), qty: angkaSel(r[K.qty]), harga: K.harga != null ? angkaSel(r[K.harga]) : '' };
       ['tPesan', 'tKemas', 'tSerah', 'tTerima', 'tRetur'].forEach(function (f) { b[f] = K[f] != null ? waktuSel(r[K[f]]) : ''; });
-      ['jasa', 'resi', 'status', 'alasan', 'catatan', 'lokasi', 'pengemas', 'fotoKirim', 'namaKurir', 'fotoSerah'].forEach(function (f) { b[f] = K[f] != null ? teksSel(r[K[f]]) : ''; });
+      ['jasa', 'resi', 'status', 'alasan', 'catatan', 'lokasi', 'pengemas', 'fotoKirim', 'kartu', 'namaKurir', 'fotoSerah'].forEach(function (f) { b[f] = K[f] != null ? teksSel(r[K[f]]) : ''; });
       if (K.batal != null && /^(ya|y|yes|x|v|1|batal|true)$/i.test(teksSel(r[K.batal]))) b.status = 'Batal';
       b.rBagus = K.rBagus != null ? angkaSel(r[K.rBagus]) : ''; b.rRusak = K.rRusak != null ? angkaSel(r[K.rRusak]) : '';
       var x = pk[no]; if (x) ISIAN_PESANAN.forEach(function (f) { if (x[f] && !b[f]) b[f] = x[f]; });
@@ -155,6 +155,34 @@
     hasil.baris.forEach(function (b) { var q = pertama[b.no]; ISIAN_PESANAN.forEach(function (f) { if (!b[f] && q[f]) b[f] = q[f]; }); });
     return hasil;
   }
+
+  /* ================= kartu QR paket (tahap 2, 16 Okt 2026) =================
+     Kolom Kode Kartu QR: isi scan QR (https://mofmofriends.id/#k=KODE) atau kode yang diketik. kodeKartu
+     cuma menyamakan bentuk untuk membandingkan; Edge Function kitab (kodeDariScan) yang membaca dan memutus. Di sini cuma
+     disusun satu baris per pesanan: pesanan batal dan tanpa kartu dilewati, pesanan dengan dua kartu
+     berbeda ditahan supaya gudang memilih sendiri kartu mana yang ada di paket. */
+  function kodeKartu(s) {
+    var k = String(s == null ? '' : s).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (k.length > 10 && /MOFMOFRIENDS/.test(k)) k = k.slice(-10);
+    return k;
+  }
+  function pasanganKartu(baris) {
+    var per = {}, urut = [];
+    (baris || []).forEach(function (b) {
+      var x = per[b.no]; if (!x) { x = per[b.no] = { no: b.no, batal: false, kode: {}, mentah: [] }; urut.push(b.no); }
+      if (b.status === 'Batal') x.batal = true;
+      var m = String(b.kartu || '').trim(); if (!m) return;
+      var k = kodeKartu(m); if (!x.kode[k]) { x.kode[k] = 1; x.mentah.push(m); }
+    });
+    var item = [], masalah = [];
+    urut.forEach(function (no) {
+      var x = per[no]; if (x.batal || !x.mentah.length) return;
+      if (x.mentah.length > 1) masalah.push({ no: no, status: 'dua', kode: Object.keys(x.kode) });
+      else item.push({ kode: x.mentah[0], pesanan: no });
+    });
+    return { item: item, masalah: masalah };
+  }
+  function tanpaKartu(baris) { return (baris || []).map(function (b) { var o = {}; Object.keys(b).forEach(function (f) { if (f !== 'kartu') o[f] = b[f]; }); return o; }); }
 
   /* ================= hitungan laporan ================= */
   function toko(l) { return !!(l && (l.toko === 1 || l.toko === '1' || l.toko === true)); }
@@ -269,10 +297,12 @@
   /* Excel gudang satu lembar (12 Okt sore, Ferdy: "tadi orang gudang ngisi agak ribet").
      Kolom per pesanan (kemas sampai diterima) cukup diisi di baris pertama pesanan. */
   var KOLOM_GUDANG = [['No Pesanan', 18, 'no'], ['Barcode', 16, 'barcode'], ['SKU (otomatis)', 12, null], ['Nama Produk (otomatis)', 30, null], ['Qty', 6, 'qty'], ['Harga Jual', 11, 'harga'], ['Waktu Pesan', 16, 'tPesan'],
-    ['Waktu Kemas', 16, 'tKemas'], ['Lokasi Ambil (rak)', 13, 'lokasi'], ['Dikemas Oleh', 12, 'pengemas'], ['Link Foto Kirim', 24, 'fotoKirim'],
+    ['Waktu Kemas', 16, 'tKemas'], ['Lokasi Ambil (rak)', 13, 'lokasi'], ['Dikemas Oleh', 12, 'pengemas'], ['Link Foto Kirim', 24, 'fotoKirim'], ['Kode Kartu QR', 22, 'kartu'],
     ['Waktu Serah Kurir', 16, 'tSerah'], ['Jasa Kirim', 14, 'jasa'], ['No Resi', 18, 'resi'], ['Nama Kurir', 12, 'namaKurir'], ['Link Foto Serah', 24, 'fotoSerah'],
     ['Waktu Diterima', 16, 'tTerima'], ['Retur Bagus', 8, 'rBagus'], ['Retur Rusak', 8, 'rRusak'], ['Alasan Retur', 16, 'alasan'], ['Waktu Retur', 16, 'tRetur'], ['Batal', 7, 'batal'], ['Catatan', 24, 'catatan']];
-  var GRUP_GUDANG = [[1, 'PESANAN'], [8, 'KEMAS · isi di baris pertama pesanan'], [12, 'SERAH KURIR · baris pertama pesanan'], [17, 'DITERIMA DAN RETUR']];
+  /* letak kolom dihitung dari KOLOM_GUDANG, supaya kolom baru (Kode Kartu QR, 16 Okt) tidak menggeser kelompok dan daftar pilihan ke kolom yang salah */
+  function kolKe(f) { for (var j = 0; j < KOLOM_GUDANG.length; j++) if (KOLOM_GUDANG[j][2] === f) return j; return -1; }
+  var GRUP_GUDANG = [[1, 'PESANAN'], [kolKe('tKemas') + 1, 'KEMAS · isi di baris pertama pesanan'], [kolKe('tSerah') + 1, 'SERAH KURIR · baris pertama pesanan'], [kolKe('tTerima') + 1, 'DITERIMA DAN RETUR']];
   function susunMentahan(dp, data, tanggal, oleh) {
     var K = W.WmsHpp._kit, s = gaya(K), G = s.G, daftarP = (dp.prod || []).filter(function (p) { return p && p.b; });
     var grup = G.id(K.F.tebal, K.ISI.ulang, 1);
@@ -304,7 +334,8 @@
     for (var i = 0; i < BARIS_KOSONG; i++, n++) tulis(n, null, false);
     var akhir = n - 1;
     L.lebar = KOLOM_GUDANG.map(function (k) { return k[1]; }); L.beku = { r: 6, c: 3 };
-    pasangPilihan(L, [{ ref: 'B6:B' + akhir, f: 'Produk!$A$2:$A$' + nP }, { ref: 'M6:M' + akhir, f: '"' + JASA.join(',') + '"' }, { ref: 'T6:T' + akhir, f: '"' + ALASAN.join(',') + '"' }, { ref: 'V6:V' + akhir, f: '"YA"', keras: true }]);
+    var hr = function (f) { var x = kolomHuruf(kolKe(f)); return x + '6:' + x + akhir; };
+    pasangPilihan(L, [{ ref: hr('barcode'), f: 'Produk!$A$2:$A$' + nP }, { ref: hr('jasa'), f: '"' + JASA.join(',') + '"' }, { ref: hr('alasan'), f: '"' + ALASAN.join(',') + '"' }, { ref: hr('batal'), f: '"YA"', keras: true }]);
     var PR = new K.Lembar('Produk');
     ['Barcode', 'SKU', 'Nama Produk', 'Harga wholesale incl PPN (Rp)'].forEach(function (h, j) { PR.isi(1, j + 1, h, s.kepala); });
     daftarP.forEach(function (p, i) { PR.isi(i + 2, 1, String(p.b), s.teks); PR.isi(i + 2, 2, p.s || '', s.teks); PR.isi(i + 2, 3, p.n || '', s.teks); PR.isi(i + 2, 4, Number(p.h) || 0, s.rp); });
@@ -313,6 +344,7 @@
     ['Cara mengisi (satu baris per barang)',
       '1. Pesanan baru: No Pesanan dari Seller Centre, pilih Barcode, isi Qty, Harga Jual, Waktu Pesan.',
       '2. Sudah dikemas: di baris pertama pesanan isi Waktu Kemas, Lokasi Ambil (kode rak), Dikemas Oleh, Link Foto Kirim. Barang kedua dan seterusnya cukup No Pesanan, Barcode, Qty.',
+      '   Kartu QR paket: scan QR kartu yang dimasukkan ke paket ke kolom Kode Kartu QR di baris pertama pesanan. Satu paket satu kartu. Saat setor, kartu otomatis terpasang ke pesanannya.',
       '3. Diserahkan ke kurir: di baris pertama pesanan isi Waktu Serah Kurir, Jasa Kirim, No Resi, Nama Kurir, Link Foto Serah.',
       '4. Diterima pembeli: Waktu Diterima. Barang kembali: Retur Bagus atau Retur Rusak, Alasan, Waktu Retur. Dibatalkan sebelum dikirim: Batal = YA.',
       '5. Simpan, lalu di WMS: Laporan > Shopee > pilih berkas > Setor. Stok langsung ikut bergerak; setor ulang berkas yang sama tidak menulis dua kali.',
@@ -533,6 +565,11 @@
       setor: function (n, p) { return 'Setor ' + n + ' pesanan (' + p + ' baris)'; }, prat: function (n, p, s) { return n + ' pesanan, ' + p + ' baris dibaca dari tab ' + s + '.'; }, lewat: function (n) { return n + ' baris saluran lain dilewati.'; },
       tidakDikenal: function (n) { return n + ' barcode tidak ada di Master Produk WMS.'; }, hasil: function (b, u) { return 'Tersimpan: ' + b + ' baris baru, ' + u + ' diperbarui.'; }, ditolak: function (n) { return n + ' baris ditolak:'; },
       sudah: function (n, t) { return n + ' hari sudah setor bulan ini' + (t ? ' · terakhir ' + t : ''); }, kepalaGagal: 'Berkas ini tidak punya tabel dengan kolom No Pesanan dan Barcode.', bacaGagal: 'Berkas tidak bisa dibaca. Pastikan .xlsx.',
+      kartuJudul: 'Kartu QR paket', kartuJalan: 'Memasang kartu QR ke pesanan…', kartuGagal: function (t) { return 'Kartu QR belum terpasang: ' + t + ' Setor ulang berkas yang sama nanti; laporan dan stok tidak akan tertulis dua kali.'; },
+      kartuHasil: function (n, s) { return n + ' kartu terpasang' + (s ? ', ' + s + ' sudah terpasang sebelumnya' : '') + '.'; }, kartuArah: 'Betulkan lewat Kitabku > Pasang kartu, lalu setor ulang kalau perlu.',
+      k_lain: function (k, l) { return 'kartu ' + k + ' sudah terpasang ke pesanan ' + l; }, k_penuh: function (k, l) { return 'pesanan ini sudah punya kartu ' + l + ', kartu ' + k + ' tidak dipasang'; },
+      k_bukan: function (k) { return k + ' kartu per produk (cara lama), bukan kartu paket'; }, k_tidak: function (k) { return 'kode kartu ' + k + ' tidak dikenal'; }, k_salah: function (k) { return 'kode kartu atau No Pesanan tidak terbaca (' + k + ')'; },
+      k_dipakai: function (k) { return 'kartu ' + k + ' sudah dibuka pembeli'; }, k_terbuka: function (k, l) { return 'kartu lama ' + l + ' pesanan ini sudah dibuka pembeli'; }, k_dua: function (k) { return 'dua kartu berbeda di satu pesanan (' + k + '); satu paket satu kartu'; },
       gerakJudul: 'Gerak stok (jalur Gudang Shopee)', gerakMuat: 'Menyiapkan pratinjau gerak stok…', gerakJalan: 'Menggerakkan stok…', gerakBeres: 'Stok sudah digerakkan.', gerakGagal: function (t) { return 'Laporan tersimpan, tapi stok belum digerakkan: ' + t; },
       segarJalan: 'Summary, Inventory, dan Warehouse sedang dihitung ulang (sekitar 1 menit).', segarBeres: 'Summary, Inventory, dan Warehouse sudah memuat setoran ini.', segarSebagian: function (n) { return n + ' halaman belum terhitung ulang. Angkanya menyusul di putaran otomatis berikutnya, paling lama 20 menit.'; },
       isiOleh: 'Isi nama penyetor dulu.', menyiapkan: 'Menyusun Excel…', menyetor: 'Menyetor…', gagal: 'Berkas belum bisa dibuat. Coba lagi.', muat: 'Membaca setoran…',
@@ -544,6 +581,11 @@
       setor: function (n, p) { return 'Submit ' + n + ' orders (' + p + ' rows)'; }, prat: function (n, p, s) { return n + ' orders, ' + p + ' rows read from the ' + s + ' tab.'; }, lewat: function (n) { return n + ' rows from other channels skipped.'; },
       tidakDikenal: function (n) { return n + ' barcodes are not in the WMS product master.'; }, hasil: function (b, u) { return 'Saved: ' + b + ' new rows, ' + u + ' updated.'; }, ditolak: function (n) { return n + ' rows rejected:'; },
       sudah: function (n, t) { return n + ' days submitted this month' + (t ? ' · last ' + t : ''); }, kepalaGagal: 'This file has no table with No Pesanan and Barcode columns.', bacaGagal: 'The file could not be read. Make sure it is .xlsx.',
+      kartuJudul: 'Parcel QR cards', kartuJalan: 'Linking QR cards to orders…', kartuGagal: function (t) { return 'QR cards were not linked: ' + t + ' Submit the same file again later; the report and stock will not be written twice.'; },
+      kartuHasil: function (n, s) { return n + ' cards linked' + (s ? ', ' + s + ' already linked before' : '') + '.'; }, kartuArah: 'Fix it in Kitabku > Link card, then submit again if needed.',
+      k_lain: function (k, l) { return 'card ' + k + ' is already linked to order ' + l; }, k_penuh: function (k, l) { return 'this order already has card ' + l + ', card ' + k + ' was not linked'; },
+      k_bukan: function (k) { return k + ' is a per-product card (old kind), not a parcel card'; }, k_tidak: function (k) { return 'card code ' + k + ' not recognised'; }, k_salah: function (k) { return 'card code or order number could not be read (' + k + ')'; },
+      k_dipakai: function (k) { return 'card ' + k + ' was already opened by the buyer'; }, k_terbuka: function (k, l) { return 'old card ' + l + ' on this order was already opened by the buyer'; }, k_dua: function (k) { return 'two different cards in one order (' + k + '); one parcel holds one card'; },
       gerakJudul: 'Stock movement (Shopee warehouse flow)', gerakMuat: 'Preparing the stock movement preview…', gerakJalan: 'Moving stock…', gerakBeres: 'Stock has been moved.', gerakGagal: function (t) { return 'The report was saved, but stock was not moved: ' + t; },
       segarJalan: 'Summary, Inventory and Warehouse are being recalculated (about 1 minute).', segarBeres: 'Summary, Inventory and Warehouse now include this submission.', segarSebagian: function (n) { return n + ' pages were not recalculated yet. Their numbers follow in the next automatic round, within 20 minutes.'; },
       isiOleh: 'Fill in who is submitting first.', menyiapkan: 'Building the Excel file…', menyetor: 'Submitting…', gagal: 'The file could not be made. Try again.', muat: 'Reading submissions…',
@@ -621,7 +663,37 @@
       }
     }
     o += kartuGerak();
+    o += kartuQr();
     return o;
+  }
+  /* hasil pemasangan kartu QR paket sesudah setor (tahap 2, 16 Okt 2026) */
+  function kodeTampilK(k) { var x = kodeKartu(k); return x.length === 10 ? x.slice(0, 4) + ' ' + x.slice(4, 8) + ' ' + x.slice(8) : String(k || '').slice(0, 40); }
+  function kartuQr() {
+    var q = S.kartu; if (!q) return '';
+    var o = '<div class="ls-gerak" data-ls-kartu-hasil="1"><b>' + esc(T('kartuJudul')) + '</b>';
+    if (q.jalan) return o + '<p class="ket-alat">' + esc(T('kartuJalan')) + '</p></div>';
+    if (q.galat) return o + '<p class="ls-awas">' + esc(T('kartuGagal')(q.galat)) + '</p></div>';
+    var n = 0, sudah = 0, salah = [];
+    (q.hasil || []).forEach(function (h) {
+      if (h.status === 'ok') n++; else if (h.status === 'sudah') sudah++;
+      else salah.push(h.pesanan + ': ' + (T('k_' + h.status) ? T('k_' + h.status)(kodeTampilK(h.kode), h.status === 'penuh' || h.status === 'terbuka' ? kodeTampilK(h.lama) : h.lama) : h.status));
+    });
+    (q.masalah || []).forEach(function (m) { salah.push(m.no + ': ' + T('k_dua')(m.kode.map(kodeTampilK).join(', '))); });
+    o += '<p class="' + (salah.length ? 'ls-awas' : 'ls-hasil') + '">' + esc(T('kartuHasil')(n, sudah)) + '</p>';
+    if (salah.length) o += '<ul class="ls-tolak">' + salah.slice(0, 30).map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul><p class="ket-alat">' + esc(T('kartuArah')) + '</p>';
+    return o + '</div>';
+  }
+  function pasangKartuSetor(pas) {
+    var K = W.WmsKitabku;
+    if (!K || !K.panggil) { S.kartu = { galat: 'Kitabku' }; return Promise.resolve(); }
+    S.kartu = { jalan: true }; ulangPrat();
+    var hasil = [], i = 0;
+    function lanjut() {
+      if (i >= pas.item.length) return Promise.resolve();
+      var potong = pas.item.slice(i, i + 500); i += 500;
+      return K.panggil('pasangKartu', { item: potong }).then(function (r) { if (!r || !r.ok) throw new Error((r && r.pesan) || T('gagal')); hasil = hasil.concat(r.hasil || []); return lanjut(); });
+    }
+    return lanjut().then(function () { S.kartu = { hasil: hasil, masalah: pas.masalah }; }, function (e) { S.kartu = { galat: String(e && e.message || e) }; }).then(ulangPrat);
   }
   /* daftar pesanan bermasalah dari pratinjau Gudang Shopee: larik berisi {no, alasan|pesan|sebab} */
   function masalahGerak(r) {
@@ -693,12 +765,14 @@
       S.oleh = oleh; simpanOleh(oleh);
       var tgl = (el('lsSetorTgl') && el('lsSetorTgl').value) || S.setorTgl;
       S.sibuk = true; bunyi('klik'); status(T('menyetor')); tombol(x, true);
-      var barisSetor = S.berkas.isi.baris, namaOps = 'setoran-shopee-' + tgl + '-' + String(Date.now()).slice(-5) + '.xlsx';
-      S.gerak = null;
+      /* kode kartu tidak ikut ke lembar laporan Apps Script; dipasang ke pesanan lewat Edge Function kitab sesudah laporan tersimpan */
+      var pasKartu = pasanganKartu(S.berkas.isi.baris), barisSetor = tanpaKartu(S.berkas.isi.baris), namaOps = 'setoran-shopee-' + tgl + '-' + String(Date.now()).slice(-5) + '.xlsx';
+      S.gerak = null; S.kartu = null;
       M().jalan('wmsShopeeSetor', ['WMS-TIKET', { tanggal: tgl, oleh: oleh, berkas: S.berkas.nama, baris: barisSetor }]).then(function (h) {
         S.hasil = h || { ok: false };
         if (!h || h.ok === false) return;
         S.berkas = null; S.data = null; var f = el('lsBerkas'); if (f) f.value = '';
+        var janjiKartu = pasKartu.item.length ? pasangKartuSetor(pasKartu) : (pasKartu.masalah.length ? Promise.resolve().then(function () { S.kartu = { hasil: [], masalah: pasKartu.masalah }; }) : Promise.resolve());
         /* laporan tersimpan: pratinjau gerak stok lewat jalur Gudang Shopee (tidak menulis apa pun) */
         status(T('gerakMuat'));
         return opsBerkas(barisSetor, S.dp, oleh).then(function (b64) {
@@ -715,7 +789,7 @@
               if (h && h.ok !== false) { g.segar = 'jalan'; segarkanCermin().then(function (x) { g.segar = x.gagal.length ? 'sebagian' : 'beres'; g.segarGagal = x.gagal; ulangPrat(); }); }
             }, function (e) { g.hasil = { ok: false, pesan: String(e && e.message || e) }; });
           });
-        }).catch(function (e) { S.gerak = { galat: String(e && e.message || e) }; }).then(function () { return muat(true).then(function () {}, function () {}); });
+        }).catch(function (e) { S.gerak = { galat: String(e && e.message || e) }; }).then(function () { return muat(true).then(function () {}, function () {}); }).then(function () { return janjiKartu; });
       }, function (e) { S.hasil = { ok: false, pesan: String(e && e.message || e) }; }).then(function () { S.sibuk = false; status(''); var keep = S.hasil; gambarUlangDenganHasil(keep); });
     }
   }
@@ -730,7 +804,7 @@
       else if (t.id === 'lsSetorTgl' && tglValid(t.value)) { S.setorTgl = t.value; }
       else if (t.id === 'lsOleh') { S.oleh = t.value.trim(); simpanOleh(S.oleh); }
       else if (t.id === 'lsBerkas' && t.files && t.files[0]) {
-        var f = t.files[0]; S.hasil = null; S.gerak = null; S.berkas = { nama: f.name, isi: null }; status(T('muat'));
+        var f = t.files[0]; S.hasil = null; S.gerak = null; S.kartu = null; S.berkas = { nama: f.name, isi: null }; status(T('muat'));
         f.arrayBuffer().then(bacaBerkas).then(function (bk) {
           var u = uraiBuku(bk);
           if (u.galat) S.berkas = { nama: f.name, galat: T('kepalaGagal') };
@@ -740,5 +814,5 @@
     });
   }
 
-  W.WmsLapShopee = { _opsTabel: opsTabel, hitung: hitung, laporan: laporan, mentahan: mentahan, gambar: gambar, _uraiBuku: uraiBuku, _bacaBuku: bacaBuku, _bacaLembarXml: bacaLembarXml, _waktuSel: waktuSel, _susunLaporan: susunLaporan };
+  W.WmsLapShopee = { _pasanganKartu: pasanganKartu, _opsTabel: opsTabel, hitung: hitung, laporan: laporan, mentahan: mentahan, gambar: gambar, _uraiBuku: uraiBuku, _bacaBuku: bacaBuku, _bacaLembarXml: bacaLembarXml, _waktuSel: waktuSel, _susunLaporan: susunLaporan };
 })();
