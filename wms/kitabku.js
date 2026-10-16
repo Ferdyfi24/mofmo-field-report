@@ -146,7 +146,7 @@
 
   var TEKS = {
     en: {
-      judul: 'Kitabku', judulH: 'Title', tabRingkas: 'Event & rewards', tabCetak: 'Print QR cards', tabStruk: 'Receipt claims', tabPasang: 'Link card', tutup: 'Close',
+      judul: 'Kitabku', judulH: 'Title', tabRingkas: 'Event & rewards', tabCetak: 'Print QR cards', tabStruk: 'Receipt claims', tabPasang: 'Link card', tabTemplate: 'Templates', tutup: 'Close', tp_judul: 'Design templates', tp_ket: 'Saved in Google Drive, folder Arsip Template Mofmo Collection, one folder per event. Files stay private to the Drive owner.', tp_acara: 'Event', tp_berkas: 'Files (PNG, JPG, PDF, AI, PSD, SVG, ZIP; max 15 MB each)', tp_catatan: 'Note (optional)', tp_unggah: 'Upload', tp_kirim: 'Uploading…', tp_kosong: 'No templates archived yet.', tp_final: 'FINAL', tp_jadiFinal: 'Mark final', tp_batalFinal: 'Unmark final', tp_buka: 'Open in Drive', tp_besar: function (n) { return n + ' is larger than 15 MB. Shrink it first or save it straight to Drive.'; }, tp_tanpaAcara: 'Fill in the event name first.', tp_tanpaBerkas: 'Choose a file first.', tp_ok: function (n) { return n + ' file(s) uploaded.'; }, tp_gagal: function (n, p) { return n + ' failed: ' + p; },
       muat: 'Loading…', gagal: 'The Kitabku server could not be reached. Check the signal and try again.', ulang: 'Try again', sesiHabis: 'Your WMS session has ended. Sign in again.',
       kKartu: 'Cards unlocked', kPemain: 'Collectors', kStruk: 'Receipts waiting', kKlaim: 'Rewards claimed', kKode: 'Shopee cards printed', kDipakai: 'scanned',
       acara: 'Active event', tanpaAcara: 'No event yet. Create one before printing cards.', acaraBaru: 'New event', nama: 'Name', cap: 'Stamp', mulai: 'Start', selesai: 'End',
@@ -180,7 +180,7 @@
       kamGagal: 'The camera could not be opened. Allow camera access for this site in the browser settings, or use the scanner or type the code.'
     },
     id: {
-      judul: 'Kitabku', judulH: 'Judul', tabRingkas: 'Event & hadiah', tabCetak: 'Cetak kartu QR', tabStruk: 'Klaim struk', tabPasang: 'Pasang kartu', tutup: 'Tutup',
+      judul: 'Kitabku', judulH: 'Judul', tabRingkas: 'Event & hadiah', tabCetak: 'Cetak kartu QR', tabStruk: 'Klaim struk', tabPasang: 'Pasang kartu', tabTemplate: 'Template', tutup: 'Tutup', tp_judul: 'Template desain', tp_ket: 'Tersimpan di Google Drive, folder Arsip Template Mofmo Collection, satu folder per event. Berkas tetap privat milik pemilik Drive.', tp_acara: 'Event', tp_berkas: 'Berkas (PNG, JPG, PDF, AI, PSD, SVG, ZIP; maks 15 MB per berkas)', tp_catatan: 'Catatan (boleh kosong)', tp_unggah: 'Unggah', tp_kirim: 'Mengunggah…', tp_kosong: 'Belum ada template yang diarsipkan.', tp_final: 'FINAL', tp_jadiFinal: 'Tandai final', tp_batalFinal: 'Batal final', tp_buka: 'Buka di Drive', tp_besar: function (n) { return n + ' lebih dari 15 MB. Kecilkan dulu atau simpan langsung di Drive.'; }, tp_tanpaAcara: 'Isi nama event dulu.', tp_tanpaBerkas: 'Pilih berkasnya dulu.', tp_ok: function (n) { return n + ' berkas terunggah.'; }, tp_gagal: function (n, p) { return n + ' gagal: ' + p; },
       muat: 'Memuat…', gagal: 'Server Kitabku belum bisa dihubungi. Cek sinyal lalu coba lagi.', ulang: 'Coba lagi', sesiHabis: 'Sesi WMS sudah habis. Masuk lagi.',
       kKartu: 'Kartu terbuka', kPemain: 'Kolektor', kStruk: 'Struk menunggu', kKlaim: 'Hadiah diambil', kKode: 'Kartu Shopee dicetak', kDipakai: 'dipindai',
       acara: 'Event aktif', tanpaAcara: 'Belum ada event. Buat dulu sebelum mencetak kartu.', acaraBaru: 'Event baru', nama: 'Nama', cap: 'Cap', mulai: 'Mulai', selesai: 'Selesai',
@@ -269,7 +269,7 @@
     A.tab = tab || A.tab || 'ringkas';
     d.classList.add('buka'); d.setAttribute('aria-hidden', 'false'); document.body.classList.add('alat-terbuka');
     var l = d.querySelector('.lembar'); try { l.focus({ preventScroll: true }); } catch (e) { l.focus(); }
-    if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else muatRingkas();
+    if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else if (A.tab === 'template') muatTemplate(); else muatRingkas();
   }
   function tutup() {
     var d = el('kitabkuAdmin'); if (!d) return;
@@ -281,17 +281,80 @@
     var d = el('kitabkuAdmin'); if (!d) return;
     /* menggambar ulang membuang elemen video, jadi kamera yang masih menyala dimatikan dulu */
     if (A.kam && A.kam.aliran) matikanKamera();
-    d.querySelector('.tab-alat').innerHTML = ['ringkas', 'cetak', 'pasang', 'struk'].map(function (m) {
+    d.querySelector('.tab-alat').innerHTML = ['ringkas', 'cetak', 'pasang', 'struk', 'template'].map(function (m) {
       var on = A.tab === m, n = m === 'struk' && A.ringkas && A.ringkas.angka ? A.ringkas.angka.struk : 0;
-      return '<button type="button" role="tab" data-kbtab="' + m + '" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '">' + esc(t(m === 'ringkas' ? 'tabRingkas' : m === 'cetak' ? 'tabCetak' : m === 'pasang' ? 'tabPasang' : 'tabStruk')) + (n ? ' <b class="kb-lencana">' + n + '</b>' : '') + '</button>';
+      return '<button type="button" role="tab" data-kbtab="' + m + '" aria-selected="' + on + '" class="' + (on ? 'on' : '') + '">' + esc(t(m === 'ringkas' ? 'tabRingkas' : m === 'cetak' ? 'tabCetak' : m === 'pasang' ? 'tabPasang' : m === 'template' ? 'tabTemplate' : 'tabStruk')) + (n ? ' <b class="kb-lencana">' + n + '</b>' : '') + '</button>';
     }).join('');
     /* tab aktif selalu kelihatan di HP (deretan tab digeser ke samping) */
     var on = d.querySelector('.tab-alat .on'); if (on && on.scrollIntoView) try { on.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
     var tt = d.querySelector('.tutup-alat'); tt.setAttribute('aria-label', t('tutup')); tt.title = t('tutup');
     tt.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     var isi = A.galat ? '<div class="tolak-alat" role="alert">' + esc(A.galat) + '</div><button type="button" class="btn dua" data-kb="ulang">' + esc(t('ulang')) + '</button>' : '';
-    if (!A.galat) isi = A.tab === 'cetak' ? htmlCetak() : A.tab === 'struk' ? htmlStruk() : A.tab === 'pasang' ? htmlPasang() : htmlRingkas();
+    if (!A.galat) isi = A.tab === 'cetak' ? htmlCetak() : A.tab === 'struk' ? htmlStruk() : A.tab === 'pasang' ? htmlPasang() : A.tab === 'template' ? htmlTemplate() : htmlRingkas();
     el('kbIsi').innerHTML = isi;
+  }
+
+  /* ---------- arsip template desain (16 Okt 2026, Ferdy: simpan di Google Drive) ----------
+     Server: ArsipTemplate.gs di Apps Script (arsipTemplateDaftar, arsipTemplateUnggah, arsipTemplateFinal),
+     dipanggil lewat jalan WMS dengan kata pengganti WMS-TIKET. Ukuran dicek di HP dulu supaya berkas
+     besar tidak terkirim percuma lewat data seluler. */
+  var TP_MAKS = 15 * 1024 * 1024;
+  A.tp = { data: null, memuat: false, galat: '', acara: '', catatan: '', kirim: false, pesan: '', gagal: [] };
+  function gas(nama, args) {
+    var m = M(); if (!m.jalan) return Promise.reject(new Error(t('gagal')));
+    return Promise.resolve(m.jalan(nama, ['WMS-TIKET'].concat(args || []))).then(function (r) { if (!r || r.ok === false) throw new Error((r && r.pesan) || t('gagal')); return r; });
+  }
+  function muatTemplate() {
+    A.galat = ''; A.tp.memuat = true; gambar();
+    if (!A.ringkas) panggil('ringkas').then(function (h) { if (h && h.ok) { A.ringkas = h; if (A.tab === 'template' && !A.tp.acara) gambar(); } }, function () {});
+    return gas('arsipTemplateDaftar').then(function (r) { A.tp.memuat = false; A.tp.data = r; gambar(); }, function (e) { A.tp.memuat = false; A.galat = e.message; gambar(); });
+  }
+  function bacaBase64(f) {
+    return new Promise(function (ok, gagal) { var r = new FileReader(); r.onload = function () { ok(String(r.result).replace(/^data:[^,]*,/, '')); }; r.onerror = function () { gagal(new Error(t('gagal'))); }; r.readAsDataURL(f); });
+  }
+  function unggahTemplate() {
+    var inp = el('kbTpBerkas'), files = inp && inp.files ? [].slice.call(inp.files) : [];
+    A.tp.acara = (el('kbTpAcara') || {}).value || ''; A.tp.catatan = (el('kbTpCatatan') || {}).value || '';
+    A.tp.pesan = ''; A.tp.gagal = [];
+    if (!A.tp.acara.trim()) { A.tp.gagal = [t('tp_tanpaAcara')]; bunyi('scanTolak'); gambar(); return; }
+    if (!files.length) { A.tp.gagal = [t('tp_tanpaBerkas')]; bunyi('scanTolak'); gambar(); return; }
+    var besar = files.filter(function (f) { return f.size > TP_MAKS; });
+    if (besar.length) { A.tp.gagal = besar.map(function (f) { return t('tp_besar')(f.name); }); bunyi('scanTolak'); gambar(); return; }
+    A.tp.kirim = true; gambar();
+    var n = 0, i = 0;
+    function lanjut() {
+      if (i >= files.length) return Promise.resolve();
+      var f = files[i++];
+      return bacaBase64(f).then(function (data) { return gas('arsipTemplateUnggah', [{ acara: A.tp.acara, nama: f.name, mime: f.type, data: data, catatan: A.tp.catatan }]); })
+        .then(function () { n++; }, function (e) { A.tp.gagal.push(t('tp_gagal')(f.name, e.message)); }).then(lanjut);
+    }
+    lanjut().then(function () { A.tp.kirim = false; A.tp.pesan = n ? t('tp_ok')(n) : ''; bunyi(A.tp.gagal.length ? 'scanTolak' : 'scanOk'); return muatTemplate(); });
+  }
+  function finalTemplate(id, final) {
+    gas('arsipTemplateFinal', [id, final]).then(function () { bunyi('scanOk'); return muatTemplate(); }, function (e) { A.tp.gagal = [e.message]; gambar(); });
+  }
+  function ukuranTp(b) { return b >= 1048576 ? (Math.round(b / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+  function htmlTemplate() {
+    var tp = A.tp, ac = A.ringkas && A.ringkas.acara ? A.ringkas.acara.nama : '';
+    if (!tp.acara && ac) tp.acara = ac;
+    var form = '<section class="kb-kotak"><h3>' + esc(t('tp_judul')) + '</h3><p class="ket-alat">' + esc(t('tp_ket')) + '</p>' +
+      '<div class="kb-form4"><label>' + esc(t('tp_acara')) + '<input id="kbTpAcara" maxlength="60" value="' + esc(tp.acara) + '" placeholder="11.11 Big Sale"></label>' +
+      '<label>' + esc(t('tp_catatan')) + '<input id="kbTpCatatan" maxlength="200" value="' + esc(tp.catatan) + '"></label></div>' +
+      '<label class="kb-tp-berkas">' + esc(t('tp_berkas')) + '<input id="kbTpBerkas" type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.svg,.tif,.tiff,.pdf,.ai,.eps,.psd,.zip"></label>' +
+      (tp.gagal.length ? '<div class="tolak-alat" role="alert">' + tp.gagal.map(esc).join('<br>') + '</div>' : '') +
+      (tp.pesan ? '<p class="ls-hasil">' + esc(tp.pesan) + '</p>' : '') +
+      '<button type="button" class="btn" data-kb="tpUnggah"' + (tp.kirim ? ' disabled' : '') + '>' + esc(t(tp.kirim ? 'tp_kirim' : 'tp_unggah')) + '</button></section>';
+    var daftar;
+    if (tp.memuat && !tp.data) daftar = '<p class="ket-alat">' + esc(t('muat')) + '</p>';
+    else if (!tp.data || !tp.data.acara || !tp.data.acara.length) daftar = '<p class="ket-alat">' + esc(t('tp_kosong')) + '</p>';
+    else daftar = tp.data.acara.map(function (ev) {
+      return '<section class="kb-kotak"><h3>' + esc(ev.nama) + ' <small class="kb-mut">' + ev.file.length + '</small></h3><ul class="kb-tp-daftar">' + ev.file.map(function (f) {
+        return '<li data-tp-final="' + (f.final ? 1 : 0) + '"><div><a href="' + esc(f.url) + '" target="_blank" rel="noopener noreferrer">' + esc(f.nama) + '</a>' +
+          (f.final ? ' <span class="kb-cap">' + esc(t('tp_final')) + '</span>' : '') + '<small>' + esc(ukuranTp(f.ukuran)) + ' · ' + esc(String(f.dibuat).slice(0, 10)) + (f.catatan ? ' · ' + esc(f.catatan) : '') + '</small></div>' +
+          '<button type="button" class="btn dua" data-kb="tpFinal" data-id="' + esc(f.id) + '" data-final="' + (f.final ? 0 : 1) + '">' + esc(t(f.final ? 'tp_batalFinal' : 'tp_jadiFinal')) + '</button></li>';
+      }).join('') + '</ul></section>';
+    }).join('');
+    return form + daftar;
   }
 
   /* ---------- event & hadiah ---------- */
@@ -717,11 +780,13 @@
     var d = el('kitabkuAdmin');
     if (e.target === d) { tutup(); return; }
     var x = e.target.closest ? e.target.closest('[data-kb],[data-kbtab]') : null; if (!x) return;
-    if (x.hasAttribute('data-kbtab')) { matikanKamera(); bunyi('klik'); A.tab = x.getAttribute('data-kbtab'); A.pesan = ''; A.tolakYakin = 0; if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else if (!A.ringkas) muatRingkas(); else gambar(); return; }
+    if (x.hasAttribute('data-kbtab')) { matikanKamera(); bunyi('klik'); A.tab = x.getAttribute('data-kbtab'); A.pesan = ''; A.tolakYakin = 0; if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else if (A.tab === 'template') muatTemplate(); else if (!A.ringkas) muatRingkas(); else gambar(); return; }
     var a = x.getAttribute('data-kb'), id = Number(x.getAttribute('data-id'));
     if (a !== 'tolak') A.tolakYakin = 0;
     if (a === 'tutup') tutup();
-    else if (a === 'ulang') { if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else muatRingkas(); }
+    else if (a === 'ulang') { if (A.tab === 'struk') muatStruk(); else if (A.tab === 'pasang') { A.galat = ''; gambar(); fokusPs(); } else if (A.tab === 'template') muatTemplate(); else muatRingkas(); }
+    else if (a === 'tpUnggah') unggahTemplate();
+    else if (a === 'tpFinal') finalTemplate(x.getAttribute('data-id'), x.getAttribute('data-final') === '1');
     else if (a === 'pasang') { matikanKamera(); pasangKartu(false); }
     else if (a === 'kamKartu') { bunyi('klik'); A.ps.pesanan = (el('kbPsPesanan') || {}).value || A.ps.pesanan; nyalakanKamera('kartu'); }
     else if (a === 'kamPesanan') { bunyi('klik'); nyalakanKamera('pesanan'); }
@@ -743,6 +808,8 @@
       A.p[x.id === 'kbPJml' ? 'jumlah' : x.id === 'kbPVKode' ? 'kode' : 'teks'] = x.value;
       var bp = document.querySelector('[data-kb=buatPaket]'); if (bp) bp.disabled = !paketSiap();
     }
+    if (x.id === 'kbTpAcara') A.tp.acara = x.value;
+    if (x.id === 'kbTpCatatan') A.tp.catatan = x.value;
     if (x.id === 'kbPsPesanan') A.ps.pesanan = x.value;
     if (x.id === 'kbPsKartu') A.ps.kartu = x.value;
     if (x.hasAttribute('data-pilih')) { var sid = x.getAttribute('data-pilih'); A.pilih[sid] = A.pilih[sid] || {}; A.pilih[sid][x.value] = x.checked; }
