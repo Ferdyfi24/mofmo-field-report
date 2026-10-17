@@ -9,9 +9,11 @@
    apa pun ke server. */
 (function () {
   var l = location;
-  if (/(^|\.)ferdyfi24\.github\.io$/i.test(l.hostname)) {
+  /* 17 Okt 2026: Cloudflare pindah ke akun kantor, lapangan.mofmofriends.id tidak dipakai lagi.
+     Alamat GitHub org (laporan atasan sejak 14 Okt) ikut dialihkan supaya repo bisa private. */
+  if (/(^|\.)(ferdyfi24|mofmofriends-id)\.github\.io$/i.test(l.hostname)) {
     window.LAP_PINDAH = true;
-    l.replace("https://lapangan.mofmofriends.id" + l.pathname.replace(/^\/mofmo-field-report/, "") + l.search + l.hash);
+    l.replace("https://lapangan-mofmofriends.pages.dev" + l.pathname.replace(/^\/mofmo-field-report/, "") + l.search + l.hash);
   }
 })();
 </script>
