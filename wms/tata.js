@@ -85,6 +85,8 @@
       g2_tiba: function (tg, n) { return 'Arrived ' + tg + ' · ' + n + (n === 1 ? ' SKU' : ' SKUs'); }, g2_awal: 'Opening stock', g2_belum: function (n) { return n + ' pcs not put away'; },
       g2_trf: 'Stock transfer HO → Shopee', g2_pesanan: 'Shopee order',
       g2_catatan: 'Counted: per-batch counts are not recorded in the system yet.', g2_catatanTanpaPeta: 'Put away is not shown because the rack map could not be read right now. Counted: per-batch counts are not recorded in the system yet.',
+      g2_hitungAda: 'Counted is read from the Waktu Hitung and Qty Hitung columns in Batch Principal.', g2_hitungTambah: 'Counted: add Waktu Hitung and Qty Hitung columns to Batch Principal to record per-batch counts.',
+      g2_tanpaPeta: 'Put away is not shown because the rack map could not be read right now.', g2_selisih: function (q, n) { return 'counted ' + q + ' of ' + n + ' pcs'; },
       g2_kosongMasuk: 'No inbound from the principal in the ledger yet.', g2_tanpaBuku: 'The stock ledger could not be read right now.',
       g2_bukaMasuk: 'See stock movement', g2_bukaOff: 'Open Outbound · Offline', g2_bukaOn: 'Open Outbound · Shopee',
       j_batal: 'cancelled', j_tanpaSj: 'not issued yet', j_lebih: function (n) { return n + ' older documents in Outbound · Offline'; },
@@ -137,6 +139,8 @@
       g2_tiba: function (tg, n) { return 'Tiba ' + tg + ' · ' + n + ' SKU'; }, g2_awal: 'Stok awal', g2_belum: function (n) { return n + ' pcs belum put away'; },
       g2_trf: 'Transfer stok HO → Shopee', g2_pesanan: 'Pesanan Shopee',
       g2_catatan: 'Dihitung: hitung per batch belum dicatat sistem.', g2_catatanTanpaPeta: 'Put away tidak ditampilkan karena peta rak belum terbaca saat ini. Dihitung: hitung per batch belum dicatat sistem.',
+      g2_hitungAda: 'Dihitung dibaca dari kolom Waktu Hitung dan Qty Hitung di Batch Principal.', g2_hitungTambah: 'Dihitung: tambahkan kolom Waktu Hitung dan Qty Hitung di Batch Principal untuk mencatat hitung per batch.',
+      g2_tanpaPeta: 'Put away tidak ditampilkan karena peta rak belum terbaca saat ini.', g2_selisih: function (q, n) { return 'dihitung ' + q + ' dari ' + n + ' pcs'; },
       g2_kosongMasuk: 'Belum ada inbound dari principal di buku besar.', g2_tanpaBuku: 'Buku besar stok belum bisa dibaca saat ini.',
       g2_bukaMasuk: 'Lihat pergerakan stok', g2_bukaOff: 'Buka Outbound · Offline', g2_bukaOn: 'Buka Outbound · Shopee',
       j_batal: 'batal', j_tanpaSj: 'belum terbit', j_lebih: function (n) { return n + ' dokumen lebih lama ada di Outbound · Offline'; },
@@ -881,10 +885,18 @@
     var iPrc = idx(/^PRINCIPAL/i), iAwal = idx(/^OPENING/i), iShp = idx(/^SHP/i);
     var ambil = function (asal) { return baris.filter(function (b) { return b[4] === iHO && asal.indexOf(b[3]) >= 0 && (Number(b[2]) || 0) > 0; }); };
     var dariPrc = ambil(iPrc), awal = !dariPrc.length, rows = awal ? ambil(iAwal) : dariPrc;
-    var grup = {};
-    rows.forEach(function (b) { var tg = String(b[0] || '').slice(0, 10), g = grup[tg] = grup[tg] || { tanggal: tg, pcs: 0, sku: {} }; g.pcs += Number(b[2]) || 0; g.sku[b[1]] = (g.sku[b[1]] || 0) + (Number(b[2]) || 0); });
-    var batch = Object.keys(grup).map(function (k) { return grup[k]; }).sort(urutTglTurun);
-    var masuk = { awal: awal, peta: !!G, belum: null, batchBulan: 0, pcsBulan: 0, baris: [] };
+    /* Muatan server sejak 17 Okt membawa kode batch: baris PRINCIPAL punya indeks ke x.batch sebagai unsur
+       keenam, jadi kedatangan dikelompokkan per batch (dua batch di hari yang sama tetap dua baris). Muatan
+       lama tanpa daftar batch tetap dikelompokkan per tanggal tiba seperti dulu. */
+    var DB = (x && Array.isArray(x.batch)) ? x.batch : null, grup = {};
+    rows.forEach(function (b) {
+      var tg = String(b[0] || '').slice(0, 10), bi = DB && b.length > 5 && DB[b[5]] ? b[5] : -1, kunci = bi >= 0 ? 'b' + bi : tg;
+      var g = grup[kunci] = grup[kunci] || { tanggal: tg, kode: bi >= 0 ? String(DB[bi].k || '') : '', info: bi >= 0 ? DB[bi] : null, pcs: 0, sku: {} };
+      if (tg && tg < g.tanggal) g.tanggal = tg;
+      g.pcs += Number(b[2]) || 0; g.sku[b[1]] = (g.sku[b[1]] || 0) + (Number(b[2]) || 0);
+    });
+    var batch = Object.keys(grup).map(function (k) { return grup[k]; }).sort(function (a, b) { return urutTglTurun(a, b) || (b.kode < a.kode ? -1 : b.kode > a.kode ? 1 : 0); });
+    var masuk = { awal: awal, peta: !!G, belum: null, batchBulan: 0, pcsBulan: 0, baris: [], adaBatch: !!DB, kolomHitung: !!(x && x.batchHitung) };
     batch.forEach(function (g) { if (!awal && g.tanggal.slice(0, 7) === bulan) { masuk.batchBulan++; masuk.pcsBulan += g.pcs; } });
     var kurang = {};
     if (G) {
@@ -896,7 +908,11 @@
     batch.forEach(function (g, i) {
       var belum = 0;
       if (G) Object.keys(g.sku).forEach(function (pi) { var a = Math.min(kurang[pi] || 0, g.sku[pi]); if (a > 0) { belum += a; kurang[pi] -= a; } });
-      if (i < 3) masuk.baris.push({ ref: g.tanggal, tanggal: g.tanggal, pcs: g.pcs, nSku: Object.keys(g.sku).length, belum: belum, langkah: ['ok', 'na', G ? (belum > 0 ? 'on' : 'ok') : 'na'] });
+      /* Counted: beres kalau Waktu Hitung terisi dan Qty Hitung cocok (atau kosong); selisih dan belum dihitung
+         jadi langkah aktif. Tanpa kolomnya di Batch Principal tetap "belum dicatat sistem". */
+      var hit = g.info && g.info.hitung ? (Number(g.info.qh) > 0 && Number(g.info.qh) !== g.pcs ? 'on' : 'ok') : (masuk.kolomHitung && g.kode ? 'on' : 'na');
+      if (i < 3) masuk.baris.push({ ref: g.kode || g.tanggal, kode: g.kode, tanggal: g.tanggal, pcs: g.pcs, nSku: Object.keys(g.sku).length, belum: belum,
+        selisih: g.info && g.info.hitung && Number(g.info.qh) > 0 && Number(g.info.qh) !== g.pcs ? Number(g.info.qh) : null, langkah: ['ok', hit, G ? (belum > 0 ? 'on' : 'ok') : 'na'] });
     });
     var off = null, on = null;
     if (O) {
@@ -935,9 +951,12 @@
       var m = R.masuk;
       isiMasuk = ubin([['batch', m.awal ? null : m.batchBulan, t('g2_uBatch')], ['pcs', m.awal ? null : m.pcsBulan, t('g2_uPcsMasuk')], ['belum', m.belum, t('g2_uBelum'), m.belum > 0]]) +
         (m.baris.length ? '<ul class="l4t-glist">' + m.baris.map(function (r) {
+          if (r.kode) return baris(r, '<b>' + esc(r.kode) + '</b>', esc(t('g2_tiba')(tglPendek(r.tanggal), r.nSku)) +
+            (r.selisih != null ? ' · <em>' + esc(t('g2_selisih')(nf(r.selisih), nf(r.pcs))) + '</em>' : '') + (r.belum > 0 ? ' · <em>' + esc(t('g2_belum')(nf(r.belum))) + '</em>' : ''), LM, t('g2_lMasuk'));
           return baris(r, '<b>' + esc(m.awal ? t('g2_awal') : t('g2_tiba')(tglPendek(r.tanggal), r.nSku)) + '</b>', (m.awal ? esc(tglPendek(r.tanggal)) + ' · ' + r.nSku + ' SKU' : '') + (r.belum > 0 ? (m.awal ? ' · ' : '') + '<em>' + esc(t('g2_belum')(nf(r.belum))) + '</em>' : ''), LM, t('g2_lMasuk'));
         }).join('') + '</ul>' : '<p class="l4t-ket">' + esc(t('g2_kosongMasuk')) + '</p>') +
-        '<p class="l4t-ket" data-l4t-catatan>' + esc(m.peta ? t('g2_catatan') : t('g2_catatanTanpaPeta')) + '</p>' + tombol('gerakstok', t('g2_bukaMasuk'));
+        '<p class="l4t-ket" data-l4t-catatan>' + esc(m.adaBatch ? (m.peta ? '' : t('g2_tanpaPeta') + ' ') + (m.kolomHitung ? t('g2_hitungAda') : t('g2_hitungTambah'))
+          : (m.peta ? t('g2_catatan') : t('g2_catatanTanpaPeta'))) + '</p>' + tombol('gerakstok', t('g2_bukaMasuk'));
     }
     var tidakAda = '<p class="l4t-ket">' + esc(t('o_tidakAda')) + '</p>';
     var isiOff = !R || !R.off ? tidakAda : ubin([['buka', R.off.buka, t('g2_uBuka')], ['pcs', R.off.pcs, t('g2_uPcsOff')], ['jalan', R.off.jalan, t('g2_uJalan')]]) +
