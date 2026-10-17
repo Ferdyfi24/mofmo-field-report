@@ -62,7 +62,8 @@ await bagian('A. hadiah baru jenis Papan Total', async () => {
   c('A1 jenis Papan Total bisa dipilih', opsi.some((x) => /^papan:.*Papan Total/.test(x)), JSON.stringify(opsi));
   await p.selectOption(B + '[data-f=jenis]', 'papan'); await p.waitForTimeout(150);
   const f = await p.evaluate((B) => { const a = document.querySelector(B + '[data-f=angka]'); return { angka: a && a.value, label: a && a.closest('label').textContent, id: document.querySelector(B + '[data-f=id]').value, ket: document.querySelector('[data-hadiah=baru]').textContent }; }, B);
-  c('A2 target jadi Jumlah pemenang, langsung 10, ID tidak hilang', f.angka === '10' && /Jumlah pemenang/.test(f.label) && f.id === 'papanTotal', JSON.stringify(f).slice(0, 300));
+  /* 18 Okt: kolom "Jumlah pemenang" jadi "Peringkat sampai" karena hadiah papan sekarang per tingkat (uji-kitabku-hadiah-tingkat.mjs) */
+  c('A2 target jadi Peringkat sampai, langsung 10, ID tidak hilang', f.angka === '10' && /Peringkat sampai/.test(f.label) && f.id === 'papanTotal', JSON.stringify(f).slice(0, 300));
   c('A3 admin diberi tahu kapan hadiahnya bisa diklaim', /sesudah edisi selesai/i.test(f.ket), f.ket.slice(0, 400));
   await p.fill(B + '[data-f=hadiah]', 'Voucher Shopee'); await p.fill(B + '[data-f=kuota]', '10');
   await p.click(B + '[data-kb=hadiah]'); await p.waitForTimeout(700);

@@ -44,7 +44,8 @@ const QR = (k) => 'https://mofmofriends.id/#k=' + k;
 const tampil = (k) => k.slice(0, 4) + ' ' + k.slice(4, 8) + ' ' + k.slice(8);
 const pesananDari = (k) => db.st.kode[k].pesanan || null;
 
-const AKAR = process.env.WMS_AKAR || '/home/claude/fieldreport';
+/* 18 Okt: default ke repo tempat uji ini berada, bukan salinan lama /home/claude/fieldreport (dulu diam diam menguji kode lama) */
+const AKAR = process.env.WMS_AKAR || path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const srv = http.createServer((q, s) => {
   const u = decodeURIComponent(q.url.split('?')[0]);
   if (u === '/uji.html') { s.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return s.end('<!doctype html><html lang="id" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/wms/app.css"></head><body><script>window.__wms = { S: { tiket: ' + JSON.stringify(TIKET) + ' }, bhs: function () { return "id"; }, Suara: {} };</script><script src="/wms/kitabku.js"></script></body></html>'); }

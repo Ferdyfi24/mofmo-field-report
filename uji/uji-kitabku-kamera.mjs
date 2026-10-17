@@ -47,7 +47,8 @@ const PNG = path.join(SEM, 'qr.png'), Y4M = path.join(SEM, 'qr.y4m');
 execFileSync('python3', ['-c', 'import qrcode,sys; i=qrcode.make(sys.argv[1], border=4, box_size=8); i.save(sys.argv[2])', QR(K[0]), PNG]);
 execFileSync('ffmpeg', ['-loglevel', 'error', '-y', '-loop', '1', '-i', PNG, '-t', '2', '-vf', 'scale=480:480,pad=640:480:80:0:white,format=yuv420p', '-r', '10', Y4M]);
 
-const AKAR = process.env.WMS_AKAR || '/home/claude/fieldreport';
+/* 18 Okt: default ke repo tempat uji ini berada, bukan salinan lama /home/claude/fieldreport (dulu diam diam menguji kode lama) */
+const AKAR = process.env.WMS_AKAR || path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const srv = http.createServer((q, s) => {
   const u = decodeURIComponent(q.url.split('?')[0]);
   if (u === '/uji.html') { s.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return s.end('<!doctype html><html lang="id" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/wms/app.css"></head><body><script>window.__wms = { S: { tiket: ' + JSON.stringify(TIKET) + ' }, bhs: function () { return "id"; }, Suara: {} };</script><script src="/wms/kitabku.js"></script></body></html>'); }

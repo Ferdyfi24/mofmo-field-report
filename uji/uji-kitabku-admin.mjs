@@ -40,7 +40,8 @@ db.st.struk.push({ id: 1, status: 'menunggu', pemain: 'pA', gerai: 'TK Margo Cit
   { id: 2, status: 'menunggu', pemain: 'pB', gerai: 'Kinokuniya PIK', tanggal: '2026-10-08', produk: [KARTU[5][0]], foto: FOTO, acara: null });
 const nama = (bc) => { const k = KARTU.find((x) => x[0] === bc); return k[2].replace(' (Key Charm)', '') + ' · ' + k[3]; };
 
-const AKAR = process.env.WMS_AKAR || '/home/claude/fieldreport';
+/* 18 Okt: default ke repo tempat uji ini berada, bukan salinan lama /home/claude/fieldreport (dulu diam diam menguji kode lama) */
+const AKAR = process.env.WMS_AKAR || path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 let TIKET = tiketWms(Date.now() + 3600e3);
 const srv = http.createServer((q, s) => {
   const u = decodeURIComponent(q.url.split('?')[0]);
