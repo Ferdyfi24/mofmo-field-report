@@ -25,7 +25,8 @@ const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.webmanifest': 
 let BEDA = null, LOKAL_MATI = false, TUNDA_LOKAL = 0;
 /* 15 Okt 2026: tujuan pindah ke lapangan.mofmofriends.id. Project Pages lama
    (mofmo-lapangan.pages.dev) beku sejak repo pindah ke org mofmofriends-id. */
-const CF = 'https://lapangan.mofmofriends.id';
+/* 17 Okt 2026 (PR #26): pengalih GitHub lama sekarang menuju lapangan-mofmofriends.pages.dev, bukan lapangan.mofmofriends.id */
+const CF = 'https://lapangan-mofmofriends.pages.dev';
 const srv = http.createServer(async (q, s) => {
   if (LOKAL_MATI) return q.socket.destroy();
   if (TUNDA_LOKAL) await new Promise(x => setTimeout(x, TUNDA_LOKAL));

@@ -216,7 +216,8 @@ const PALSU_AWAL = () => {
     await fe(p, () => { document.getElementById('isi').className = 'petak'; }); await jeda(150);
     const kelasPulih = !(await terlihat(p, '#lamaGerai'));
     await ke(p, 'ringkasan');
-    const pindah = await fe(p, () => ({ l4: document.querySelectorAll('#isi > .l4t').length, kelas: document.getElementById('isi').className, ringkas: document.getElementById('ringkasanLama').offsetParent !== null }));
+    /* 17 Okt 2026: Summary sekarang punya lapisannya sendiri (Goods in & out); yang tidak boleh tersisa adalah lapisan halaman lain */
+    const pindah = await fe(p, () => ({ l4: document.querySelectorAll('#isi > .l4t:not([data-l4t-hal-ini=ringkasan])').length, kelas: document.getElementById('isi').className, ringkas: document.getElementById('ringkasanLama').offsetParent !== null }));
     c('T8 kelas #isi yang ditimpa papan dipulihkan sendiri; pindah ke halaman lain membuang lapisan baru dan halaman lama tampil normal',
       kelasPulih && pindah.l4 === 0 && !/l4t/.test(pindah.kelas) && pindah.ringkas, JSON.stringify({ kelasPulih, pindah }));
 

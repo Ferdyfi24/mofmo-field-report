@@ -241,8 +241,9 @@ const PALSU_AWAL = () => {
 
     await ke(p, 'rencana'); await jeda(800);
     const m1 = await bacaMenu(p);
-    c('M3 Shipments terbuka: Outbound · Offline dan Outbound · Shopee paling atas, lalu anak lama (Pesanan, Surat jalan, Permintaan gerai, Alokasi, Barang kembali)',
-      m1.anak === 'outbound=Outbound · Offline|obdShopee=Outbound · Shopee|pesanan=Pesanan|kemas=Surat jalan & PO|mintagerai=Permintaan gerai|alokasi=Alokasi & pengganti|kembali=Barang kembali', JSON.stringify(m1));
+    /* 17 Okt: halaman Overview (l4kirim, uji-ringkas-stok.js) jadi anak pertama Shipments, Outbound Offline dan Shopee tepat sesudahnya */
+    c('M3 Shipments terbuka: Overview, lalu Outbound · Offline dan Outbound · Shopee, lalu anak lama (Pesanan, Surat jalan, Permintaan gerai, Alokasi, Barang kembali)',
+      m1.anak === 'l4kirim=Overview|outbound=Outbound · Offline|obdShopee=Outbound · Shopee|pesanan=Pesanan|kemas=Surat jalan & PO|mintagerai=Permintaan gerai|alokasi=Alokasi & pengganti|kembali=Barang kembali', JSON.stringify(m1));
 
     await ke(p, 'outbound'); await jeda(900);
     const m2 = await bacaMenu(p);
