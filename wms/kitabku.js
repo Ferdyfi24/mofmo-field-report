@@ -154,7 +154,8 @@
       hadiah: 'Rewards', ketHadiah: 'Rewards switched on appear in every buyer\'s book. Voucher codes are created by hand in Shopee Seller Centre; paste the code here.',
       jenis: 'Type', angka: 'Target', saluran: 'Counts', semua: 'All cards', online: 'Shopee cards only', isi: 'Reward', nominal: 'Value', minBelanja: 'Min. spend',
       voucher: 'Voucher code', kuota: 'Quota', terpakai: 'claimed', aktif: 'On', simpan: 'Save', tersimpan: 'Saved', usulan: 'Add the mockup rewards (switched off)',
-      j_kartu: 'Cards collected', j_bab: 'Chapter complete', j_bintang: 'Game stars', j_edisi: 'Edition cards', j_papan: 'Total leaderboard', pemenang: 'Number of winners', ketPapan: 'Buyers ranked 1 to this number on the Total leaderboard can claim it after the edition ends. Set the quota to the same number. The voucher can be filled in later.', hadiahBaru: 'New reward', idHadiah: 'ID (letters, no spaces)',
+      j_kartu: 'Cards collected', j_bab: 'Chapter complete', j_bintang: 'Game stars', j_edisi: 'Edition cards', j_papan: 'Total leaderboard', pemenang: 'Rank to', peringkatDari: 'Rank from', ketPapan: 'One reward = one rank tier, each with its own voucher. Example: #1 (1 to 1), #2-3 (2 to 3), #4-10 (4 to 10). Buyers in this range on the Total leaderboard can claim it after the edition ends. Set the quota to the number of ranks in the range. The voucher can be filled in later.',
+      tumpang: 'Active Total leaderboard rewards overlap: {d}. A buyer in the shared ranks can claim two vouchers. Change the ranges or turn one off.', hadiahBaru: 'New reward', idHadiah: 'ID (letters, no spaces)',
       tanpaHadiah: 'No rewards yet.', kosongNominal: 'value not set',
       berlakuSampai: 'Valid until', berlakuUntuk: 'Applies to', semuaProduk: 'All shop products', maksPembeli: 'Max. uses per buyer', syarat: 'Terms shown to the buyer', syaratPh: 'e.g. One use per Shopee account. Cannot be exchanged for cash.',
       cetakJudul: 'QR cards for Shopee parcels', ketCetak: 'One card per item packed. The code works once: the first book that scans it keeps it. Output: a ZIP of 300 dpi PNG files, one per card (140 x 60 mm), ready for the print vendor.',
@@ -188,7 +189,8 @@
       hadiah: 'Hadiah', ketHadiah: 'Hadiah yang dinyalakan langsung tampil di buku setiap pembeli. Kode voucher dibuat manual di Shopee Seller Centre, lalu tempel kodenya di sini.',
       jenis: 'Jenis', angka: 'Target', saluran: 'Dihitung', semua: 'Semua kartu', online: 'Kartu Shopee saja', isi: 'Hadiah', nominal: 'Nilai', minBelanja: 'Min. belanja',
       voucher: 'Kode voucher', kuota: 'Kuota', terpakai: 'diambil', aktif: 'Nyala', simpan: 'Simpan', tersimpan: 'Tersimpan', usulan: 'Pasang hadiah dari mockup (nonaktif)',
-      j_kartu: 'Jumlah kartu', j_bab: 'Bab lengkap', j_bintang: 'Bintang game', j_edisi: 'Kartu edisi', j_papan: 'Papan Total', pemenang: 'Jumlah pemenang', ketPapan: 'Pembeli peringkat 1 sampai angka ini di papan Total bisa klaim sesudah edisi selesai. Isi kuota sama dengan jumlah pemenang. Voucher boleh diisi belakangan.', hadiahBaru: 'Hadiah baru', idHadiah: 'ID (huruf, tanpa spasi)',
+      j_kartu: 'Jumlah kartu', j_bab: 'Bab lengkap', j_bintang: 'Bintang game', j_edisi: 'Kartu edisi', j_papan: 'Papan Total', pemenang: 'Peringkat sampai', peringkatDari: 'Peringkat dari', ketPapan: 'Satu hadiah = satu tingkat peringkat, masing-masing dengan voucher sendiri. Contoh: #1 (1 sampai 1), #2-3 (2 sampai 3), #4-10 (4 sampai 10). Pembeli di rentang ini pada papan Total bisa klaim sesudah edisi selesai. Isi kuota sama dengan jumlah peringkat di rentang. Voucher boleh diisi belakangan.',
+      tumpang: 'Rentang hadiah papan Total yang aktif tumpang tindih: {d}. Pembeli di peringkat yang sama bisa klaim dua voucher. Ubah rentangnya atau matikan salah satu.', hadiahBaru: 'Hadiah baru', idHadiah: 'ID (huruf, tanpa spasi)',
       tanpaHadiah: 'Belum ada hadiah.', kosongNominal: 'nilai belum diisi',
       berlakuSampai: 'Berlaku sampai', berlakuUntuk: 'Berlaku untuk', semuaProduk: 'Semua produk toko', maksPembeli: 'Maks. pakai per pembeli', syarat: 'Syarat dan ketentuan untuk pembeli', syaratPh: 'misal: Satu kali pakai per akun Shopee. Tidak dapat diuangkan.',
       cetakJudul: 'Kartu QR untuk paket Shopee', ketCetak: 'Satu kartu untuk setiap barang yang dikemas. Kode hanya berlaku sekali: buku pertama yang memindai yang memilikinya. Hasilnya ZIP berisi PNG 300 dpi, satu berkas per kartu (14 x 6 cm), siap dikirim ke vendor cetak.',
@@ -226,7 +228,7 @@
   function tgl(s) { var m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? Number(m[3]) + ' ' + BULAN[bhs()][Number(m[2]) - 1] + ' ' + m[1] : esc(s); }
   function kodeTampil(k) { return String(k).replace(/^(.{4})(.{4})(.*)$/, '$1 $2 $3'); }
 
-  var A = { tab: 'ringkas', ringkas: null, galat: '', sibuk: false, struk: null, foto: {}, pilih: {}, tolakYakin: 0, p: { jumlah: '', kode: '', teks: '', sampai: '' }, hasilPaket: null, mencetak: false, simpanOk: {}, pesan: '', dari: null,
+  var A = { tab: 'ringkas', ringkas: null, galat: '', sibuk: false, struk: null, foto: {}, pilih: {}, tolakYakin: 0, p: { jumlah: '', kode: '', teks: '', sampai: '' }, hasilPaket: null, mencetak: false, simpanOk: {}, draf: {}, pesan: '', dari: null,
     ps: { pesanan: '', kartu: '', hasil: null, tunda: null, log: [], sibuk: false }, kam: { aliran: null, v: null, t: null, sasaran: '', det: null, gagal: false } };
   function panggil(aksi, isi) {
     var badan = Object.assign({ fn: 'admin', aksi: aksi, tiket: (M().S && M().S.tiket) || '' }, isi || {});
@@ -370,10 +372,12 @@
       '<label>' + esc(t('nama')) + '<input id="kbAcNama" maxlength="60" placeholder="11.11 Big Sale"></label><label>' + esc(t('cap')) + '<input id="kbAcCap" maxlength="12" placeholder="11.11"></label>' +
       '<label>' + esc(t('mulai')) + '<input id="kbAcMulai" type="date"></label><label>' + esc(t('selesai')) + '<input id="kbAcSelesai" type="date"></label></div>' +
       '<p class="ket-alat">' + esc(t('ketAcara')) + '</p><button type="button" class="btn" data-kb="acara">' + esc(t('simpanAcara')) + '</button></details></section>';
-    var rows = (r.hadiah || []).map(htmlHadiah).join('');
+    /* isian yang ditolak server tetap di form (18 Okt): dulu form kembali ke nilai lama dan hadiah baru kosong lagi */
+    var rows = (r.hadiah || []).map(function (h) { return htmlHadiah(A.draf[h.id] ? Object.assign({}, h, A.draf[h.id]) : h); }).join(''), tp = tumpangPapan(r.hadiah);
+    if (tp.length) rows = '<div class="tolak-alat kb-tumpang" role="alert">' + esc(t('tumpang').replace('{d}', tp.join(', '))) + '</div>' + rows;
     var hadiah = '<section class="kb-kotak"><h3>' + esc(t('hadiah')) + '</h3><p class="ket-alat">' + esc(t('ketHadiah')) + '</p>' +
       (rows || '<p class="ket-alat">' + esc(t('tanpaHadiah')) + '</p>') +
-      '<details class="kb-det"><summary>' + esc(t('hadiahBaru')) + '</summary>' + htmlHadiah({ id: '', jenis: 'kartu', angka: 3, saluran: 'semua', aktif: false, baru: true }) + '</details>' +
+      '<details class="kb-det"' + (A.draf.baru ? ' open' : '') + '><summary>' + esc(t('hadiahBaru')) + '</summary>' + htmlHadiah(A.draf.baru ? Object.assign({}, A.draf.baru, { baru: true }) : { id: '', jenis: 'kartu', angka: 3, saluran: 'semua', aktif: false, baru: true }) + '</details>' +
       (rows ? '' : '<button type="button" class="btn dua" data-kb="usulan">' + esc(t('usulan')) + '</button>') + '</section>';
     return (A.pesan ? '<div class="tolak-alat" role="alert">' + esc(A.pesan) + '</div>' : '') + '<div class="kb-kpis">' + kpi + '</div>' + acara + hadiah;
   }
@@ -386,6 +390,8 @@
       '<div class="kb-hgrid">' +
       '<label>' + esc(t('judulH')) + inp('judul', h.judul) + '</label>' +
       '<label>' + esc(t('jenis')) + sel('jenis', [['kartu', t('j_kartu')], ['bab', t('j_bab')], ['bintang', t('j_bintang')], ['edisi', t('j_edisi')], ['papan', t('j_papan')]], h.jenis) + '</label>' +
+      /* 18 Okt 2026, Ferdy: voucher beda tiap peringkat. Hadiah papan = satu tingkat, Peringkat dari sampai Peringkat sampai. */
+      (h.jenis === 'papan' ? '<label>' + esc(t('peringkatDari')) + inp('peringkat_dari', h.peringkat_dari || 1, '', 'number') + '</label>' : '') +
       '<label>' + esc(t(h.jenis === 'papan' ? 'pemenang' : 'angka')) + (h.jenis === 'bab' ? sel('angka', BAB.map(function (b, i) { return [i, ROM[i] + ' · ' + b]; }), h.angka) : inp('angka', h.angka, '', 'number')) + '</label>' +
       '<label>' + esc(t('saluran')) + sel('saluran', [['semua', t('semua')], ['online', t('online')]], h.saluran) + '</label>' +
       '<label>' + esc(t('isi')) + inp('hadiah', h.hadiah) + '</label>' +
@@ -402,8 +408,22 @@
   }
   function judulAdmin(h) {
     if (h.judul) return h.judul;
-    var n = h.jenis === 'bab' ? 'Bab ' + ROM[Number(h.angka)] + ' · ' + BAB[Number(h.angka)] : h.jenis === 'bintang' ? '★★★' : h.jenis === 'papan' ? '· top ' + h.angka : h.angka;
+    var n = h.jenis === 'bab' ? 'Bab ' + ROM[Number(h.angka)] + ' · ' + BAB[Number(h.angka)] : h.jenis === 'bintang' ? '★★★' : h.jenis === 'papan' ? rentangPapan(h) : h.angka;
     return t('j_' + h.jenis) + ' ' + n;
+  }
+  /* #1, #4-10; hadiah papan lama yang mulai dari 1 tetap "top N" */
+  function rentangPapan(h) {
+    var d = Number(h.peringkat_dari) || 1, s = Number(h.angka) || 0;
+    return d === s ? '#' + d : d > 1 ? '#' + d + '-' + s : '· top ' + s;
+  }
+  /* pasangan hadiah papan aktif yang rentangnya beririsan: pembeli di irisan bisa klaim dua voucher */
+  function tumpangPapan(daftar) {
+    var pp = (daftar || []).filter(function (h) { return h.jenis === 'papan' && h.aktif; }), hasil = [];
+    for (var i = 0; i < pp.length; i++) for (var j = i + 1; j < pp.length; j++) {
+      var a = pp[i], b = pp[j];
+      if (Math.max(Number(a.peringkat_dari) || 1, Number(b.peringkat_dari) || 1) <= Math.min(Number(a.angka) || 0, Number(b.angka) || 0)) hasil.push(a.id + ' & ' + b.id);
+    }
+    return hasil;
   }
   function bacaHadiah(k) {
     var box = document.querySelector('[data-hadiah="' + k + '"]'); if (!box) return null;
@@ -411,6 +431,7 @@
     box.querySelectorAll('[data-f]').forEach(function (x) { var f = x.getAttribute('data-f'); h[f] = x.type === 'checkbox' ? x.checked : x.value; });
     h.angka = Number(h.angka || 0); h.kuota = Number(h.kuota || 0);
     if ('maks_per_pembeli' in h) h.maks_per_pembeli = Number(h.maks_per_pembeli);
+    if ('peringkat_dari' in h) h.peringkat_dari = Number(h.peringkat_dari || 0);
     if (!h.voucher) h.voucher = null;
     return h;
   }
@@ -418,8 +439,8 @@
     var h = bacaHadiah(k); if (!h) return;
     A.pesan = '';
     panggil('hadiah', { hadiah: h }).then(function (r) {
-      if (!r.ok) { A.pesan = r.pesan; bunyi('scanTolak'); gambar(); return; }
-      bunyi('scanOk'); A.simpanOk = {}; A.simpanOk[h.id] = 1; return muatRingkas();
+      if (!r.ok) { A.pesan = r.pesan; A.draf[k] = h; bunyi('scanTolak'); gambar(); return; }
+      bunyi('scanOk'); A.draf = {}; A.simpanOk = {}; A.simpanOk[h.id] = 1; return muatRingkas();
     }, function (e) { A.pesan = e.message; gambar(); });
   }
   function pasangUsulan() {
