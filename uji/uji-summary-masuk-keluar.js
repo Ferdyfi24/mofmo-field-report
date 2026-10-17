@@ -23,7 +23,13 @@ const AKAR = process.env.AKAR || path.resolve(__dirname, '..');
 const API = 'https://script.google.com/macros/s/AKfycbzslW9akcAS2EINjrdcllgpGpuQzz_I2jHtNyEWixS-yl2HSsqE5kfTDjDGR8H_Zcq9xA/exec';
 const SUPA = 'https://oloxoxmfbfxxibksxeug.supabase.co/functions/v1/wms';
 const KODE_BENAR = 'KODE-PALSU-UJI';
-const DIHARAPKAN = 15;
+const DIHARAPKAN = 18;
+/* HTML Summary yang benar-benar digambar server (smrHtml_ di Summary.gs editor, dibuat 17 Okt
+   dari fixture uji server). Kartu tiruan di bawah memakai <h3>, padahal server menulis judul
+   Last 3 inbound/outbound sebagai div. Selama itu tata.js tidak menemukan kartu lama di papan
+   sungguhan: kartu lama tetap tampil dan Goods in & out jatuh ke paling atas. S16 memakai HTML
+   asli supaya selisih seperti itu tidak bisa lolos lagi. */
+const SMR_ASLI = fs.readFileSync(path.join(__dirname, 'fixture-summary-server.html'), 'utf8');
 const jenis = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
 const srv = http.createServer((q, s) => {
   let p = decodeURIComponent(q.url.split('?')[0]); if (p.endsWith('/')) p += 'index.html';
@@ -48,8 +54,18 @@ const DATA = { ok: true, hariIni: '2026-10-15', bulanIni: '2026-10',
   prod: [{ b: '111', n: 'MofmoFriends S - Bear', s: 'MF-PLU-005', hs: 175000, h: 194250, r: 298846 }, { b: '222', n: 'MofmoFriends S - Panda', s: 'MF-PLU-010', hs: 175000, h: 194250, r: 298846 },
     { b: '333', n: 'MofmoFriends Key Charm - Tiger', s: 'MF-KC-008', hs: 150324, h: 166860, r: 249900 }],
   baris: [['2026-10-01', 0, 20, 3, 0], ['2026-10-01', 1, 10, 3, 0], ['2026-10-01', 2, 10, 3, 0],
-    ['2026-09-19', 0, 30, 4, 0], ['2026-09-19', 2, 20, 4, 0], ['2026-10-03', 1, 16, 4, 0], ['2026-10-14', 0, 12, 4, 0], ['2026-10-14', 1, 8, 4, 0],
-    ['2026-10-05', 0, 6, 0, 1], ['2026-10-10', 2, 15, 0, 5], ['2026-10-12', 1, 4, 0, 5], ['2026-10-13', 2, 2, 5, 2]] };
+    ['2026-09-19', 0, 30, 4, 0, 0], ['2026-09-19', 2, 20, 4, 0, 0], ['2026-10-03', 1, 16, 4, 0, 1], ['2026-10-14', 0, 12, 4, 0, 2], ['2026-10-14', 1, 8, 4, 0, 3],
+    ['2026-10-05', 0, 6, 0, 1], ['2026-10-10', 2, 15, 0, 5], ['2026-10-12', 1, 4, 0, 5], ['2026-10-13', 2, 2, 5, 2]],
+  /* Kode batch principal (item 3, 17 Okt): baris PRINCIPAL membawa indeks batch sebagai unsur keenam.
+     Dua batch tiba di hari yang sama (14 Okt): dulu digabung jadi satu baris per tanggal.
+     EE-2609-01 sudah dihitung 50 = 50 pcs; EE-2610-01 dihitung 15 padahal masuk 16 (selisih);
+     EE-2610-02 dan EE-2610-03 belum dihitung. Kolom Waktu Hitung ada (batchHitung). */
+  batch: [{ k: 'EE-2609-01', po: '2026-09-01', tiba: '2026-09-19', hitung: '2026-09-19', qh: 50 }, { k: 'EE-2610-01', po: '2026-09-20', tiba: '2026-10-03', hitung: '2026-10-03', qh: 15 },
+    { k: 'EE-2610-02', po: '2026-10-01', tiba: '2026-10-14', hitung: '', qh: 0 }, { k: 'EE-2610-03', po: '2026-10-02', tiba: '2026-10-14', hitung: '', qh: 0 }],
+  batchHitung: true };
+/* Muatan server lama (sebelum item 3): tanpa daftar batch dan tanpa unsur keenam. Kartu harus tetap seperti dulu. */
+const DATA_LAMA = Object.assign({}, DATA, { baris: DATA.baris.map(b => b.slice(0, 5)) }); delete DATA_LAMA.batch; delete DATA_LAMA.batchHitung;
+let DATA_AKTIF = DATA;
 /* ---------- peta gudang ----------
    Bear R1-4A 40 + X-01 16 = 56 (semua stok HO Bear berlokasi). Panda R2-1A 22 dari 30 -> 8 pcs belum put away.
    Tiger R1-3B 15 (semua berlokasi). Total belum put away 8.
@@ -149,6 +165,7 @@ const SKRIP = function () {
       sr.innerHTML = '<div class="smr"><p>memuat</p></div>';
       setTimeout(function () {
         if (!host.isConnected) return;
+        if (window.__smrAsli) { sr.innerHTML = window.__smrAsli; return; }
         sr.innerHTML = '<div class="smr"><div class="kk" id="kpi"><h3>Sales value</h3><b>Rp48,250,000</b></div>' +
           (window.__tanpaLama ? '' : '<div class="baris"><div class="c" id="cIn"><h3>Last 3 inbound</h3><div class="r"><b>BATCH-03</b> Arrived</div></div>' +
           '<div class="c" id="cOut"><h3>Last 3 outbound</h3><div class="r"><b>PLAN-2610-07</b> Picking</div></div></div>') +
@@ -223,7 +240,7 @@ const PALSU_AWAL = () => {
       let m = {}; try { m = JSON.parse(r.request().postData() || '{}'); } catch (e) {}
       if (m.fn === 'panggil') panggilApi.push(m.nama);
       let h;
-      if (m.fn === 'panggil' && m.nama === 'dataPapan') h = { pintu: 'ok', hasil: DATA };
+      if (m.fn === 'panggil' && m.nama === 'dataPapan') h = { pintu: 'ok', hasil: DATA_AKTIF };
       else if (m.fn === 'panggil' && m.nama === 'obdDaftar') h = { pintu: 'ok', hasil: OBD };
       else if (m.fn === 'panggil' && m.nama === 'papanKerja') h = { pintu: 'ok', hasil: KERJA };
       else h = { pintu: 'galat', pesan: 'Fungsi "' + (m.nama || m.fn) + '" tidak dibuka untuk WMS.' };
@@ -235,7 +252,7 @@ const PALSU_AWAL = () => {
       if (m.fn === 'masuk') h = String(m.kode || '').trim().toUpperCase() === KODE_BENAR ? { ok: true, tiket: 'TIKET.SUPA', ingat: true } : { ok: false, pesan: 'no' };
       else if (m.fn === 'ambil') {
         const w = new Date(Date.now() - 60000).toISOString();
-        const o = { 'dataPapan|["K"]': DATA, 'obdDaftar|["K"]': OBD, 'wmsGudang|["K"]': ADA_GUDANG ? GUDANG : undefined, 'papanKerja|["K",""]': KERJA, 'klien|papan': { ok: true, versi: 'ringkas', html: PAPAN_PALSU }, 'klien|versi': { ok: true, versi: 'ringkas' } };
+        const o = { 'dataPapan|["K"]': DATA_AKTIF, 'obdDaftar|["K"]': OBD, 'wmsGudang|["K"]': ADA_GUDANG ? GUDANG : undefined, 'papanKerja|["K",""]': KERJA, 'klien|papan': { ok: true, versi: 'ringkas', html: PAPAN_PALSU }, 'klien|versi': { ok: true, versi: 'ringkas' } };
         const isi = {}; (m.kunci || []).forEach(k => { if (o[k]) isi[k] = { waktu: w, data: o[k] }; });
         h = { ok: true, isi };
       } else h = { ok: false };
@@ -303,12 +320,14 @@ const PALSU_AWAL = () => {
     c('S1 Summary: bagian Goods in & out menempati tempat kartu lama (sesudah KPI, sebelum baris kartu lama), tiga kartu (inbound, offline, online)',
       g && g.posisi === 'kpi>baris' && Object.keys(g.kartu).join(',') === 'masuk,offline,online', JSON.stringify(g && { posisi: g.posisi, k: Object.keys(g.kartu) }));
     const M = g.kartu.masuk, O = g.kartu.offline, N = g.kartu.online;
-    c('S2 ubin inbound: 2 batch bulan ini, 36 pcs masuk HO bulan ini, 8 pcs belum put away (peta gudang vs stok HO)',
-      teksAngka(M.ubin.batch) === '2' && teksAngka(M.ubin.pcs) === '36' && teksAngka(M.ubin.belum) === '8', JSON.stringify(M.ubin));
-    c('S3 baris inbound: 14 Okt 20 pcs put away belum beres (8 pcs), 3 Okt 16 pcs beres, 19 Sep 50 pcs beres; stok awal OPENING tidak ikut',
-      M.baris.map(x => x.split('/').filter((v, i) => i !== 2).join('/')).join(' | ') === '2026-10-14/20/8 | 2026-10-03/16/ | 2026-09-19/50/', M.baris.join(' | '));
-    c('S4 langkah inbound: Arrived beres, Counted ditandai belum dicatat sistem (bukan beres), Put away mengikuti peta gudang',
-      M.baris.map(x => x.split('/')[2]).join(' | ') === 'tiba:ok,hitung:na,putaway:on | tiba:ok,hitung:na,putaway:ok | tiba:ok,hitung:na,putaway:ok', M.baris.join(' | '));
+    c('S2 ubin inbound: 3 batch bulan ini (dua tiba 14 Okt), 36 pcs masuk HO bulan ini, 8 pcs belum put away (peta gudang vs stok HO)',
+      teksAngka(M.ubin.batch) === '3' && teksAngka(M.ubin.pcs) === '36' && teksAngka(M.ubin.belum) === '8', JSON.stringify(M.ubin));
+    c('S3 baris inbound per kode batch: EE-2610-03 8 pcs (put away belum, 8 pcs), EE-2610-02 12 pcs, EE-2610-01 16 pcs; stok awal OPENING tidak ikut',
+      M.baris.map(x => x.split('/').filter((v, i) => i !== 2).join('/')).join(' | ') === 'EE-2610-03/8/8 | EE-2610-02/12/ | EE-2610-01/16/', M.baris.join(' | '));
+    const judulMasuk = await fe(p, () => Array.from(window.__cariGio().querySelectorAll('[data-l4t-kartu=masuk] [data-l4t-baris]')).map(r => r.querySelector('.a b').textContent + ' # ' + r.querySelector('small').textContent));
+    c('S4 langkah inbound: Counted beres hanya kalau Waktu Hitung terisi dan jumlahnya cocok; belum dihitung dan selisih jadi langkah aktif, selisihnya ditulis',
+      M.baris.map(x => x.split('/')[2]).join(' | ') === 'tiba:ok,hitung:on,putaway:on | tiba:ok,hitung:on,putaway:ok | tiba:ok,hitung:on,putaway:ok' &&
+      judulMasuk[0].indexOf('EE-2610-03 # Arrived 14 Oct') === 0 && /counted 15 of 16 pcs/.test(judulMasuk[2]) && !/counted/.test(judulMasuk[0] + judulMasuk[1]), M.baris.join(' | ') + ' || ' + judulMasuk.join(' | '));
     c('S5 ubin offline: 3 terbuka, 112 pcs bulan ini (SJ batal dan bulan lalu tidak ikut), 1 di jalan',
       teksAngka(O.ubin.buka) === '3' && teksAngka(O.ubin.pcs) === '112' && teksAngka(O.ubin.jalan) === '1', JSON.stringify(O.ubin));
     c('S6 baris offline: PLAN-2610-07 picking, PLAN-2610-06 staging = pengiriman, PLAN-2610-05 transit = pengiriman; Shopee dan SJ batal tidak ada',
@@ -341,7 +360,45 @@ const PALSU_AWAL = () => {
     const g3 = await bacaGIO(p), l3 = await bacaLama(p);
     c('S15 kartu lama tidak ada: bagian Goods in & out tetap tampil paling atas #isi, KPI server tetap tampil',
       g3 && g3.posisi === 'atas' && l3.kpi === true && Object.keys(g3.kartu).length === 3, JSON.stringify({ posisi: g3 && g3.posisi, l3 }));
+    /* Summary server sungguhan: bagian harus berdiri di dalam .smr, persis di tempat blok aktivitas (sesudah kartu kunci),
+       blok aktivitas tersembunyi, sedangkan pita, kartu kunci, dan Warehouse condition tetap tampil */
+    await fe(p, h => { window.__tanpaLama = 0; window.__smrAsli = h; window.HAL = 'ringkasan'; window.gambar(); }, SMR_ASLI); await tungguGIO(p); await jeda(1500);
+    const asli = await fe(p, () => {
+      const sr = document.getElementById('smrKotak').shadowRoot, s = window.__cariGio(), akt = sr.querySelector('.akt');
+      const tampak = el => !!el && getComputedStyle(el).display !== 'none' && el.getClientRects().length > 0;
+      const sebelum = s && s.previousElementSibling;
+      return { diSmr: !!(s && s.parentNode && s.parentNode.classList && s.parentNode.classList.contains('smr')), sesudah: !!(s && s.nextElementSibling === akt),
+        sebelum: sebelum ? sebelum.className : '', aktSembunyi: !!akt && !tampak(akt), ubin: tampak(sr.querySelector('.ubin')), pita: tampak(sr.querySelector('.smrPita')),
+        gudang: tampak(Array.from(sr.querySelectorAll('h2')).find(h => /Warehouse condition/.test(h.textContent))), kartu: s ? s.querySelectorAll('[data-l4t-kartu]').length : 0 };
+    });
+    c('S16 Summary server asli: Goods in & out di dalam Summary tepat di tempat blok Last 3 (sesudah kartu kunci), blok lama tersembunyi, pita, KPI, Warehouse condition tetap tampil',
+      asli.diSmr && asli.sesudah && /ubin/.test(asli.sebelum) && asli.aktSembunyi && asli.ubin && asli.pita && asli.gudang && asli.kartu === 3, JSON.stringify(asli));
+    /* batch yang Waktu Hitung-nya terisi dan jumlahnya cocok: Counted beres (EE-2609-01, dilihat dengan menyembunyikan batch Oktober) */
+    await fe(p, () => { window.__smrAsli = ''; });
+    if (process.env.FOTO) await p.screenshot({ path: process.env.FOTO, fullPage: true });
+    await fe(p, () => { window.__smrAsli = ''; });
     await ctx.close();
+
+    /* ================= muatan server lama (tanpa kode batch) ================= */
+    DATA_AKTIF = DATA_LAMA;
+    const ctx3 = await b.newContext({ viewport: { width: 1440, height: 1000 } });
+    await pasangRute(ctx3);
+    const p3 = await halaman(ctx3);
+    await masuk(p3, 'en'); await pasangCari(p3); await tungguGIO(p3); await jeda(900);
+    const gl = await bacaGIO(p3);
+    c('S17 muatan server lama (tanpa batch): kartu Inbound tetap per tanggal tiba dan Counted tetap "belum dicatat sistem"',
+      gl && gl.kartu.masuk.baris.join(' | ') === '2026-10-14/20/tiba:ok,hitung:na,putaway:on/8 | 2026-10-03/16/tiba:ok,hitung:na,putaway:ok/ | 2026-09-19/50/tiba:ok,hitung:na,putaway:ok/', JSON.stringify(gl && gl.kartu.masuk.baris));
+    /* hanya batch September yang tersisa di buku besar: ia sudah dihitung 50 = 50, jadi Counted beres */
+    DATA_AKTIF = Object.assign({}, DATA, { baris: DATA.baris.filter(r => !(r[3] === 4 && r[5] > 0)) });
+    const ctx4 = await b.newContext({ viewport: { width: 1440, height: 1000 } });
+    await pasangRute(ctx4);
+    const p4 = await halaman(ctx4);
+    await masuk(p4, 'en'); await pasangCari(p4); await tungguGIO(p4); await jeda(900);
+    const gs = await bacaGIO(p4);
+    c('S18 batch yang Waktu Hitung-nya terisi dan jumlahnya cocok: Counted beres, catatan menyebut kolom Waktu Hitung',
+      gs && /^EE-2609-01\/50\/tiba:ok,hitung:ok,/.test(gs.kartu.masuk.baris[0] || '') && /Waktu Hitung/.test(gs.catatan), JSON.stringify(gs && { b: gs.kartu.masuk.baris, c: gs.catatan }));
+    await ctx3.close(); await ctx4.close();
+    DATA_AKTIF = DATA;
 
     /* ================= HP, bahasa Indonesia, peta gudang gagal dibaca ================= */
     ADA_GUDANG = false;
