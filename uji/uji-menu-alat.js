@@ -100,7 +100,8 @@ const ALAT = ['laporan', 'kontrol', 'jadwal', 'katalog', 'kitabku', 'tanya'];
     if (fr) { await klik(fr, '[data-wms-menu=alat] [data-wms=laporan]'); await jeda(300); }
     await p.waitForFunction(() => { const d = document.getElementById('laporan'); return d && d.classList.contains('buka'); }, null, { timeout: 6000 }).catch(() => {});
     const s4 = fr ? await kepala(fr) : {};
-    const t4 = { lap: await p.evaluate(() => { const d = document.getElementById('laporan'); return !!(d && d.classList.contains('buka')); }), hal: fr ? await fr.evaluate(() => document.getElementById('isi').textContent + '|' + (window.__klikPapan || 0)) : '' };
+    const t4 = { lap: await p.evaluate(() => { const d = document.getElementById('laporan'); return !!(d && d.classList.contains('buka')); }), hal: fr ? await fr.evaluate(() => Array.from(document.getElementById('isi').childNodes).filter(x => !(x.classList && x.classList.contains('l4t'))).map(x => x.textContent).join('') + '|' + (window.__klikPapan || 0)) : '' };
+    /* 17 Okt 2026: Summary punya lapisan Goods in & out (.l4t) di atas isi papan, jadi yang dibandingkan isi papan tanpa lapisan itu */
     c('4 pilih Laporan: panel Laporan terbuka, daftar menutup, halaman papan tidak ikut pindah', t4.lap && !s4.terbuka && s4.exp === 'false' && t4.hal === 'HAL ringkasan|0', JSON.stringify([t4, s4.terbuka]));
     await p.evaluate(() => { const t = document.querySelector('#laporan [data-laporan=tutup]'); if (t) t.click(); });
     await jeda(250);
