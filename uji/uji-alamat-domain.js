@@ -1,5 +1,5 @@
 /* Uji alamat domain mofmofriends.id (15 Okt 2026).
- * Harapan: "7 pemeriksaan, SEMUA LULUS".
+ * Harapan: "9 pemeriksaan, SEMUA LULUS".
  *
  * KENAPA UJI INI ADA. Repo pindah ke org mofmofriends-id, dan project Pages
  * lama (mofmo-wms, mofmo-lapangan) berhenti menerima versi baru karena
@@ -14,13 +14,21 @@
  *    aplikasi beku, jadi perbaikan berikutnya tidak pernah sampai ke HP-nya.
  *  - Pengalih dari alamat GitHub lama mengirim orang ke alamat beku.
  * QR dibaca dengan dekoder sungguhan (zxing-cpp), bukan dibandingkan string.
+ *
+ * 17 Okt 2026: Cloudflare pindah ke akun email kantor. Ferdy memutuskan WMS
+ * dan aplikasi lapangan tidak memakai domain ("2 2 nya ga ush di pakein
+ * domain"), jadi wms.mofmofriends.id dan lapangan.mofmofriends.id mati begitu
+ * nameserver pindah. Laporan atasan dan aplikasi lapangan sekarang di
+ * lapangan-mofmofriends.pages.dev. Kitab tetap di mofmofriends.id. Pengalih
+ * juga harus menangkap mofmofriends-id.github.io (alamat laporan atasan sejak
+ * 14 Okt), supaya repo bisa dijadikan private tanpa memutus tautan atasan.
  */
 const fs = require('fs'), os = require('os'), path = require('path');
 const { execFileSync } = require('child_process');
 const REPO = path.join(__dirname, '..');
 const baca = f => fs.readFileSync(path.join(REPO, f), 'utf8');
 
-let gagal = 0, jalan = 0; const DIHARAPKAN = 7;
+let gagal = 0, jalan = 0; const DIHARAPKAN = 9;
 const c = (n, ok, k) => { jalan++; if (!ok) gagal++; console.log((ok ? 'LULUS ' : 'GAGAL ') + n + (ok ? '' : '  -> ' + k)); };
 
 function bacaQr(m) {
@@ -50,14 +58,29 @@ c('A3 tulisan "ketik kodenya di" (en dan id) menyebut mofmofriends.id, bukan pag
 /* ---------- WMS: tautan aplikasi lapangan di halaman masuk ---------- */
 const srcApp = baca('wms/app.js');
 const lap = (srcApp.match(/var APP_LAPANGAN = '([^']+)'/) || [])[1] || '';
-c('B1 tautan aplikasi lapangan di halaman masuk WMS ke https://lapangan.mofmofriends.id/lapangan/', lap === 'https://lapangan.mofmofriends.id/lapangan/', lap);
+c('B1 tautan aplikasi lapangan di halaman masuk WMS ke https://lapangan-mofmofriends.pages.dev/lapangan/', lap === 'https://lapangan-mofmofriends.pages.dev/lapangan/', lap);
 const tampil = (srcApp.match(/'<a href="' \+ APP_LAPANGAN \+ '">([^<]+)<\/a>/) || [])[1] || '';
-c('B2 teks tautan yang dibaca orang sama dengan tujuannya', tampil === 'lapangan.mofmofriends.id/lapangan', tampil);
+c('B2 teks tautan yang dibaca orang sama dengan tujuannya', tampil === 'lapangan-mofmofriends.pages.dev/lapangan', tampil);
 
 /* ---------- Pengalih alamat GitHub lama ---------- */
 const tujuan = f => (baca(f).match(/l\.replace\("([^"]+)"/) || [])[1] || '';
-c('C1 pengalih GitHub lama di halaman laporan (index.html) ke lapangan.mofmofriends.id', tujuan('index.html') === 'https://lapangan.mofmofriends.id', tujuan('index.html'));
-c('C2 pengalih GitHub lama di aplikasi lapangan (lapangan/index.html) ke lapangan.mofmofriends.id', tujuan('lapangan/index.html') === 'https://lapangan.mofmofriends.id', tujuan('lapangan/index.html'));
+c('C1 pengalih GitHub lama di halaman laporan (index.html) ke lapangan-mofmofriends.pages.dev', tujuan('index.html') === 'https://lapangan-mofmofriends.pages.dev', tujuan('index.html'));
+c('C2 pengalih GitHub lama di aplikasi lapangan (lapangan/index.html) ke lapangan-mofmofriends.pages.dev', tujuan('lapangan/index.html') === 'https://lapangan-mofmofriends.pages.dev', tujuan('lapangan/index.html'));
+
+/* Perilaku pengalih: skrip kepala dijalankan dengan location tiruan. Dari dua alamat
+   GitHub (lama pribadi dan org) harus pindah dengan path, ? dan # utuh; di alamat
+   barunya sendiri tidak boleh mengalihkan (kalau iya, halaman berputar terus). */
+function jalankanPengalih(f, host, pathname) {
+  const skrip = (baca(f).match(/<script>\s*(\/\*[\s\S]*?\*\/\s*)?\(function \(\) \{[\s\S]*?\}\)\(\);\s*<\/script>/) || [''])[0].replace(/<\/?script>/g, '');
+  let ke = null; const location = { hostname: host, pathname, search: '?a=1', hash: '#k=KJ-1', replace: (u) => { ke = u; } };
+  const window = {}; new Function('location', 'window', skrip)(location, window); return ke;
+}
+const cekPengalih = (f, p) => [jalankanPengalih(f, 'ferdyfi24.github.io', '/mofmo-field-report' + p), jalankanPengalih(f, 'mofmofriends-id.github.io', '/mofmo-field-report' + p), jalankanPengalih(f, 'lapangan-mofmofriends.pages.dev', p)];
+const h3 = cekPengalih('index.html', '/'), h4 = cekPengalih('lapangan/index.html', '/lapangan/');
+c('C3 laporan atasan: dua alamat GitHub (pribadi lama dan org) pindah ke alamat baru dengan ? dan # utuh, alamat baru tidak mengalihkan',
+  h3[0] === 'https://lapangan-mofmofriends.pages.dev/?a=1#k=KJ-1' && h3[1] === h3[0] && h3[2] === null, JSON.stringify(h3));
+c('C4 aplikasi lapangan: sama, path /lapangan/ ikut terbawa',
+  h4[0] === 'https://lapangan-mofmofriends.pages.dev/lapangan/?a=1#k=KJ-1' && h4[1] === h4[0] && h4[2] === null, JSON.stringify(h4));
 
 if (jalan !== DIHARAPKAN) { console.log('BAHAYA: ' + jalan + ' pemeriksaan berjalan, seharusnya ' + DIHARAPKAN); gagal++; }
 console.log('\n' + jalan + ' pemeriksaan, ' + (gagal ? gagal + ' GAGAL' : 'SEMUA LULUS'));
